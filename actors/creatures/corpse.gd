@@ -13,6 +13,8 @@ var age := 0.0
 var reserved_by: Node = null   ## predador que está indo comer
 var preserved := false         ## embrulhada em seda: não apodrece
 var energy_bonus := 0.0        ## + Energia máx. para quem comer
+var acid_bonus := 0            ## + Resistência a Ácido (Sapo-de-rocha)
+var skin_bonus := false        ## Pele de Cristal (Centopeia-blindada)
 var _color := Color.GRAY
 var _radius := 0.4
 var _mat: StandardMaterial3D

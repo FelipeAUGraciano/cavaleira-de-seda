@@ -55,6 +55,8 @@ var satiety := 100.0
 var level := 1
 var xp := 0
 var resist_rot := 0
+var resist_acid := 0            ## sobe comendo Sapo-de-rocha; 3 = atravessa as Poças ácidas
+var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
 var rune_on := true
 var dead := false
 var in_territory := false
@@ -85,6 +87,8 @@ var weave_first: WebAnchor = null
 var hovered_anchor: WebAnchor = null
 
 var camera: Camera3D
+var cam_focus := Vector3.ZERO      ## ponto que a câmera olha numa cena (aventureiros ao longe...)
+var cam_focus_time := 0.0          ## segundos restantes olhando para cam_focus
 var _preview: MeshInstance3D
 var _preview_mat: StandardMaterial3D
 var _last_real_us := 0
@@ -515,6 +519,10 @@ func _flyer_in_aim() -> Creature:
 
 
 func _interact() -> void:
+	var thing := _nearest_interactable(2.2)
+	if thing != null:
+		thing.call("interact", self)
+		return
 	var c := _nearest_cocoon(2.4)
 	if c != null:
 		_rest(c)
@@ -540,6 +548,16 @@ func _eat(c: Corpse) -> void:
 	else:
 		_msg("Comeu %s: +%d saciedade, +%d seda, +%d XP" % [c.display_name, int(c.satiety), int(c.silk), c.xp])
 	GameState.say_once("primeira_refeicao", "Larva crua. Gosto de musgo molhado. Mas a fome venceu o nojo.")
+	if c.acid_bonus > 0:
+		resist_acid += c.acid_bonus
+		_msg("Resistência a Ácido %d%s" % [resist_acid, " — as Poças ácidas não queimam mais!" if resist_acid == 3 else ""])
+		GameState.say_once("acido_%d" % mini(resist_acid, 3), ["", "Gosto de pedra molhada... e de bateria.", "Minha boca formiga. Acho que estou me acostumando.", "Pronto. Ácido agora é só tempero."][mini(resist_acid, 3)])
+	if c.skin_bonus:
+		crystal_skin = true
+		max_hp += 20.0
+		hp = minf(max_hp, hp + 20.0)
+		_msg("Pele de Cristal! +20 PV máximo e -20% de dano recebido.")
+		GameState.say_once("pele_cristal", "Comi a armadura dela. Agora a armadura é minha.")
 	if c.energy_bonus > 0.0:
 		max_energy += c.energy_bonus
 		energy = minf(max_energy, energy + c.energy_bonus)
@@ -765,6 +783,8 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 		return
 	invuln = 0.35
 	_hurt_flash = 0.25
+	if crystal_skin:
+		amount *= 0.8
 	if knockback and source != null:
 		var push := global_position - source.global_position
 		push.y = 0.0
@@ -906,6 +926,10 @@ func _update_camera(real_dt: float, snap: bool) -> void:
 	var look := global_position
 	if not using_stick_aim and not weaving and not dead:
 		look += aim_dir * clampf(Fx.flat_dist(aim_point, global_position) * 0.2, 0.0, 2.5)
+	if cam_focus_time > 0.0:
+		cam_focus_time -= real_dt
+		look = look.lerp(cam_focus, 0.7)
+		real_dt *= 0.35   # pan mais lento, de cinema
 	var forward := -camera.global_transform.basis.z
 	var target := look - forward * 40.0
 	if snap:
@@ -983,6 +1007,21 @@ func _anchor_near(point: Vector3, radius: float) -> WebAnchor:
 	return best
 
 
+func _nearest_interactable(radius: float) -> Node3D:
+	## Objetos com interact(player): anotações, cristais de lore...
+	var best: Node3D = null
+	var best_d := radius
+	for n in get_tree().get_nodes_in_group("interactable"):
+		var o := n as Node3D
+		if o == null or not o.has_method("interact"):
+			continue
+		var d := Fx.flat_dist(o.global_position, global_position)
+		if d <= best_d:
+			best = o
+			best_d = d
+	return best
+
+
 func _nearest_cocoon(radius: float) -> Cocoon:
 	for c in WebNetwork.cocoons:
 		if is_instance_valid(c) and Fx.flat_dist(c.global_position, global_position) <= radius:
@@ -1013,6 +1052,7 @@ func to_dict() -> Dictionary:
 		"silk": silk, "max_silk": max_silk,
 		"satiety": satiety,
 		"level": level, "xp": xp, "resist_rot": resist_rot,
+		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z],
 	}
 
@@ -1038,6 +1078,8 @@ func from_dict(d: Dictionary) -> void:
 	level = int(d.get("level", level))
 	xp = int(d.get("xp", xp))
 	resist_rot = int(d.get("resist_rot", resist_rot))
+	resist_acid = int(d.get("resist_acid", resist_acid))
+	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
 	var r: Array = d.get("respawn", [])
 	if r.size() == 3:
 		respawn_pos = Vector3(float(r[0]), float(r[1]), float(r[2]))

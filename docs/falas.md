@@ -49,8 +49,25 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `g7_lago` | Entrando no Lago escondido (G7) | Tem algo brilhando na ilha. E eu odeio água. |
 | `cristal_lago` | Ao pegar o cristal da ilha | Valeu cada fio. E eu nem molhei as patas. |
 | `g11_acido` | Ao pisar nas Poças ácidas | AI, AI, queima! Volta, volta! |
-| `g12_desabamento` | Perto do desabamento ao sul do jardim | Pedra. Muita pedra. Nem minhas patinhas passam. |
 | `g16_cristal` | Perto da parede de cristal (G16) | Luz... lá em cima. Um dia eu volto aqui. |
-| `g_fim_trecho` | No fim do trecho jogável, a leste | Mais túneis, mais escuro... e vozes? Vozes de gente? |
+| `g8_eco` | Entrando na Galeria do eco (G8) | Eco... eco... Que lugar pra uma aranha com medo de barulho. |
+| `g8_humanos` | Vendo os aventureiros do outro lado do abismo | Humanos?! ...Com tochas. E espadas. Melhor ficar bem quietinha. |
+| `g9_acampamento` | Entrando no Acampamento (G9) | Gente esteve aqui. Gente com fogo. Por que tudo aqui tem que ter fogo? |
+| `fogo_fio` | Primeiro fio queimado por uma tocha | Fogo e seda não combinam. Anotado. Doloridamente anotado. |
+| `g10_fresta` | Entrando na Fresta de cristal (G10) | Tá brilhando no mesmo ritmo que eu. Isso é bonito ou assustador? |
+| `g11_pocas` | Entrando nas Poças ácidas (G11) | Cheiro de ovo podre e metal. Meus pés já estão reclamando. |
+| `acido_1` | Resistência a Ácido 1 (comeu um sapo) | Gosto de pedra molhada... e de bateria. |
+| `acido_2` | Resistência a Ácido 2 | Minha boca formiga. Acho que estou me acostumando. |
+| `acido_3` | Resistência a Ácido 3 | Pronto. Ácido agora é só tempero. |
+| `g12_ninho` | Entrando no Ninho dos lagartos (G12) | Uma, duas, três lanternas. E todas com fome. |
+| `g13_antecamara` | Entrando na Antecâmara (G13) | Dá pra sentir o chão tremendo daqui. Ela é GRANDE. |
+| `centopeia_inicio` | Começo da luta contra a Centopeia | Uma centopeia. Blindada. Do tamanho de um corredor. Claro que é. |
+| `centopeia_enredada` | Primeira vez que a Centopeia se enrosca num fio | Isso! Ela se enroscou! AGORA! |
+| `centopeia_furia` | Centopeia na metade da vida | Ah, ótimo. Agora ela está BRAVA. |
+| `centopeia_vitoria` | Vitória contra a Centopeia | Eu. Venci. AQUILO. ...Alguém viu? Ninguém viu. Típico. |
+| `pele_cristal` | Ao comer a carapaça (Pele de Cristal) | Comi a armadura dela. Agora a armadura é minha. |
+| `g15_racha` | Na Borda da Fenda, o chão começa a rachar | Ok. Isso aí não é um barulho bom. |
+| `g15_queda` | O chão cede | NÃO NÃO NÃO NÃO NÃÃÃÃÃO... |
+| `a1_fundo` | Acordando no fundo do Abismo | ...Tô viva. Acho. Tá TUDO escuro aqui embaixo. |
 
 Dica de gravação: mono, 44,1 kHz, com uns 0,2 s de silêncio no começo e no fim. O Godot importa `.ogg` e `.wav` direto.

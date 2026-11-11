@@ -23,14 +23,14 @@ func _ready() -> void:
 
 func _run() -> void:
 	# Estrutura
-	_check(layer.rooms.size() == 8, "7 câmaras jogáveis + a vista da G16")
+	_check(layer.rooms.size() == 16, "G1–G15 + a vista da G16 (%d)" % layer.rooms.size())
 	_check(layer.map_system.current_room == "G1", "começa na Entrada (G1)")
 	var bats := _alive("bat")
 	_check(bats.size() == 5, "bando de 5 morcegos (%d)" % bats.size())
-	var lizards := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Lizard)
+	var lizards := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Lizard and not c.has_meta("nest_id"))
 	_check(lizards.size() == 1, "um Lagarto-lanterna no jardim")
 	var frogs := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Frog)
-	_check(frogs.size() == 1, "um Sapo-de-rocha na poça")
+	_check(frogs.size() == 2, "dois Sapos-de-rocha (poça e Galeria do eco)")
 
 	# Caminhos: chão contínuo nas duas rotas até a Grande Gruta e dela para G5, G6 e G7
 	var routes := {
@@ -192,10 +192,8 @@ func _run() -> void:
 	_check(player.hp < hp0 - 10.0, "poça ácida machuca (PV %d)" % int(player.hp))
 	player.hp = player.max_hp
 
-	# Saída do trecho
-	_teleport(Vector3(120.0, 0.1, 37.0))
-	await _seconds(0.3)
-	_check(layer._leaving, "saída leste encerra o trecho jogável")
+	# A Ponte quebrada continua para a Galeria do eco
+	_check(_walkable([Vector2(104, 37), Vector2(114, 36), Vector2(127, 38), Vector2(138, 40)]), "Ponte quebrada → Galeria do eco")
 
 
 func _alive(group: String) -> Array:

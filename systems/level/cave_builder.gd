@@ -27,6 +27,8 @@ var noise := FastNoiseLite.new()
 var detail := FastNoiseLite.new()
 
 var _min := Vector2.ZERO
+var _o_cache := PackedFloat32Array()   ## espaço aberto já calculado na grade de 0,5 m
+var _f_cache := PackedFloat32Array()   ## chão firme já calculado na grade de 0,5 m
 var _nx := 0
 var _nz := 0
 
@@ -109,11 +111,53 @@ func floor_at(p: Vector2) -> float:
 	return _floor_from(o, _max_of(chasms, p, nv), _max_of(bridges, p, nv))
 
 
+func _stamp(sh: Dictionary, arr: PackedFloat32Array, nv_vals: PackedFloat32Array) -> PackedFloat32Array:
+	var box: Rect2 = sh["box"]
+	var i0 := maxi(0, int(floor((box.position.x - _min.x) / STEP)))
+	var i1 := mini(_nx - 1, int(ceil((box.end.x - _min.x) / STEP)))
+	var j0 := maxi(0, int(floor((box.position.y - _min.y) / STEP)))
+	var j1 := mini(_nz - 1, int(ceil((box.end.y - _min.y) / STEP)))
+	for j in range(j0, j1 + 1):
+		for i in range(i0, i1 + 1):
+			var k := j * _nx + i
+			var v := _sdf(sh, _min + Vector2(i, j) * STEP, nv_vals[k])
+			if v > arr[k]:
+				arr[k] = v
+	return arr
+
+
 func _floor_from(o: float, c: float, b: float) -> float:
 	var f := minf(o, -c)
 	if b > 0.0:
 		f = maxf(f, minf(o, b))
 	return f
+
+
+func _open_cached(p: Vector2) -> float:
+	## Espaço aberto lido da grade de build() (interpolado); fora dela, cálculo direto.
+	var v := _sample(_o_cache, p)
+	return open_at(p) if is_nan(v) else v
+
+
+func _floor_cached(p: Vector2) -> float:
+	var v := _sample(_f_cache, p)
+	return floor_at(p) if is_nan(v) else v
+
+
+func _sample(arr: PackedFloat32Array, p: Vector2) -> float:
+	if arr.is_empty():
+		return NAN
+	var fx := (p.x - _min.x) / STEP
+	var fz := (p.y - _min.y) / STEP
+	var i := int(floor(fx))
+	var j := int(floor(fz))
+	if i < 0 or j < 0 or i >= _nx - 1 or j >= _nz - 1:
+		return NAN
+	var tx := fx - i
+	var tz := fz - j
+	var a := lerpf(arr[j * _nx + i], arr[j * _nx + i + 1], tx)
+	var b := lerpf(arr[(j + 1) * _nx + i], arr[(j + 1) * _nx + i + 1], tx)
+	return lerpf(a, b, tz)
 
 
 func is_floor(p: Vector2, margin: float = 0.0) -> bool:
@@ -161,28 +205,44 @@ func build(parent: Node3D) -> Dictionary:
 	_nx = int(ceil(bounds.size.x / STEP)) + 1
 	_nz = int(ceil(bounds.size.y / STEP)) + 1
 
+	var n := _nx * _nz
 	var o_vals := PackedFloat32Array()
 	var f_vals := PackedFloat32Array()
 	var pit_vals := PackedFloat32Array()
 	var rock_vals := PackedFloat32Array()
-	o_vals.resize(_nx * _nz)
-	f_vals.resize(_nx * _nz)
-	pit_vals.resize(_nx * _nz)
-	rock_vals.resize(_nx * _nz)
+	var c_vals := PackedFloat32Array()
+	var b_vals := PackedFloat32Array()
+	o_vals.resize(n)   # (arrays "Packed" são copiados por valor: um resize por vez)
+	f_vals.resize(n)
+	pit_vals.resize(n)
+	rock_vals.resize(n)
+	c_vals.resize(n)
+	b_vals.resize(n)
+	o_vals.fill(NO)
+	c_vals.fill(NO)
+	b_vals.fill(NO)
+	# Ruído uma vez por ponto; cada forma só visita os pontos da sua caixa (bem mais rápido
+	# que testar todas as formas em todos os pontos).
+	var nv_vals := PackedFloat32Array()
+	nv_vals.resize(n)
 	for j in _nz:
 		for i in _nx:
 			var p := _min + Vector2(i, j) * STEP
-			var nv := noise.get_noise_2d(p.x, p.y)
-			var o := _max_of(tunnels, p, nv)
-			for r in rooms:
-				o = maxf(o, _max_of(r["shapes"], p, nv))
-			var c := _max_of(chasms, p, nv)
-			var b := _max_of(bridges, p, nv)
-			var k := j * _nx + i
-			o_vals[k] = o
-			rock_vals[k] = -o
-			f_vals[k] = _floor_from(o, c, b)
-			pit_vals[k] = minf(o, -_floor_from(o, c, b))
+			nv_vals[j * _nx + i] = noise.get_noise_2d(p.x, p.y)
+	for sh in all_shapes:
+		o_vals = _stamp(sh, o_vals, nv_vals)
+	for sh in chasms:
+		c_vals = _stamp(sh, c_vals, nv_vals)
+	for sh in bridges:
+		b_vals = _stamp(sh, b_vals, nv_vals)
+	for k in n:
+		var o := o_vals[k]
+		var f := _floor_from(o, c_vals[k], b_vals[k])
+		rock_vals[k] = -o
+		f_vals[k] = f
+		pit_vals[k] = minf(o, -f)
+	_o_cache = o_vals
+	_f_cache = f_vals
 
 	var floor_m := _march(f_vals, true, true)
 	var wall_m := _march(o_vals, false, true)
@@ -343,7 +403,7 @@ func _mesh_node(parent: Node3D, verts: PackedVector3Array, normals: PackedVector
 
 
 func _shade_floor(p: Vector2) -> Color:
-	var o := open_at(p)
+	var o := _open_cached(p)
 	var ao := clampf(0.55 + o * 0.22, 0.55, 1.0)
 	var var_n := 0.88 + 0.12 * noise.get_noise_2d(p.x * 3.1, p.y * 3.1) + 0.06 * detail.get_noise_2d(p.x, p.y)
 	return Color(floor_color.r * ao * var_n, floor_color.g * ao * var_n, floor_color.b * ao * var_n)
@@ -382,7 +442,7 @@ func _add_flat(parent: Node3D, tris: PackedVector2Array, y: float, color: Color,
 func _rock_normal(p: Vector2) -> Vector2:
 	## Direção do aberto para a rocha (contra o gradiente do campo aberto).
 	var e := 0.25
-	var g := Vector2(open_at(p + Vector2(e, 0)) - open_at(p - Vector2(e, 0)), open_at(p + Vector2(0, e)) - open_at(p - Vector2(0, e)))
+	var g := Vector2(_open_cached(p + Vector2(e, 0)) - _open_cached(p - Vector2(e, 0)), _open_cached(p + Vector2(0, e)) - _open_cached(p - Vector2(0, e)))
 	if g.length() < 0.0001:
 		return Vector2(0, -1)
 	return -g.normalized()
@@ -444,10 +504,10 @@ func _add_cliffs(parent: Node3D, segs: PackedVector2Array) -> void:
 		var a := segs[s]
 		var b := segs[s + 1]
 		var mid := (a + b) * 0.5
-		if open_at(mid) < 0.15:
+		if _open_cached(mid) < 0.15:
 			continue
 		var e := 0.25
-		var g := Vector2(floor_at(mid + Vector2(e, 0)) - floor_at(mid - Vector2(e, 0)), floor_at(mid + Vector2(0, e)) - floor_at(mid - Vector2(0, e)))
+		var g := Vector2(_floor_cached(mid + Vector2(e, 0)) - _floor_cached(mid - Vector2(e, 0)), _floor_cached(mid + Vector2(0, e)) - _floor_cached(mid - Vector2(0, e)))
 		var n := Vector3(-g.x, 0.0, -g.y).normalized()
 		var a0 := Vector3(a.x, 0.0, a.y)
 		var b0 := Vector3(b.x, 0.0, b.y)
@@ -477,7 +537,7 @@ func _room_grid() -> Dictionary:
 			var is_pit := false
 			if i < w:
 				var q := origin + Vector2(i + 0.5, j + 0.5)
-				is_pit = open_at(q) > 0.0 and floor_at(q) <= 0.0
+				is_pit = _open_cached(q) > 0.0 and _floor_cached(q) <= 0.0
 			if is_pit and pit_start < 0:
 				pit_start = i
 			elif not is_pit and pit_start >= 0:
@@ -489,7 +549,7 @@ func _room_grid() -> Dictionary:
 			var id := -1
 			if i < w:
 				var p := origin + Vector2(i + 0.5, j + 0.5)
-				if open_at(p) > 0.0:
+				if _open_cached(p) > 0.0:
 					id = room_index_at(p)
 				ids[j * w + i] = id
 			if id != run_id:
@@ -511,8 +571,8 @@ func scatter_decor(parent: Node3D, seed_: int = 3) -> void:
 		var z := _min.y
 		while z < _min.y + _nz * STEP:
 			var p := Vector2(x + rng.randf_range(-0.6, 0.6), z + rng.randf_range(-0.6, 0.6))
-			var f := floor_at(p)
-			var o := open_at(p)
+			var f := _floor_cached(p)
+			var o := _open_cached(p)
 			if f > 0.25 and o < 1.1 and detail.get_noise_2d(p.x * 0.7, p.y * 0.7) > 0.15:
 				var hgt := rng.randf_range(0.8, 2.2)
 				var cone := MeshInstance3D.new()

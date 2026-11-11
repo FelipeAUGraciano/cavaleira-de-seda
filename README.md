@@ -1,6 +1,18 @@
-# Cavaleira de Seda — protótipo (v0.4)
+# Cavaleira de Seda — protótipo (v0.5)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.5 — o Ato 1 inteiro
+
+- **Galerias completas (G1–G15):** depois da Ponte quebrada vêm a Galeria do eco, o Acampamento, a Fresta de cristal (secreta, só para quem é pequena), a Antecâmara, o Covil da Centopeia e a Borda da Fenda. O Ninho dos lagartos (ao sul do jardim) e as Poças ácidas (atalho do jardim até a Antecâmara) também abriram.
+- **Chefe: Centopeia-blindada.** Corpo de 12 segmentos que segue a cabeça. Ela sente a **vibração** do chão: correr vibra mais, ficar parada ou andar **sobre um fio** te esconde. Morde de perto e **investe** em linha reta. A carapaça segura 90% do dano e o veneno não entra. Para abrir a carapaça, faça a Centopeia investir **através de um fio esticado**: ela se enrosca por 4,5 s e leva dano cheio (e o crítico ×2). Na metade da vida, ela se enfurece. A arena fecha durante a luta; se você morrer, ela volta a dormir com a vida cheia.
+- **Pele de Cristal:** comer a carapaça dá +20 PV máximo e -20% de dano recebido.
+- **Fim do Ato 1:** na Borda da Fenda o chão cede e a Cavaleira cai no Abismo (por enquanto, só a sala onde ela acorda).
+- **Aventureiros vistos de longe:** na Galeria do eco, três humanos com tochas passam do outro lado do abismo, e a câmera vira para mostrar.
+- **Fogo queima teia:** as tochas do acampamento queimam fios e teias de captura por perto.
+- **Anotações e cristais (E):** o diário da expedição no acampamento e uma visão estranha na Fresta de cristal.
+- **Resistência a Ácido:** cada Sapo-de-rocha comido dá +1. Com 3, as Poças ácidas não queimam.
+- **Caverna gerada 4× mais rápido** (as Galerias inteiras montam em menos de 2 s).
 
 ## Novidades da v0.4
 
@@ -63,7 +75,7 @@ No **Modo Tecelagem** o tempo cai para 25%. Clique em um pilar e depois em outro
 
 **Berçário (início):** B1 eclosão (coma uma irmã menor) → B2 corredor (uma irmã faminta te caça; ou vá pela trilha baixa, mais escura) → B3 salão das teias (primeiro fio-guia sobre o abismo; a fresta ao sul leva ao cristal secreto de B4) → B5 despensa (apague a runa com F e passe pela pata da Mãe) → B6 fuga (corra! teça o fio no segundo abismo) → túnel para as Galerias.
 
-**Galerias Úmidas (G1–G7):** G1 entrada → G2 poça (Sapo-de-rocha) ou G3 túnel dos morcegos → G4 Grande Gruta (casulo e território) → G5 jardim (Lagarto-lanterna) ao sul, G7 lago (cristal na ilha) a sudoeste, G6 ponte quebrada (três fendas) a leste → fim do trecho jogável. Travas vistas: parede de cristal (G16), poças ácidas (G11) e um desabamento (G12), que abrem em versões futuras.
+**Galerias Úmidas (G1–G15):** G1 entrada → G2 poça (Sapo-de-rocha) ou G3 túnel dos morcegos → G4 Grande Gruta (casulo e território). Do G4: G5 jardim (Lagarto-lanterna) e G12 ninho (três lagartos, cristal de energia) ao sul, G7 lago (cristal na ilha) a sudoeste, G6 ponte quebrada (três fendas) a leste → G8 Galeria do eco (aventureiros ao longe; fresta secreta para G10) → G9 Acampamento (tochas, diário) → G13 Antecâmara (último casulo) → G14 Covil da Centopeia → G15 Borda da Fenda (queda para o Abismo). G11 Poças ácidas liga o jardim à Antecâmara (Resistência a Ácido 3). A parede de cristal da G16 abre no Ato 4.
 
 **Câmara de teste:** a câmara cinza da v0.1 continua no projeto (`world/layers/test_chamber.tscn`) para o teste automático dos sistemas.
 
@@ -81,7 +93,9 @@ Jogue sem ler o código e anote:
 4. Você usou a teia de captura e a runa apagada por estratégia, ou só atacou?
 5. Os morcegos: você descobriu sozinha que ficar parada te esconde? E que fio esticado derruba eles?
 6. O Lagarto-lanterna: o aviso de luz ficou claro antes do ataque?
-7. Qual foi o momento mais divertido? E o mais frustrante?
+7. A Centopeia: você entendeu sozinha que precisava fazer ela investir através de um fio? Quantas tentativas levou?
+8. A cena dos aventureiros e a queda no fim: deram vontade de continuar?
+9. Qual foi o momento mais divertido? E o mais frustrante?
 
 ## Estrutura do projeto
 
@@ -90,18 +104,19 @@ autoload/      EventBus (sinais), GameState (controles, save, falas), WebNetwork
 actors/
   player/      player.gd — a Cavaleira
   creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, corpse.gd
+  npc/         adventurer.gd (aventureiros vistos de longe)
 systems/
   web/         âncoras, fio-guia, teia de captura, casulo
   ecosystem/   repovoamento da câmara
   fx.gd        formas cinza e efeitos simples
 world/         main.tscn (abre o save ou o Berçário), layer_base.gd (base de toda camada)
-  layers/      bercario.tscn, galerias.tscn, test_chamber.tscn
-systems/level/ cave_builder.gd (cavernas orgânicas), map_system.gd, pickup.gd
+  layers/      bercario.tscn, galerias.tscn, abismo.tscn (provisório), test_chamber.tscn
+systems/level/ cave_builder.gd (cavernas orgânicas), map_system.gd, pickup.gd, fire.gd (tochas), note.gd (coisas para ler)
 systems/spider_legs.gd   as 8 patas com IK
 systems/models.gd        troca formas cinza por modelos .glb (assets/models/)
 assets/models/ modelos 3D, um por pasta (veja "Modelos 3D" abaixo)
 tools/         preparar_modelo.sh (reduz malha e texturas dos modelos da IA)
-actors/bosses/ mother_leg.gd (pata da despensa), mother_chase.gd (fuga)
+actors/bosses/ mother_leg.gd (pata da despensa), mother_chase.gd (fuga), centipede.gd (Centopeia-blindada)
 ui/            hud.gd
 audio/voice/   arquivos de dublagem (veja docs/falas.md)
 tests/         teste automático e capturas de tela
@@ -131,6 +146,7 @@ Ele reduz a malha para ~20 mil triângulos e as texturas para 1024 px (uns 2,5 M
 godot --headless --path . res://tests/smoke_test.tscn      # sistemas centrais (20 verificações)
 godot --headless --path . res://tests/bercario_test.tscn   # Berçário de ponta a ponta (20 verificações)
 godot --headless --path . res://tests/galerias_test.tscn   # Galerias G1–G7 (38 verificações)
+godot --headless --path . res://tests/covil_test.tscn      # G8–G15 e a Centopeia (34 verificações)
 godot --headless --path . res://tests/models_test.tscn     # troca de modelos (12 verificações)
 ```
 

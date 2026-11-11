@@ -66,6 +66,14 @@ func remove_trap(t: CaptureWeb) -> void:
 	traps.erase(t)
 
 
+func remove_strand(s: WebStrand) -> void:
+	## Fio rompido (queimado, arrebentado por algo grande).
+	strands.erase(s)
+	if is_instance_valid(s):
+		s.queue_free()
+	recompute()
+
+
 func has_strand(a_name: String, b_name: String) -> bool:
 	for s in strands:
 		if is_instance_valid(s) and s.connects(a_name, b_name):

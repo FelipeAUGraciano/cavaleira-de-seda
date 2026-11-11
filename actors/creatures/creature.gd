@@ -23,6 +23,8 @@ var food_silk := 10.0
 var food_xp := 10
 var senses_text := "?"
 var food_energy := 0.0       ## bônus permanente de Energia máx. ao comer (Lagarto-lanterna)
+var food_acid := 0           ## + Resistência a Ácido ao comer (Sapo-de-rocha)
+var food_skin := false       ## Pele de Cristal ao comer (Centopeia-blindada)
 
 # Modelo 3D (systems/models.gd): troca as formas cinza quando o .glb existir
 var model_name := ""
@@ -247,6 +249,8 @@ func die(fell: bool = false) -> void:
 		var corpse := Corpse.new()
 		corpse.setup(display_name, food_satiety, food_silk, food_xp, body_color, body_radius)
 		corpse.energy_bonus = food_energy
+		corpse.acid_bonus = food_acid
+		corpse.skin_bonus = food_skin
 		get_parent().add_child(corpse)
 		corpse.global_position = Vector3(global_position.x, maxf(global_position.y, 0.0), global_position.z)
 		var killer: Player = null

@@ -147,6 +147,7 @@ func _on_draw() -> void:
 	if player != null and is_instance_valid(player):
 		_draw_bars(vp)
 		_draw_status(vp)
+		_draw_boss(vp)
 		if player.weaving:
 			_draw_weave_hint(vp)
 		var ms = _map_system()
@@ -184,6 +185,23 @@ func _draw_bars(vp: Vector2) -> void:
 	_bar(x, y + 48.0, "Seda", player.silk, player.max_silk, Color(0.85, 0.88, 0.95))
 	_bar(x, y + 72.0, "Saciedade", player.satiety, player.max_satiety, Color(0.95, 0.7, 0.25))
 	_text(x, y + 112.0, "Nível %d   XP %d / %d" % [player.level, player.xp, player.xp_to_next()], 15, TEXT)
+
+
+func _draw_boss(vp: Vector2) -> void:
+	## Barra de vida do chefe acordado (topo da tela).
+	for n in get_tree().get_nodes_in_group("boss"):
+		var b := n as Centipede
+		if b == null or b.dead or b.mode == Centipede.Mode.SLEEP:
+			continue
+		var w := 520.0
+		var x := vp.x * 0.5 - w * 0.5
+		var y := 52.0
+		_cv.draw_rect(Rect2(x - 10.0, y - 30.0, w + 20.0, 52.0), Color(0, 0, 0, 0.5))
+		var label: String = b.display_name + ("  ·  ENREDADA: a carapaça abriu!" if b.is_entangled() else ("  ·  furiosa" if b.phase == 2 else ""))
+		_text_center(vp.x, y - 10.0, label, 16, Color(1.0, 0.85, 0.5) if b.is_entangled() else TEXT)
+		_cv.draw_rect(Rect2(x, y, w, 12.0), Color(0, 0, 0, 0.7))
+		_cv.draw_rect(Rect2(x, y, w * clampf(b.hp / b.max_hp, 0.0, 1.0), 12.0), Color(0.9, 0.55, 0.2) if b.is_entangled() else Color(0.75, 0.25, 0.3))
+		return
 
 
 func _bar(x: float, y: float, label: String, value: float, max_value: float, color: Color) -> void:
