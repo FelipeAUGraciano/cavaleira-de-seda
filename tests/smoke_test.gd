@@ -124,7 +124,9 @@ func _run() -> void:
 		frog.mode = Frog.Mode.IDLE
 		frog.hunger = 0.0
 		frog.facing = Vector3(0, 0, -1)
-		_teleport(frog.global_position + Vector3(0.0, 0.1, -4.0))
+		frog.global_position = Vector3(-12.0, 0.3, 11.0)   # lugar aberto, sem pedra no caminho
+		frog.velocity = Vector3.ZERO
+		_teleport(Vector3(-12.0, 0.1, 7.0))
 		await _seconds(4.0)
 		_check(player.hp < player.max_hp, "sapo atacou (PV %d)" % int(player.hp))
 		# 8. Teia de captura prende o sapo
