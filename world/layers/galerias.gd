@@ -441,6 +441,7 @@ func _adventurers_pass() -> void:
 		a.delay = 1.5 + i * 1.3
 		a.torch = i != 1
 		a.color = [Color(0.55, 0.4, 0.3), Color(0.35, 0.4, 0.55), Color(0.5, 0.5, 0.45)][i]
+		a.model_name = "aventureiro_" + "abc"[i]
 		add_child(a)
 	EventBus.hint.emit("Do outro lado do abismo... luzes. Fique parada e observe.")
 	player.cam_focus = Vector3(138.0, 0.0, 22.0)

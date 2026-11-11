@@ -8,6 +8,7 @@ var speed := 2.2
 var delay := 0.0
 var color := Color(0.55, 0.4, 0.3)
 var torch := false
+var model_name := ""      ## "aventureiro_a", "_b" ou "_c" (systems/models.gd)
 var _s := 0.0
 var _length := 0.0
 var _t := 0.0
@@ -28,6 +29,8 @@ func _ready() -> void:
 	var pack := Fx.box(Vector3(0.45, 0.6, 0.3), Fx.mat(color.darkened(0.4)))
 	pack.position = Vector3(0.0, 1.15, 0.3)
 	add_child(pack)
+	if model_name != "":
+		Models.swap(self, model_name, 1.85, [body, head, pack], "height")
 	if torch:
 		var flame := Fx.sphere(0.13, Fx.mat(Color(1.0, 0.6, 0.2), 4.0, true))
 		flame.position = Vector3(0.45, 2.1, -0.1)

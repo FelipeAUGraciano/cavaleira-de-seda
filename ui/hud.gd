@@ -37,6 +37,7 @@ var _big_text := ""
 var _big_time := 0.0
 var _show_help := true
 var _show_map := false
+var show_all_creatures := false   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
 var _hint_text := ""
 var _hint_time := 0.0
 var _last_us := 0
@@ -359,6 +360,7 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 	for t in ms.tunnels:
 		if ms.is_tunnel_revealed(t):
 			_cv.draw_rect(Rect2(_ms(t.position.x, t.position.y), t.size * _m_sc), Color(0.3, 0.32, 0.4, 0.9))
+	var labels: Array = []   ## nomes das câmaras: desenhados por último, por cima de abismos e fios
 	for r in ms.rooms:
 		if not ms.revealed.has(r["id"]):
 			continue
@@ -374,8 +376,7 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 				lo = Vector2(minf(lo.x, rr.position.x), minf(lo.y, rr.position.y))
 				hi = Vector2(maxf(hi.x, rr.end.x), maxf(hi.y, rr.end.y))
 			if full and not runs.is_empty():
-				var c := _ms((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5)
-				_text_at_center(c, String(r["id"]), String(r["name"]))
+				labels.append([_ms((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5), String(r["id"]), String(r["name"])])
 			continue
 		var rect: Rect2 = r["rect"]
 		var srect := Rect2(_ms(rect.position.x, rect.position.y), rect.size * _m_sc)
@@ -414,6 +415,10 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 			var col: Color = [Color(0.6, 1.0, 0.6), Color(1.0, 0.85, 0.35), Color(1.0, 0.35, 0.3), Color(0.85, 0.4, 1.0)][int(c.size)]
 			var cp := _ms(c.global_position.x, c.global_position.z)
 			_cv.draw_circle(cp, (2.5 + int(c.size) * 1.5) * (1.4 if full else 1.0), col)
+	if full and show_all_creatures:
+		_draw_all_creatures()
+	for lb in labels:
+		_text_at_center(lb[0], lb[1], lb[2])
 	var pp := _ms(player.global_position.x, player.global_position.z)
 	var f := Vector2(player.aim_dir.x, player.aim_dir.z).normalized()
 	if f.length() < 0.1:
@@ -421,6 +426,31 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 	var side := Vector2(-f.y, f.x)
 	var k2 := 6.0 if not full else 9.0
 	_cv.draw_colored_polygon(PackedVector2Array([pp + f * k2, pp - f * k2 * 0.6 + side * k2 * 0.6, pp - f * k2 * 0.6 - side * k2 * 0.6]), Color(0.4, 0.9, 1.0))
+
+
+const SPECIES_COLORS := {
+	"Irmã-aranha": Color(0.7, 0.55, 1.0), "Larva-de-musgo": Color(0.55, 0.95, 0.45),
+	"Sapo-de-rocha": Color(0.95, 0.8, 0.4), "Morcego-eco": Color(0.95, 0.5, 0.85),
+	"Lagarto-lanterna": Color(0.4, 0.95, 0.9), "Centopeia-blindada": Color(1.0, 0.35, 0.3),
+}
+
+
+func _draw_all_creatures() -> void:
+	var seen := {}
+	for c in World.creatures:
+		if not is_instance_valid(c) or c.dead:
+			continue
+		var key: String = c.display_name
+		if c is Sister:
+			key = "Irmã-aranha"
+		var col: Color = SPECIES_COLORS.get(key, Color.WHITE)
+		_cv.draw_circle(_ms(c.global_position.x, c.global_position.z), 3.0 + int(c.size) * 2.0, col)
+		seen[key] = col
+	var y := 110.0
+	for k in seen:
+		_cv.draw_circle(Vector2(70.0, y - 5.0), 6.0, seen[k])
+		_text(84.0, y, k, 14, TEXT)
+		y += 22.0
 
 
 func _text_at_center(c: Vector2, id: String, name_: String) -> void:
