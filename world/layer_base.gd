@@ -13,6 +13,7 @@ var spawn_point := Vector3.ZERO
 var rooms: Array = []        ## [{id, name, rect: Rect2, checkpoint, hint, line_id, line}]
 var tunnels: Array = []      ## [Rect2]
 var locks: Array = []        ## [{type, pos: Vector3}]
+var map_grid: Dictionary = {}  ## preenchido por camadas orgânicas (CaveBuilder.build)
 
 var ambient_color := Color(0.45, 0.5, 0.6)
 var ambient_energy := 0.35
@@ -55,6 +56,8 @@ func _ready() -> void:
 	map_system = MapSystem.new()
 	map_system.name = "Mapa"
 	map_system.setup(layer_name, rooms, tunnels, locks)
+	if not map_grid.is_empty():
+		map_system.set_grid(map_grid)
 	add_child(map_system)
 	map_system.room_entered.connect(_on_room_entered)
 
@@ -222,6 +225,32 @@ func add_web_bridge(rect: Rect2) -> void:
 		cross.position = Vector3(x, 0.05, rect.position.y + rect.size.y * 0.5)
 		add_child(cross)
 		x += 0.7
+
+
+func add_web_bridge_path(a: Vector2, b: Vector2, width: float) -> void:
+	## Ponte de teia antiga em qualquer direção (o chão vem da forma "bridges" da caverna).
+	var mat := Fx.mat(Color(0.86, 0.86, 0.96), 0.6, true, 0.6)
+	var root := Node3D.new()
+	add_child(root)
+	var dir := (b - a).normalized()
+	var side := Vector2(-dir.y, dir.x)
+	var length := a.distance_to(b)
+	var off := -width * 0.5 + 0.2
+	while off < width * 0.5:
+		var p0 := a + side * off
+		var p1 := b + side * off
+		var line := Fx.box(Vector3(0.04, 0.02, length), mat)
+		root.add_child(line)
+		Fx.orient_between(line, Vector3(p0.x, 0.04, p0.y), Vector3(p1.x, 0.04, p1.y))
+		off += 0.45
+	var t := 0.3
+	while t < length:
+		var c0 := a + dir * t - side * width * 0.5
+		var c1 := a + dir * t + side * width * 0.5
+		var cross := Fx.box(Vector3(0.03, 0.02, width), mat)
+		root.add_child(cross)
+		Fx.orient_between(cross, Vector3(c0.x, 0.05, c0.y), Vector3(c1.x, 0.05, c1.y))
+		t += 0.7
 
 
 func add_trigger(rect: Rect2, callback: Callable) -> Area3D:

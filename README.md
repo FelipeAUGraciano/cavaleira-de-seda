@@ -1,6 +1,13 @@
-# Cavaleira de Seda — protótipo cinza (v0.2)
+# Cavaleira de Seda — protótipo cinza (v0.3)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.3
+
+- **Cavernas orgânicas:** o Berçário deixou de ser feito de blocos. Câmaras viram bolhas e elipses de borda irregular, túneis são curvos, as paredes têm altura variável (altas ao norte, baixas ao sul para não tapar a câmera), os abismos têm penhascos e há estalagmites e pedras espalhadas. Tudo gerado por `systems/level/cave_builder.gd`.
+- **Trajeto menos reto:** corredor curvo, a fenda do Salão das teias corta o salão na diagonal, um túnel de fuga sinuoso, uma **trilha baixa** alternativa entre B1 e B3 e um nicho escondido no corredor.
+- **A Mãe segue o túnel** curvo na fuga, em vez de andar em linha reta.
+- **Mapa com a forma real** das câmaras (e abismos mais escuros).
 
 ## Novidades da v0.2
 
@@ -45,7 +52,7 @@ No **Modo Tecelagem** o tempo cai para 25%. Clique em um pilar e depois em outro
 
 ## O que tem em cada camada
 
-**Berçário (início):** B1 eclosão (coma uma irmã menor) → B2 corredor (uma irmã faminta te caça) → B3 salão das teias (primeiro fio-guia sobre o abismo; a fresta ao sul leva ao cristal secreto de B4) → B5 despensa (apague a runa com F e passe pela pata da Mãe) → B6 fuga (corra! teça o fio no segundo abismo) → túnel para as Galerias.
+**Berçário (início):** B1 eclosão (coma uma irmã menor) → B2 corredor (uma irmã faminta te caça; ou vá pela trilha baixa, mais escura) → B3 salão das teias (primeiro fio-guia sobre o abismo; a fresta ao sul leva ao cristal secreto de B4) → B5 despensa (apague a runa com F e passe pela pata da Mãe) → B6 fuga (corra! teça o fio no segundo abismo) → túnel para as Galerias.
 
 **Galerias (câmara de teste):** larvas, dois Sapos-de-rocha, um abismo de 6 m e a saída a leste.
 
@@ -76,7 +83,7 @@ systems/
   fx.gd        formas cinza e efeitos simples
 world/         main.tscn (abre o save ou o Berçário), layer_base.gd (base de toda camada)
   layers/      bercario.tscn, test_chamber.tscn
-systems/level/ cave_grid.gd (chão e paredes a partir de retângulos), map_system.gd, pickup.gd
+systems/level/ cave_builder.gd (cavernas orgânicas), map_system.gd, pickup.gd
 systems/spider_legs.gd   as 8 patas com IK
 actors/bosses/ mother_leg.gd (pata da despensa), mother_chase.gd (fuga)
 ui/            hud.gd
@@ -98,7 +105,7 @@ Cada ator monta seu visual em `_build_visual()` com formas cinza. Para trocar po
 
 ```
 godot --headless --path . res://tests/smoke_test.tscn      # sistemas centrais (20 verificações)
-godot --headless --path . res://tests/bercario_test.tscn   # Berçário de ponta a ponta (19 verificações)
+godot --headless --path . res://tests/bercario_test.tscn   # Berçário de ponta a ponta (20 verificações)
 ```
 
 Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, sapo, teia de captura, paredes, mapa, irmãs, fresta, cristal, pata da Mãe e a fuga.

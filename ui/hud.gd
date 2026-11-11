@@ -338,15 +338,35 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 	for r in ms.rooms:
 		if not ms.revealed.has(r["id"]):
 			continue
+		var current: bool = String(r["id"]) == ms.current_room
+		var fill := Color(0.42, 0.58, 0.72, 0.95) if current else Color(0.3, 0.33, 0.42, 0.95)
+		if not ms.grid.is_empty():
+			var runs: Array = ms.grid["runs"][r["id"]]
+			var lo := Vector2(1e9, 1e9)
+			var hi := Vector2(-1e9, -1e9)
+			for run in runs:
+				var rr: Rect2 = run
+				_cv.draw_rect(Rect2(_ms(rr.position.x, rr.position.y), rr.size * _m_sc + Vector2(0.6, 0.6)), fill)
+				lo = Vector2(minf(lo.x, rr.position.x), minf(lo.y, rr.position.y))
+				hi = Vector2(maxf(hi.x, rr.end.x), maxf(hi.y, rr.end.y))
+			if full and not runs.is_empty():
+				var c := _ms((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5)
+				_text_at_center(c, String(r["id"]), String(r["name"]))
+			continue
 		var rect: Rect2 = r["rect"]
 		var srect := Rect2(_ms(rect.position.x, rect.position.y), rect.size * _m_sc)
-		var current: bool = String(r["id"]) == ms.current_room
-		_cv.draw_rect(srect, Color(0.42, 0.58, 0.72, 0.95) if current else Color(0.3, 0.33, 0.42, 0.95))
+		_cv.draw_rect(srect, fill)
 		_cv.draw_rect(srect, Color(0.6, 0.65, 0.78, 0.9), false, 1.0)
 		if full:
 			_text(srect.position.x + 6.0, srect.position.y + 18.0, String(r["id"]), 14, TEXT)
 			if srect.size.x > 90.0:
 				_text(srect.position.x + 6.0, srect.position.y + 34.0, String(r["name"]), 12, QUIET)
+	if not ms.grid.is_empty():
+		for pit in ms.grid["pits"]:
+			var pr: Rect2 = pit
+			var here: Dictionary = ms.room_at(Vector3(pr.position.x + 0.5, 0.0, pr.position.y + 0.5))
+			if not here.is_empty() and ms.revealed.has(here["id"]):
+				_cv.draw_rect(Rect2(_ms(pr.position.x, pr.position.y), pr.size * _m_sc + Vector2(0.6, 0.6)), Color(0.05, 0.05, 0.08, 0.95))
 	for s in WebNetwork.strands:
 		if is_instance_valid(s):
 			var col := Color(0.55, 0.95, 1.0) if s.in_territory else Color(0.9, 0.92, 1.0)
@@ -368,3 +388,10 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 	var side := Vector2(-f.y, f.x)
 	var k2 := 6.0 if not full else 9.0
 	_cv.draw_colored_polygon(PackedVector2Array([pp + f * k2, pp - f * k2 * 0.6 + side * k2 * 0.6, pp - f * k2 * 0.6 - side * k2 * 0.6]), Color(0.4, 0.9, 1.0))
+
+
+func _text_at_center(c: Vector2, id: String, name_: String) -> void:
+	var w1 := _font.get_string_size(id, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+	var w2 := _font.get_string_size(name_, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	_text(c.x - w1 * 0.5, c.y - 2.0, id, 15, TEXT)
+	_text(c.x - w2 * 0.5, c.y + 14.0, name_, 12, QUIET)

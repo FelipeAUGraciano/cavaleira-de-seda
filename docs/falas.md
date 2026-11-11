@@ -7,6 +7,7 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `inicio` | Ao começar (Berçário) | ...Ok. Eu sou uma aranha. Uma aranha MINÚSCULA. Num ninho. Ótimo. |
 | `b1_fome` | Entrando na Câmara de eclosão (B1) | Minhas irmãs estão me olhando do mesmo jeito que eu olho pra elas. |
 | `b2_irma` | Entrando no Corredor das cascas (B2) | Ela é maior que eu. E mais rápida. E muito, MUITO mais faminta. |
+| `bt_trilha` | Entrando na Trilha baixa (Bt) | Um atalho escuro... ninguém vai me ver aqui. Espero. |
 | `b3_teias` | Entrando no Salão das teias (B3) | As teias da Mãe são enormes. Dá pra prender um fio nelas... |
 | `b4_fresta` | Entrando na Fresta do ninho (B4) | Ser pequena tem suas vantagens. |
 | `b5_pata` | Entrando na Despensa da Mãe (B5) | Aquilo é... a pata da Mãe. Não respira. Não brilha. Não existe. |

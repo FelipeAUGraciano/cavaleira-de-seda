@@ -23,9 +23,9 @@ func _ready() -> void:
 
 func _run() -> void:
 	# Estrutura
-	_check(layer.rooms.size() == 6, "6 câmaras definidas")
+	_check(layer.rooms.size() == 7, "6 câmaras + a trilha baixa definidas")
 	var sisters := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Sister)
-	_check(sisters.size() == 7, "7 irmãs no ninho (%d)" % sisters.size())
+	_check(sisters.size() == 9, "9 irmãs no ninho (%d)" % sisters.size())
 	await _frames(15)
 	_check(layer.map_system.revealed.has("B1") and not layer.map_system.revealed.has("B2"), "mapa revela só a câmara de eclosão no início")
 
@@ -33,7 +33,7 @@ func _run() -> void:
 	Input.action_press("move_up")
 	await _seconds(2.5)
 	Input.action_release("move_up")
-	_check(player.global_position.z > -8.6, "parede gerada segura a jogadora (z = %.1f)" % player.global_position.z)
+	_check(player.global_position.z > -7.5, "parede da caverna segura a jogadora (z = %.1f)" % player.global_position.z)
 
 	# Irmã menor foge da jogadora
 	var small: Sister = null
@@ -48,7 +48,7 @@ func _run() -> void:
 		_check(is_instance_valid(small) and Fx.flat_dist(small.global_position, player.global_position) > d0, "irmã menor foge")
 
 	# Túnel até B2 revela B2; irmã faminta ataca
-	_teleport(Vector3(-36.0, 0.1, 0.0))
+	_teleport(Vector3(-36.0, 0.1, -8.0))
 	await _seconds(0.5)
 	_check(layer.map_system.revealed.has("B2"), "entrar no corredor revela B2 no mapa")
 	_check(player.respawn_pos.x > -40.0, "B2 vira ponto de retorno")
@@ -56,37 +56,43 @@ func _run() -> void:
 	var hungry: Sister = null
 	var best := 1e9
 	for s in get_tree().get_nodes_in_group("predator"):
-		var d := Fx.flat_dist(s.global_position, Vector3(-25.0, 0.0, 0.0))
+		var d := Fx.flat_dist(s.global_position, Vector3(-25.0, 0.0, -9.0))
 		if s is Sister and d < best:
 			hungry = s
 			best = d
 	print("  info: irmã faminta mais próxima a %.1f m de B2" % best)
-	_teleport(hungry.global_position + Vector3(-2.0, 0.1, 0.0) if hungry != null else Vector3(-25.0, 0.1, 0.0))
+	_teleport(hungry.global_position + Vector3(-2.0, 0.1, 0.0) if hungry != null else Vector3(-25.0, 0.1, -9.0))
 	await _seconds(3.0)
 	_check(player.hp < hp0, "irmã faminta caça e morde (PV %d)" % int(player.hp))
 
 	# B3: fio sobre o abismo
 	player.hp = player.max_hp
-	_teleport(Vector3(0.0, 0.1, -6.0))
+	_teleport(Vector3(-4.0, 0.1, -3.0))
 	await _frames(5)
 	var a: WebAnchor = WebNetwork.anchors["B3_a"]
 	var c: WebAnchor = WebNetwork.anchors["B3_c"]
-	_check(player._strand_error(a, c) == "", "pilares de teia de B3 alcançam o outro lado (10 m)")
+	_check(player._strand_error(a, c) == "", "pilares de teia de B3 alcançam o outro lado da fenda (11 m)")
 	WebNetwork.create_strand(a, c)
-	_teleport(Vector3(3.0, 0.15, -6.0))
+	_teleport(Vector3(-0.9, 0.15, -6.0))
 	await _frames(5)
 	Input.action_press("move_right")
-	await _seconds(1.4)
+	await _seconds(1.6)
 	Input.action_release("move_right")
 	await _frames(10)
-	_check(player.global_position.x > 10.0 and player.global_position.y > -1.0, "atravessou o abismo de B3 pelo fio (x = %.1f)" % player.global_position.x)
+	_check(player.global_position.x > 6.8 and player.global_position.y > -1.0, "atravessou a fenda de B3 pelo fio (x = %.1f)" % player.global_position.x)
 
 	# Fresta até B4 e o cristal
 	var max_before := player.max_hp
-	_teleport(Vector3(17.5, 0.1, 12.5))
+	_teleport(Vector3(17.3, 0.1, 15.5))
 	await _frames(5)
-	Input.action_press("move_down")
-	await _seconds(3.0)
+	Input.action_press("move_right", 0.55)
+	Input.action_press("move_down", 0.83)
+	await _seconds(0.7)
+	Input.action_release("move_right")
+	Input.action_press("move_left", 0.16)
+	Input.action_press("move_down", 1.0)
+	await _seconds(2.5)
+	Input.action_release("move_left")
 	Input.action_release("move_down")
 	await _frames(10)
 	_check(layer.map_system.revealed.has("B4"), "a Filhote passa pela fresta até B4")
@@ -108,18 +114,18 @@ func _run() -> void:
 
 	# B6: a Mãe persegue e alcança quem fica parado
 	player.hp = player.max_hp
-	_teleport(Vector3(59.0, 0.1, 0.0))
+	_teleport(Vector3(61.5, 0.1, 2.5))
 	await _seconds(0.3)
-	_teleport(Vector3(61.0, 0.1, 0.0))
+	_teleport(Vector3(64.0, 0.1, 4.0))
 	await _seconds(0.3)
 	_check(layer.chase.active, "a Mãe acorda quando a jogadora entra na Fuga")
-	await _seconds(3.0)
-	_check(player.hp <= player.max_hp - 35.0, "a Mãe alcança quem fica parado (PV %d)" % int(player.hp))
+	await _seconds(3.5)
+	_check(player.hp <= player.max_hp - 30.0, "a Mãe alcança quem fica parado (PV %d)" % int(player.hp))
 
 	# Saída: túnel estreito leva às Galerias
-	_teleport(Vector3(101.0, 0.1, 0.0))
+	_teleport(Vector3(113.0, 0.1, 1.2))
 	Input.action_press("move_right")
-	await _seconds(0.8)
+	await _seconds(1.0)
 	Input.action_release("move_right")
 	_check(layer._leaving, "túnel de saída leva às Galerias")
 	_check(not GameState.carry.is_empty() or layer._leaving, "atributos seguem para a próxima camada")

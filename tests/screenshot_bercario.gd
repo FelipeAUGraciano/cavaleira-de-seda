@@ -22,7 +22,7 @@ func _ready() -> void:
 	await _frames(60)
 	await _shot("b1_eclosao")
 
-	_go(Vector3(0.0, 0.1, -3.0))
+	_go(Vector3(-3.0, 0.1, -3.0))
 	await _frames(40)
 	Input.action_press("weave")
 	await _frames(10)
@@ -35,7 +35,7 @@ func _ready() -> void:
 	await _frames(10)
 
 	var leg: MotherLeg = layer.mother_leg
-	_go(Vector3(37.0, 0.1, 2.0))
+	_go(Vector3(41.0, 0.1, 1.0))
 	await _frames(20)
 	leg._start_strike(p.global_position)
 	await _frames(20)
@@ -43,11 +43,11 @@ func _ready() -> void:
 	leg.active = false
 
 	p.hp = p.max_hp
-	_go(Vector3(70.0, 0.1, 0.0))
+	_go(Vector3(72.0, 0.1, 6.5))
 	await _frames(5)
 	layer._chase_started = true
 	layer.chase.begin()
-	layer.chase.position.x = 60.0
+	layer.chase.progress = 14.0
 	await _frames(4)
 	await _shot("b6_fuga")
 

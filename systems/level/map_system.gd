@@ -11,6 +11,7 @@ var layer_name := ""
 var rooms: Array = []        ## [{id, name, rect: Rect2, ...}]
 var tunnels: Array = []      ## [Rect2]
 var locks: Array = []        ## [{type, pos: Vector3, seen: bool}]
+var grid: Dictionary = {}   ## modo orgânico: {origin, w, h, ids, runs, bounds}; vazio = modo retângulos
 var revealed: Dictionary = {}
 var current_room := ""
 var _timer := 0.0
@@ -44,7 +45,19 @@ func _process(delta: float) -> void:
 			l["seen"] = true
 
 
+func set_grid(g: Dictionary) -> void:
+	grid = g
+
+
 func room_at(pos: Vector3) -> Dictionary:
+	if not grid.is_empty():
+		var o: Vector2 = grid["origin"]
+		var i := int(floor(pos.x - o.x))
+		var j := int(floor(pos.z - o.y))
+		if i < 0 or j < 0 or i >= int(grid["w"]) or j >= int(grid["h"]):
+			return {}
+		var idx: int = grid["ids"][j * int(grid["w"]) + i]
+		return rooms[idx] if idx >= 0 else {}
 	for r in rooms:
 		var rect: Rect2 = r["rect"]
 		if rect.has_point(Vector2(pos.x, pos.z)):
@@ -61,6 +74,8 @@ func is_tunnel_revealed(t: Rect2) -> bool:
 
 
 func bounds() -> Rect2:
+	if not grid.is_empty():
+		return grid["bounds"]
 	var b := Rect2()
 	var first := true
 	for r in rooms:
