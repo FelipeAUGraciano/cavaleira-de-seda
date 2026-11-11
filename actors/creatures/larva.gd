@@ -17,7 +17,7 @@ func _init() -> void:
 	food_xp = 15
 	senses_text = "cheiro (5 m) e audição"
 	model_name = "larva"
-	model_size = 0.75
+	model_size = 0.9
 	model_fit = "length"
 
 

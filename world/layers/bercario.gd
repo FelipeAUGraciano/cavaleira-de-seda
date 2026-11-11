@@ -101,10 +101,11 @@ func _build_level() -> void:
 		egg.scale = Vector3(1.0, 0.8, 1.0)
 		egg.position = e + Vector3(0.0, 0.3, 0.0)
 		add_child(egg)
-		var m := Models.swap(self, "ovo", 0.75, [egg], "max")
+		var m := Models.swap(self, "ovo", 0.9, [egg], "height")
 		if m != null:
 			m.position = e
 			m.rotation.y = e.x
+			Models.tint(m, Color(1, 1, 1), 0.35)   # ovos claros se destacam no ninho escuro
 
 	# Teias decorativas no chão
 	for w in [Vector3(-58, 0, 4), Vector3(-28, 0, -10), Vector3(-5, 0, 1), Vector3(15, 0, 3), Vector3(44, 0, -4), Vector3(84, 0, 4), Vector3(102, 0, -1), Vector3(-36, 0, 15)]:

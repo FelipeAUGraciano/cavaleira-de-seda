@@ -8,3 +8,5 @@ A lista de nomes e os pedidos para a IA estão na aba "Modelos 3D" do GDD.
 | --- | --- | --- |
 | Irmã-aranha (veio com patas) | irma_corpo/irma_corpo_v01.glb | Hunyuan 3D, 1,5 M → 20 mil triângulos |
 | Sapo-de-rocha | sapo/sapo_v01.glb | Hunyuan 3D, 1,5 M → 20 mil triângulos |
+| Ovo de aranha | ovo/ovo_v01.glb | Hunyuan 3D, 1,5 M → 2 mil triângulos (brilho leve no ninho) |
+| Larva-de-musgo | larva/larva_v01.glb | Hunyuan 3D, 1,5 M → 5 mil triângulos |

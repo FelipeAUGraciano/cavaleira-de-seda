@@ -30,7 +30,7 @@ func _ready() -> void:
 	hunter.position = Vector3(-62.0, 0.3, 7.0)
 	layer.ecosystem.add_child(hunter)
 	hunter.set_physics_process(false)
-	p.global_position = Vector3(-60.0, 0.1, 5.5)
+	p.global_position = Vector3(-59.0, 0.1, 2.5)
 	p.snap_camera()
 	p.camera.size = 9.0
 	await _frames(40)
@@ -51,6 +51,10 @@ func _ready() -> void:
 	frog.set_physics_process(false)
 	frog.global_position = Vector3(-3.0, 0.0, 33.0)
 	frog._visual.rotation.y = 0.8
+	for k in 2:
+		var lv: Larva = gal.ecosystem.spawn_larva(Vector3(1.5 + k * 1.6, 0.0, 31.5 + k * 0.6))
+		lv.set_physics_process(false)
+		lv._visual.rotation.y = 0.6 + k * 1.2
 	p.global_position = Vector3(0.5, 0.1, 35.0)
 	p.aim_dir = Vector3(-1, 0, 0)
 	p.snap_camera()

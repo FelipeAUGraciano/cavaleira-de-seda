@@ -104,8 +104,9 @@ static func set_overlay(node: Node, mat: Material) -> void:
 		set_overlay(c, mat)
 
 
-static func tint(node: Node, color: Color) -> void:
+static func tint(node: Node, color: Color, glow: float = 0.0) -> void:
 	## Recolore o modelo multiplicando a cor de cada material (cópia só deste modelo).
+	## glow > 0 faz a própria textura brilhar um pouco (bom em salas escuras).
 	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
 		var mi := node as MeshInstance3D
 		for i in mi.mesh.get_surface_count():
@@ -114,9 +115,14 @@ static func tint(node: Node, color: Color) -> void:
 				continue
 			var copy := m.duplicate() as BaseMaterial3D
 			copy.albedo_color = copy.albedo_color * color
+			if glow > 0.0:
+				copy.emission_enabled = true
+				copy.emission = Color(1, 1, 1)
+				copy.emission_texture = copy.albedo_texture
+				copy.emission_energy_multiplier = glow
 			mi.set_surface_override_material(i, copy)
 	for c in node.get_children():
-		tint(c, color)
+		tint(c, color, glow)
 
 
 static func bounds(node: Node, xform: Transform3D) -> AABB:
