@@ -1,7 +1,9 @@
 class_name Larva
 extends Creature
-## Larva-de-musgo (P): presa fácil. Foge quando sente o cheiro da jogadora ou ouve barulho,
-## e também foge de predadores próximos.
+## Larva-de-musgo (P): a presa de quase todo mundo.
+## Pasta musgo perto dos fungos quando eles estão acesos (Brilho) e se esconde na toca na Caça.
+## Foge do cheiro da jogadora e de predadores maiores acordados.
+## A isca do Lagarto-lanterna a hipnotiza: ela vai até a luz (e vira janta).
 
 
 func _init() -> void:
@@ -19,6 +21,21 @@ func _init() -> void:
 	model_name = "larva"
 	model_size = 0.9
 	model_fit = "length"
+	fears_player = true
+	fear_radius = 4.5
+	rest_phase = CaveClock.Phase.CACA
+	hunger_threshold = 35.0
+	sleep_heal = 0.02
+	needs.hunger_rate = 0.5
+
+
+func _make_brain() -> Brain:
+	return Brain.new() \
+		.add(Lured.new()) \
+		.add(Behaviors.Flee.new()) \
+		.add(Behaviors.Forage.new()) \
+		.add(Behaviors.Sleep.new()) \
+		.add(Behaviors.Wander.new(5.0, 0.3))
 
 
 func _build_visual() -> void:
@@ -28,33 +45,37 @@ func _build_visual() -> void:
 		_visual.add_child(seg)
 
 
-func _think(delta: float) -> Vector3:
-	var threat: Node3D = null
-	var p := GameState.player as Player
-	if p != null and not p.dead:
-		var smell := maxf(5.0, p.noise_radius())
-		if flat_dist_to(p) < smell:
-			threat = p
-	if threat == null:
-		for n in get_tree().get_nodes_in_group("predator"):
-			var c := n as Creature
-			if c != null and not c.dead and not c.is_in_group("lure") and flat_dist_to(c) < 4.0:
-				threat = c
-				break
-	if threat != null:
-		var away := global_position - threat.global_position
-		away.y = 0.0
-		var dir := safe_dir(away)
-		if dir == Vector3.ZERO:
-			dir = safe_dir(away.rotated(Vector3.UP, PI * 0.5))
-		return dir * speed * 1.3
-	# A isca do Lagarto-lanterna hipnotiza: a larva vai até a luz (e vira janta).
-	for n in get_tree().get_nodes_in_group("lure"):
-		var lz := n as Lizard
-		if lz != null and not lz.dead and Fx.flat_dist(lz.lure_position(), global_position) < Lizard.LURE_PULL:
-			return move_to(lz.lure_position(), 0.45)
-	return wander(delta, 6.0, 0.4)
+func find_food() -> Variant:
+	return World.nearest_graze(global_position, 16.0)
+
+
+func is_threat(o: Creature) -> bool:
+	return super.is_threat(o) and not o.is_in_group("lure")
+
+
+func lure_near() -> Lizard:
+	return World.nearest(global_position, Lizard.LURE_PULL + 1.5, func(o): return o is Lizard and o.lure_active()) as Lizard
 
 
 func _animate(_delta: float, speed_now: float) -> void:
 	_visual.scale.z = 1.0 + sin(_anim_t * 12.0) * 0.08 * clampf(speed_now, 0.0, 1.0)
+
+
+class Lured extends Behavior:
+	## A luz da isca é mais forte que o sono e que a fome (mas não que o pavor).
+	var lizard: Lizard = null
+
+	func _init() -> void:
+		id = "lured"
+		label = "Hipnotizada pela luz"
+
+	func utility(c: Creature) -> float:
+		if c.needs.fear > 60.0:
+			return 0.0
+		lizard = (c as Larva).lure_near()
+		return 1.1 if lizard != null else 0.0
+
+	func run(c: Creature, _delta: float) -> Vector3:
+		if lizard == null or not is_instance_valid(lizard) or lizard.dead:
+			return Vector3.ZERO
+		return c.move_to(lizard.lure_position(), 0.45)

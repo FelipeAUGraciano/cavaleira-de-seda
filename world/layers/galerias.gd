@@ -24,8 +24,6 @@ const LEDGE_ROUTE := [Vector2(119, 21), Vector2(138, 20.5), Vector2(157, 21)]
 
 var cave: CaveBuilder
 var centipede: Centipede
-var fight := false
-var _door_in: StaticBody3D
 var _door_out: StaticBody3D
 var _collapsing := false
 var _territory_done := false
@@ -83,7 +81,7 @@ func _configure() -> void:
 			"hint": "Cristais que brilham como a sua runa. Aperte E para examinar.",
 			"line_id": "g10_fresta", "line": "Tá brilhando no mesmo ritmo que eu. Isso é bonito ou assustador?"},
 		{"id": "G11", "name": "Poças ácidas",
-			"shapes": [CaveBuilder.path([Vector2(54, 74), Vector2(64, 78), Vector2(80, 82), Vector2(96, 80), Vector2(112, 83), Vector2(128, 78)], 6.0, 0.8)],
+			"shapes": [CaveBuilder.path([Vector2(54, 74), Vector2(64, 78), Vector2(80, 82), Vector2(96, 80), Vector2(112, 83), Vector2(133, 78)], 6.0, 0.8)],
 			"hint": "Ácido no chão. Com Resistência a Ácido 3 dá para atravessar: dizem que quem come Sapo-de-rocha aguenta mais.",
 			"line_id": "g11_pocas", "line": "Cheiro de ovo podre e metal. Meus pés já estão reclamando."},
 		{"id": "G12", "name": "Ninho dos lagartos",
@@ -124,9 +122,9 @@ func _build_level() -> void:
 		CaveBuilder.path([Vector2(44, 46), Vector2(47, 55), Vector2(44, 63)], 5.0, 0.5),                # G4 → G5
 		CaveBuilder.path([Vector2(44, 81), Vector2(43, 94)], 4.0, 0.3),                                 # G5 → G12
 		CaveBuilder.path([Vector2(112, 36), Vector2(127, 38)], 3.6, 0.3),                               # G6 → G8
-		CaveBuilder.path([Vector2(150, 44), Vector2(161, 47), Vector2(173, 44)], 4.5, 0.4),             # G8 → G9
+		CaveBuilder.path([Vector2(145, 42), Vector2(161, 47), Vector2(178, 44)], 5.6, 0.4),             # G8 → G9
 		CaveBuilder.path([Vector2(150, 39), Vector2(160, 37), Vector2(165, 31), Vector2(167, 17)], 1.15, 0.0),  # fresta G8 → G10
-		CaveBuilder.path([Vector2(176, 52), Vector2(160, 63), Vector2(141, 72)], 4.5, 0.4),             # G9 → G13
+		CaveBuilder.path([Vector2(180, 47), Vector2(176, 52), Vector2(160, 63), Vector2(137, 76)], 5.6, 0.4),             # G9 → G13 (a Centopeia passa)
 		CaveBuilder.path([Vector2(135, 84), Vector2(136, 92), Vector2(135, 101)], 5.0, 0.3),            # G13 → G14
 		CaveBuilder.path([Vector2(149, 112), Vector2(158, 111), Vector2(166, 110)], 4.0, 0.3),          # G14 → G15
 	]
@@ -161,9 +159,9 @@ func _build_level() -> void:
 		"G7_a": Vector3(13, 0, 72), "G7_b": Vector3(5, 0, 70.5), "G7_c": Vector3(-3, 0, 74),
 		"G8_a": Vector3(129, 0, 36), "G8_b": Vector3(138, 0, 44), "G8_c": Vector3(146, 0, 35),
 		"G9_a": Vector3(175, 0, 40), "G9_b": Vector3(189, 0, 40), "G9_c": Vector3(184, 0, 51), "G9_d": Vector3(178, 0, 48),
-		"G11_a": Vector3(84, 0, 82), "G11_b": Vector3(100, 0, 80), "G11_c": Vector3(124, 0, 79),
+		"G11_a": Vector3(84, 0, 83.4), "G11_b": Vector3(100, 0, 78.2), "G11_c": Vector3(122, 0, 82.2),
 		"G12_a": Vector3(36, 0, 98), "G12_b": Vector3(50, 0, 98), "G12_c": Vector3(36, 0, 110), "G12_d": Vector3(50, 0, 110),
-		"G13_a": Vector3(130, 0, 73), "G13_b": Vector3(140, 0, 73), "G13_c": Vector3(135, 0, 82),
+		"G13_a": Vector3(130, 0, 73), "G13_b": Vector3(140, 0, 73), "G13_c": Vector3(129, 0, 80),
 		"G15_a": Vector3(167, 0, 106), "G15_b": Vector3(168, 0, 114), "G15_c": Vector3(173, 0, 110),
 	}
 	for k in 8:
@@ -334,6 +332,7 @@ func _populate() -> void:
 	ecosystem.frog_spawns = [Vector3(-5, 0, 38), Vector3(188, 0, 50)]
 	ecosystem.larva_target = 12
 	ecosystem.frog_target = 2
+	ecosystem.on_spawn = _setup_creature
 	ecosystem.spawn_initial()
 	for home in BAT_HOMES:
 		_spawn_bat(home)
@@ -359,6 +358,8 @@ func _populate() -> void:
 		centipede = Centipede.new()
 		centipede.position = ARENA + Vector3(0, 0.3, 4)
 		centipede.arena_center = ARENA
+		centipede.den = ARENA
+		centipede.range_rooms = ["G8", "G9", "G11", "G13", "G14"]
 		ecosystem.add_child(centipede)
 	else:
 		_open_door_out()
@@ -371,9 +372,18 @@ func _populate() -> void:
 func _spawn_bat(home: Vector3) -> Bat:
 	var b := Bat.new()
 	b.position = home + Vector3(randf_range(-2.0, 2.0), Bat.ROOST_Y, randf_range(-1.5, 1.5))
+	b.den = home
+	b.flock = "g3_%d" % int(home.x)
+	b.range_rooms = ["G3", "G1", "G4", "G2"]
 	ecosystem.add_child(b)
 	b.home = home
 	return b
+
+
+func _setup_creature(c: Creature) -> void:
+	## Câmaras por onde cada criatura nova passeia.
+	if c is Frog:
+		c.range_rooms = ["G9", "G8", "G13"] if c.global_position.x > 100.0 else ["G2", "G1", "G4", "G5"]
 
 
 func _start() -> void:
@@ -403,8 +413,6 @@ func _on_territory_changed() -> void:
 func _on_creature_died(c: Node) -> void:
 	if c is Centipede:
 		GameState.flags["g14_centopeia"] = true
-		fight = false
-		_open_door_in()
 		_open_door_out()
 		EventBus.big_message.emit("Centopeia-blindada derrotada!")
 		EventBus.message.emit("Coma a carapaça (E) para ganhar a Pele de Cristal. A passagem a leste se abriu.")
@@ -422,8 +430,7 @@ func _on_room_entered(room: Dictionary) -> void:
 	if id == "G8" and not GameState.flags.has("g8_aventureiros"):
 		GameState.flags["g8_aventureiros"] = true
 		_adventurers_pass()
-	elif id == "G14" and not fight and centipede != null and is_instance_valid(centipede) and not centipede.dead:
-		_start_fight()
+
 
 
 func _adventurers_pass() -> void:
@@ -441,35 +448,10 @@ func _adventurers_pass() -> void:
 	get_tree().create_timer(3.0).timeout.connect(func(): GameState.say_once("g8_humanos", "Humanos?! ...Com tochas. E espadas. Melhor ficar bem quietinha."))
 
 
-func _start_fight() -> void:
-	fight = true
-	if _door_in == null or not is_instance_valid(_door_in):
-		_door_in = _rock_door(DOOR_IN, 0.0)
-	centipede.wake()
-	EventBus.big_message.emit("Centopeia-blindada")
-	EventBus.hint.emit("Ela sente o chão vibrar. Sobre um fio você não vibra. Faça ela investir ATRAVÉS de um fio esticado: enroscada, a carapaça abre.")
-	GameState.say_once("centopeia_inicio", "Uma centopeia. Blindada. Do tamanho de um corredor. Claro que é.")
-
-
-func _open_door_in() -> void:
-	if _door_in != null and is_instance_valid(_door_in):
-		_door_in.queue_free()
-	_door_in = null
-
-
 func _open_door_out() -> void:
 	if _door_out != null and is_instance_valid(_door_out):
 		_door_out.queue_free()
 	_door_out = null
-
-
-func _on_player_died() -> void:
-	# Perdeu a luta: a Centopeia volta a dormir com a vida cheia e a porta reabre.
-	if fight:
-		fight = false
-		_open_door_in()
-		if centipede != null and is_instance_valid(centipede) and not centipede.dead:
-			centipede.reset()
 
 
 func _physics_process(delta: float) -> void:

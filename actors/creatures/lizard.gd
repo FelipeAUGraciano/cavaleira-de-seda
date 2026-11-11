@@ -22,7 +22,6 @@ var mode_time := 0.0
 var attack_done := false
 var bite_cd := 0.0
 var charge_cd := 2.0
-var hunger := 30.0
 var charge_dir := Vector3.ZERO
 var lure: OmniLight3D
 var _lure_mat: StandardMaterial3D
@@ -43,6 +42,12 @@ func _init() -> void:
 	food_energy = 10.0
 	senses_text = "visão (9 m, cone de 130°); a isca revela tudo a 5 m"
 	model_name = "lagarto"
+	rest_phase = CaveClock.Phase.BRILHO
+	sight_range = SIGHT
+	sight_fov = FOV
+	attack_damage = BITE_DAMAGE
+	attack_reach = 1.5
+	needs.hunger_rate = 2.0
 	model_size = 2.4
 	model_fit = "length"
 
@@ -90,6 +95,8 @@ func lure_position() -> Vector3:
 func sees(p: Player) -> bool:
 	if p == null or p.dead:
 		return false
+	if asleep:
+		return flat_dist_to(p) < 2.0 or flat_dist_to(p) < p.noise_radius() * 0.3
 	if Fx.flat_dist(lure_position(), p.global_position) <= LURE_REVEAL and has_line_of_sight(p):
 		return true
 	return can_see(p, SIGHT * p.visibility_mult(), FOV)
@@ -99,31 +106,79 @@ func in_territory(pos: Vector3) -> bool:
 	return Fx.flat_dist(pos, home) <= territory_radius
 
 
-func _think(delta: float) -> Vector3:
+func _make_brain() -> Brain:
+	return Brain.new() \
+		.add(Behaviors.Combat.new("Defendendo o território")) \
+		.add(Behaviors.Flee.new()) \
+		.add(Behaviors.Fight.new()) \
+		.add(Behaviors.Sleep.new()) \
+		.add(LureFeed.new())
+
+
+# ---------------------------------------------------------------- vida
+
+func lure_active() -> bool:
+	return not dead and not asleep
+
+
+func notices_player(p: Player) -> bool:
+	return sees(p)
+
+
+func find_rival() -> Creature:
+	## Expulsa sapos do território (outros lagartos do ninho são tolerados).
+	var a: Creature = _last_attacker as Creature if is_instance_valid(_last_attacker) else null
+	if a != null and is_instance_valid(a) and not a.dead and flat_dist_to(a) < 8.0:
+		return a
+	return World.nearest(home, territory_radius, func(o): return o is Frog)
+
+
+# ---------------------------------------------------------------- combate (defesa do território)
+
+func combat_wants() -> bool:
+	var p := GameState.player as Player
+	var intruder := p != null and not p.dead and in_territory(p.global_position) and noticed_player
+	return intruder or mode == Mode.WARN or mode == Mode.CHASE or mode == Mode.BITE or mode == Mode.CHARGE or mode == Mode.RETURN
+
+
+func combat_locked() -> bool:
+	return mode == Mode.BITE or mode == Mode.CHARGE
+
+
+func combat_start() -> void:
+	if mode == Mode.IDLE:
+		mode = Mode.WARN
+		mode_time = 0.0
+		if not _warned:
+			_warned = true
+			EventBus.message.emit("O Lagarto-lanterna pisca a isca: você está no território dele!")
+			GameState.say_once("lagarto_aviso", "Ok, ok, entendi o recado luminoso. ...Ou não entendi?")
+
+
+func combat_stop() -> void:
+	if mode != Mode.RETURN:
+		mode = Mode.IDLE
+	telegraph = false
+
+
+func combat_tick(delta: float) -> Vector3:
 	mode_time += delta
 	bite_cd -= delta
 	charge_cd -= delta
-	hunger = minf(100.0, hunger + delta * 2.0)
 	var p := GameState.player as Player
-	var intruder := p != null and not p.dead and in_territory(p.global_position) and sees(p)
-
+	var intruder := p != null and not p.dead and in_territory(p.global_position) and noticed_player
 	match mode:
 		Mode.BITE:
 			return _do_bite(p)
 		Mode.CHARGE:
 			return _do_charge(p)
-		Mode.EAT:
-			if mode_time > 2.0 or intruder:
-				mode = Mode.IDLE
-			if not intruder:
-				return Vector3.ZERO
 		Mode.RETURN:
 			if flat_dist_to_home() < 1.0:
 				mode = Mode.IDLE
 				return Vector3.ZERO
 			if intruder:
 				mode = Mode.CHASE
-			return move_to(home, 0.8)
+			return nav_to(home, 0.8)
 		Mode.WARN:
 			face_toward(p.global_position if p != null else home)
 			if not intruder and mode_time > 0.4:
@@ -139,25 +194,9 @@ func _think(delta: float) -> Vector3:
 				EventBus.message.emit("O Lagarto-lanterna volta para o território.")
 				return Vector3.ZERO
 			return _chase(p)
-
-	# IDLE: avisa intrusos, come larvas atraídas pela isca, fica perto de casa
 	if intruder:
-		mode = Mode.WARN
-		mode_time = 0.0
-		if not _warned:
-			_warned = true
-			EventBus.message.emit("O Lagarto-lanterna pisca a isca: você está no território dele!")
-			GameState.say_once("lagarto_aviso", "Ok, ok, entendi o recado luminoso. ...Ou não entendi?")
-		return Vector3.ZERO
-	var snack := _larva_in_reach()
-	if snack != null and hunger > 20.0:
-		face_toward(snack.global_position)
-		snack.take_damage(999.0, self)
-		hunger = 0.0
-		mode = Mode.EAT
-		mode_time = 0.0
-		return Vector3.ZERO
-	return wander(delta, 3.0, 0.2)
+		combat_start()
+	return Vector3.ZERO
 
 
 func flat_dist_to_home() -> float:
@@ -217,11 +256,7 @@ func _do_charge(p: Player) -> Vector3:
 
 
 func _larva_in_reach() -> Larva:
-	for n in get_tree().get_nodes_in_group("creature"):
-		var l := n as Larva
-		if l != null and not l.dead and (Fx.flat_dist(l.global_position, lure_position()) < 1.4 or flat_dist_to(l) < body_radius + 1.0):
-			return l
-	return null
+	return World.nearest(global_position, 3.5, func(o): return o is Larva and (Fx.flat_dist(o.global_position, lure_position()) < 1.4 or flat_dist_to(o) < body_radius + 1.0)) as Larva
 
 
 func _on_hurt(source: Node3D) -> void:
@@ -237,6 +272,8 @@ func _update_glow(delta: float) -> void:
 	var warn := mode == Mode.WARN or mode == Mode.CHARGE and mode_time < 0.6
 	var c := Color(1.0, 0.25, 0.2) if warn else Color(0.75, 1.0, 0.45)
 	var pulse := 1.0 + 0.5 * sin(_anim_t * (14.0 if warn else 2.5))
+	if asleep:
+		pulse = 0.12   # dormindo, a isca quase apaga: a melhor hora para passar
 	_lure_mat.albedo_color = c
 	_lure_mat.emission = c
 	_lure_mat.emission_energy_multiplier = 3.0 * pulse
@@ -246,3 +283,28 @@ func _update_glow(delta: float) -> void:
 
 func _animate(_delta: float, speed_now: float) -> void:
 	_visual.rotation.z = sin(_anim_t * 9.0) * 0.08 * clampf(speed_now / speed, 0.0, 1.5)
+
+
+class LureFeed extends Behavior:
+	## Fica perto de casa com a isca acesa; quando está com fome, come as larvas que chegam.
+	func _init() -> void:
+		id = "lure"
+		label = "Pescando com a isca"
+
+	func utility(_c: Creature) -> float:
+		return 0.3
+
+	func run(c: Creature, delta: float) -> Vector3:
+		var lz := c as Lizard
+		if lz.flat_dist_to_home() > 2.5:
+			return lz.nav_to(lz.home, 0.6)
+		if lz.needs.hunger > 20.0:
+			var snack := lz._larva_in_reach()
+			if snack != null:
+				lz.face_toward(snack.global_position)
+				snack.take_damage(999.0, lz)
+				lz.needs.hunger = 0.0
+				lz.activity = "Comendo uma larva"
+				return Vector3.ZERO
+		lz.activity = label
+		return lz.wander(delta, 2.5, 0.15)

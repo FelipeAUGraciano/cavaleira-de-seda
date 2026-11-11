@@ -16,6 +16,7 @@ EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
 WebNetwork="*res://autoload/web_network.gd"
 Voice="*res://autoload/voice.gd"
+World="*res://autoload/world.gd"
 
 [display]
 

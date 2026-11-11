@@ -133,6 +133,16 @@ func _floor_from(o: float, c: float, b: float) -> float:
 	return f
 
 
+func floor_value(p: Vector2) -> float:
+	## Quanto de chão firme há em p (> 0 = chão; maior = mais longe da borda). Rápido depois de build().
+	return _floor_cached(p)
+
+
+func open_value(p: Vector2) -> float:
+	## Quanto de espaço aberto há em p (inclui abismos). Rápido depois de build().
+	return _open_cached(p)
+
+
 func _open_cached(p: Vector2) -> float:
 	## Espaço aberto lido da grade de build() (interpolado); fora dela, cálculo direto.
 	var v := _sample(_o_cache, p)

@@ -14,6 +14,7 @@ var rooms: Array = []        ## [{id, name, rect: Rect2, checkpoint, hint, line_
 var tunnels: Array = []      ## [Rect2]
 var locks: Array = []        ## [{type, pos: Vector3}]
 var map_grid: Dictionary = {}  ## preenchido por camadas orgânicas (CaveBuilder.build)
+var nav_blockers: Array = []   ## [Vector3 centro, Vector3 tamanho] de caixas sólidas (porta, tenda...)
 
 var ambient_color := Color(0.45, 0.5, 0.6)
 var ambient_energy := 0.35
@@ -24,12 +25,14 @@ var hud: Hud
 var ecosystem: Ecosystem
 var map_system: MapSystem
 var webs: Node3D
+var clock: CaveClock
 var resumed := false
 
 
 func _ready() -> void:
 	Engine.time_scale = 1.0
 	GameState.current_layer = self
+	World.reset()
 	_configure()
 
 	var data := GameState.load_game()
@@ -48,6 +51,13 @@ func _ready() -> void:
 	add_child(webs)
 	WebNetwork.setup(webs)
 	_build_level()
+	_build_nav()
+	clock = CaveClock.new()
+	clock.name = "Relogio"
+	if resumed:
+		clock.t = float(data.get("clock", clock.t))
+	add_child(clock)
+	World.clock = clock
 
 	ecosystem = Ecosystem.new()
 	ecosystem.name = "Criaturas"
@@ -83,6 +93,30 @@ func _ready() -> void:
 
 	EventBus.player_died.connect(_on_player_died)
 	_start()
+
+
+func _build_nav() -> void:
+	## Grade de navegação das criaturas (só em camadas de caverna orgânica).
+	var cave_builder = get("cave") if "cave" in self else null
+	if cave_builder == null or map_grid.is_empty():
+		return
+	var obstacles: Array = []
+	for a in WebNetwork.anchors.values():
+		obstacles.append((a as Node3D).global_position)
+	for b in nav_blockers:
+		var c: Vector3 = b[0]
+		var sz: Vector3 = b[1]
+		var r := maxf(sz.x, sz.z) * 0.5
+		var x := -r
+		while x <= r:
+			var z := -r
+			while z <= r:
+				obstacles.append(c + Vector3(x, 0.0, z))
+				z += 1.0
+			x += 1.0
+	var nav := NavGrid.new()
+	nav.build(cave_builder, map_grid, rooms, obstacles)
+	World.nav = nav
 
 
 # ---------------------------------------------------------------- para sobrescrever
@@ -164,6 +198,7 @@ func add_anchor(anchor_name: String, pos: Vector3, height: float = 4.0, radius: 
 
 
 func add_static_box(size: Vector3, pos: Vector3, color: Color) -> StaticBody3D:
+	nav_blockers.append([pos, size])
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
@@ -191,7 +226,10 @@ func add_fungus(pos: Vector3, color: Color = Color(0.45, 1.0, 0.6)) -> void:
 	light.omni_range = 5.0
 	light.light_energy = 1.2
 	light.position = pos + Vector3(0.0, 1.0, 0.0)
+	light.set_meta("base", 1.2)
+	light.add_to_group("fungus_light")   # o relógio da caverna acende e apaga
 	add_child(light)
+	World.graze_spots.append(pos)          # larvas pastam o musgo perto dos fungos
 
 
 func add_web_decal(pos: Vector3, radius: float = 2.5) -> void:

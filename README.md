@@ -1,6 +1,18 @@
-# Cavaleira de Seda — protótipo (v0.5)
+# Cavaleira de Seda — protótipo (v0.6)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.6 — mundo vivo
+
+A caverna agora vive sozinha, como os mapas de Monster Hunter: cada criatura tem necessidades, rotina e toca, e circula pelo mapa mesmo longe de você.
+
+- **Ciclo da caverna (5 min):** os fungos acendem e apagam. No **Brilho**, larvas saem para pastar musgo e os caçadores dormem. Na **Caça**, sapos, lagarto, morcegos e a Centopeia acordam. A fase aparece embaixo do minimapa.
+- **Necessidades:** fome, sono, medo e vontade de passear. Um "cérebro" escolhe a atividade de maior nota: dormir na toca, comer, fugir, passear para outra câmara, brigar ou lutar com você.
+- **A Centopeia patrulha o leste** (G8, G9, G11, G13, G14): caça sapos e larvas, deixa rastro de arrasto, arrebenta fios por onde passa, dorme no covil e, ferida, **foge mancando para o covil** para se curar. O estrago fica: morrer não cura a Centopeia. Quando ela chega na câmara onde você está, o chão treme.
+- **Morcegos em bando:** dormem pendurados no Brilho e saem juntos na Caça para caçar larvas em outras câmaras. Fios esticados no caminho deles viram armadilha.
+- **Hierarquia e território:** bicho menor foge do maior (o sapo foge da Centopeia). O Lagarto-lanterna expulsa sapos do jardim. Quem é atacado por outro bicho revida. Dormindo, o lagarto quase apaga a isca: é a hora de passar.
+- **Rastreio pela teia:** bichos dentro do seu território aparecem como pontos no minimapa (cor pelo tamanho). A **Leitura** (Alt) mostra o que a criatura está fazendo e como ela parece (com fome, com sono, ferida).
+- **Mais rápido:** as criaturas andam presas à grade de navegação, sem testar colisão contra a malha da caverna (a física caiu de ~15 ms para ~3 ms por quadro com 20+ criaturas). Longe de você, elas pensam 1× por segundo em vez de 4×.
 
 ## Novidades da v0.5 — o Ato 1 inteiro
 
@@ -95,17 +107,22 @@ Jogue sem ler o código e anote:
 6. O Lagarto-lanterna: o aviso de luz ficou claro antes do ataque?
 7. A Centopeia: você entendeu sozinha que precisava fazer ela investir através de um fio? Quantas tentativas levou?
 8. A cena dos aventureiros e a queda no fim: deram vontade de continuar?
-9. Qual foi o momento mais divertido? E o mais frustrante?
+9. O mundo pareceu vivo? Você reparou nos fungos apagando, nos morcegos saindo em bando, na Centopeia aparecendo onde você estava?
+10. Qual foi o momento mais divertido? E o mais frustrante?
 
 ## Estrutura do projeto
 
 ```
-autoload/      EventBus (sinais), GameState (controles, save, falas), WebNetwork (teias e território), Voice (dublagem)
+autoload/      EventBus (sinais), GameState (controles, save, falas), WebNetwork (teias e território), Voice (dublagem),
+               World (mundo vivo: registro espacial de criaturas e cadáveres, navegação, relógio)
 actors/
   player/      player.gd — a Cavaleira
   creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, corpse.gd
   npc/         adventurer.gd (aventureiros vistos de longe)
 systems/
+  ai/          needs.gd (fome, sono, medo, inquietação), brain.gd (escolhe a atividade),
+               behavior.gd (base) e behaviors.gd (vagar, dormir, comer, fugir, passear, combate, recuar, brigar)
+  world/       nav_grid.gd (caminhos em 3 grades: pequeno, grande, voo), cave_clock.gd (Brilho/Caça), track.gd (rastros)
   web/         âncoras, fio-guia, teia de captura, casulo
   ecosystem/   repovoamento da câmara
   fx.gd        formas cinza e efeitos simples
@@ -123,6 +140,16 @@ tests/         teste automático e capturas de tela
 ```
 
 Os valores de balanceamento ficam como constantes no topo de cada script (`player.gd`, `frog.gd`, `larva.gd`...).
+
+### Como uma criatura pensa
+
+```
+Needs (fome, sono, medo, inquietação)  ──┐
+Sentidos (_sense, 5×/s; 1,5×/s longe)  ──┼──> Brain: nota de cada Behavior ──> o de maior nota roda
+Fase do relógio (CaveClock)            ──┘        (4×/s perto, 1×/s longe; decide na hora se vê você ou leva dano)
+```
+
+Cada espécie monta o seu cérebro em `_make_brain()` com os comportamentos de `systems/ai/behaviors.gd` (e os dela, como a isca do lagarto ou o bote do morcego) e define os ataques em `combat_tick()`. Para criar uma espécie nova: estender `Creature`, preencher a ficha no `_init()` (tamanho, fase de descanso, câmaras por onde passeia, o que come) e escolher os comportamentos.
 
 ## Dublagem
 
@@ -148,6 +175,7 @@ godot --headless --path . res://tests/bercario_test.tscn   # Berçário de ponta
 godot --headless --path . res://tests/galerias_test.tscn   # Galerias G1–G7 (38 verificações)
 godot --headless --path . res://tests/covil_test.tscn      # G8–G15 e a Centopeia (34 verificações)
 godot --headless --path . res://tests/models_test.tscn     # troca de modelos (12 verificações)
+godot --headless --path . res://tests/vida_test.tscn       # mundo vivo: relógio, sono, pasto, bando, medo, brigas e desempenho
 ```
 
 Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, sapo, teia de captura, paredes, mapa, irmãs, fresta, cristal, pata da Mãe e a fuga.

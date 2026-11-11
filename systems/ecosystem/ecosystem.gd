@@ -11,6 +11,9 @@ var larva_spawns: Array[Vector3] = []
 var frog_spawns: Array[Vector3] = []
 var larva_target := LARVA_TARGET
 var frog_target := FROG_TARGET
+var on_spawn: Callable = Callable()   ## a camada ajusta cada criatura nova (câmaras, bando...)
+var frog_interval := 150.0            ## sapos também voltam com o tempo, não só ao descansar
+var _frog_timer := 150.0
 var _timer := LARVA_RESPAWN_INTERVAL
 
 
@@ -29,6 +32,8 @@ func spawn_larva(pos: Vector3) -> Larva:
 	var l := Larva.new()
 	l.position = pos + Vector3(randf_range(-1.0, 1.0), 0.3, randf_range(-1.0, 1.0))
 	add_child(l)
+	if on_spawn.is_valid():
+		on_spawn.call(l)
 	return l
 
 
@@ -36,6 +41,8 @@ func spawn_frog(pos: Vector3) -> Frog:
 	var f := Frog.new()
 	f.position = pos + Vector3(0.0, 0.3, 0.0)
 	add_child(f)
+	if on_spawn.is_valid():
+		on_spawn.call(f)
 	return f
 
 
@@ -44,6 +51,10 @@ func _process(delta: float) -> void:
 	if _timer <= 0.0:
 		_timer = LARVA_RESPAWN_INTERVAL
 		_top_up(larva_target, 0, 1)
+	_frog_timer -= delta
+	if _frog_timer <= 0.0:
+		_frog_timer = frog_interval
+		_top_up(0, frog_target, 1)
 
 
 func _on_rested(_c: Node) -> void:

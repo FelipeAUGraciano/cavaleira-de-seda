@@ -4,6 +4,9 @@ extends Creature
 ## Ouve quem se MEXE (a runa apagada não ajuda; ficar parada, sim). Ataca em mergulhos,
 ## no máximo dois de cada vez. No alto, a mordida não alcança: só durante o mergulho.
 ## Fio esticado no caminho (ou fio lançado com Q) prende o morcego no ar e ele cai.
+##
+## Vida: dorme pendurado no poleiro quando os fungos estão acesos (Brilho). Na Caça, o bando
+## sai junto para outras câmaras e mergulha nas larvas que encontra.
 
 enum Mode { ROOST, ALERT, WINDUP, DIVE, CLIMB }
 
@@ -13,14 +16,15 @@ const ROOST_Y := 2.6
 const ALERT_Y := 2.3
 const DIVE_Y := 0.45
 const DIVE_SPEED := 9.5
-const DIVE_HOMING := 3.5        ## m/s que o alvo do mergulho segue a jogadora (esquiva ainda escapa)
+const DIVE_HOMING := 3.5        ## m/s que o alvo do mergulho segue o alvo (esquiva ainda escapa)
 const BITE_DAMAGE := 5.0
+const PREY_DAMAGE := 9.0
 const MAX_DIVERS := 2
 
+var flock := "bando"            ## morcegos do mesmo bando passeiam juntos
 var mode: Mode = Mode.ROOST
 var mode_time := 0.0
 var dive_cd := 0.0
-var memory := 0.0
 var dive_target := Vector3.ZERO
 var orbit_angle := 0.0
 var bit := false
@@ -43,6 +47,12 @@ func _init() -> void:
 	model_name = "morcego"
 	model_size = 1.1
 	hover_y = ROOST_Y
+	rest_phase = CaveClock.Phase.BRILHO
+	nav_kind = NavGrid.Kind.AIR
+	roam_speed = 0.8
+	hunger_threshold = 40.0
+	memory_time = 4.0
+	needs.hunger_rate = 0.7
 
 
 func _ready() -> void:
@@ -53,6 +63,15 @@ func _ready() -> void:
 	orbit_angle = randf() * TAU
 	dive_cd = randf_range(0.8, 3.0)
 	position.y = ROOST_Y
+
+
+func _make_brain() -> Brain:
+	return Brain.new() \
+		.add(Behaviors.Combat.new("Mergulhando em você")) \
+		.add(HuntLarva.new()) \
+		.add(Behaviors.Sleep.new()) \
+		.add(Behaviors.Roam.new()) \
+		.add(Circle.new())
 
 
 func _build_visual() -> void:
@@ -76,87 +95,123 @@ func _build_visual() -> void:
 		_visual.add_child(eye)
 
 
+# ---------------------------------------------------------------- sentidos
+
 func hears(p: Player) -> bool:
 	var d := flat_dist_to(p)
+	if asleep:
+		return d <= 1.5
 	var moving := Vector2(p.velocity.x, p.velocity.z).length() > 0.8
 	if moving and d <= maxf(HEAR_RANGE, p.noise_radius() * 1.3):
 		return true
 	return d <= STILL_RANGE
 
 
-func _think(delta: float) -> Vector3:
+func notices_player(p: Player) -> bool:
+	return hears(p)
+
+
+func is_threat(_o: Creature) -> bool:
+	return false   # voando, ninguém do chão alcança
+
+
+func _physics_process(delta: float) -> void:
+	catch_immunity -= delta
+	if not dead and not is_entangled():
+		_check_strands()
+	if asleep:
+		hover_y = ROOST_Y + 0.4
+	elif mode == Mode.ROOST:
+		hover_y = ROOST_Y
+	super._physics_process(delta)
+
+
+# ---------------------------------------------------------------- combate com a jogadora
+
+func combat_wants() -> bool:
+	return player_memory > 0.0 or mode == Mode.WINDUP or mode == Mode.DIVE or mode == Mode.CLIMB
+
+
+func combat_locked() -> bool:
+	return mode == Mode.WINDUP or mode == Mode.DIVE
+
+
+func combat_start() -> void:
+	if mode == Mode.ROOST:
+		mode = Mode.ALERT
+		mode_time = 0.0
+	GameState.say_once("morcegos_ouviram", "Eles me ouviram. Se eu ficar parada... será que somem?")
+
+
+func combat_stop() -> void:
+	mode = Mode.ROOST
+	telegraph = false
+
+
+func combat_tick(delta: float) -> Vector3:
+	var p := GameState.player as Player
+	if p == null or p.dead:
+		mode = Mode.ROOST
+		return Vector3.ZERO
+	return dive_cycle(p, noticed_player, delta)
+
+
+func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
+	## Rodear o alvo no alto → aviso (brilho) → mergulho com mordida → subir.
+	## Serve para a jogadora e para larvas.
 	mode_time += delta
 	dive_cd -= delta
-	catch_immunity -= delta
-	_check_strands()
-	if is_entangled():
-		return Vector3.ZERO
-
-	var p := GameState.player as Player
-	var heard := p != null and not p.dead and hears(p)
-	if heard:
-		memory = 4.0
-	else:
-		memory -= delta
-
+	if mode == Mode.ROOST:
+		mode = Mode.ALERT
+		mode_time = 0.0
 	match mode:
-		Mode.ROOST:
-			hover_y = ROOST_Y
-			if heard:
-				mode = Mode.ALERT
-				mode_time = 0.0
-				GameState.say_once("morcegos_ouviram", "Eles me ouviram. Se eu ficar parada... será que somem?")
-			return _orbit(home, 3.0, 0.5, delta)
 		Mode.ALERT:
 			hover_y = ALERT_Y
-			if memory <= 0.0 or p == null or p.dead:
-				mode = Mode.ROOST
-				return Vector3.ZERO
 			if dive_cd <= 0.0 and heard and _divers() < MAX_DIVERS:
 				mode = Mode.WINDUP
 				mode_time = 0.0
 				telegraph = true
 				return Vector3.ZERO
-			var center := p.global_position if heard else home
-			return _orbit(center, 3.2, 1.0, delta)
+			return _orbit(target.global_position if heard else last_player_pos, 3.2, 1.0, delta)
 		Mode.WINDUP:
 			hover_y = ALERT_Y + 0.3
-			if p != null:
-				face_toward(p.global_position)
+			face_toward(target.global_position)
 			if mode_time >= 0.45:
 				telegraph = false
-				if p == null or p.dead:
-					mode = Mode.ALERT
-					return Vector3.ZERO
-				dive_target = p.global_position
+				dive_target = target.global_position
 				mode = Mode.DIVE
 				mode_time = 0.0
 				bit = false
 			return Vector3.ZERO
 		Mode.DIVE:
 			hover_y = DIVE_Y
-			if p != null and not p.dead:
-				var follow := p.global_position - dive_target
-				follow.y = 0.0
-				dive_target += follow.limit_length(DIVE_HOMING * delta)
-				if not bit and Fx.flat_dist(global_position, p.global_position) < 1.0 and global_position.y < 1.4 and p.state != Player.State.DODGE:
+			var follow := target.global_position - dive_target
+			follow.y = 0.0
+			dive_target += follow.limit_length(DIVE_HOMING * delta)
+			if not bit and Fx.flat_dist(global_position, target.global_position) < 1.0 and global_position.y < 1.4:
+				var p := target as Player
+				if p != null:
+					if p.state != Player.State.DODGE:
+						bit = true
+						p.take_damage(BITE_DAMAGE, self, false)
+				elif target.has_method("take_damage"):
 					bit = true
-					p.take_damage(BITE_DAMAGE, self, false)
+					target.take_damage(PREY_DAMAGE, self)
 			var to := dive_target - global_position
 			to.y = 0.0
 			if to.length() < 0.4 or mode_time > 1.3 or bit:
 				mode = Mode.CLIMB
 				mode_time = 0.0
-				return _fly_dir(-to) * speed
+				return safe_dir(-to) * speed
 			# desce primeiro, acelera quando já está baixo
 			var low := clampf((ALERT_Y + 0.3 - global_position.y) / (ALERT_Y + 0.3 - DIVE_Y), 0.35, 1.0)
-			return _fly_dir(to) * DIVE_SPEED * low
+			return safe_dir(to) * DIVE_SPEED * low
 		Mode.CLIMB:
 			hover_y = ALERT_Y
 			if mode_time > 0.8:
 				mode = Mode.ALERT
 				dive_cd = randf_range(2.2, 4.0)
-			return _fly_dir(facing) * speed * 0.8
+			return safe_dir(facing) * speed * 0.8
 	return Vector3.ZERO
 
 
@@ -167,44 +222,51 @@ func _orbit(center: Vector3, radius: float, mult: float, delta: float) -> Vector
 	to.y = 0.0
 	if to.length() < 0.2:
 		return Vector3.ZERO
-	return _fly_dir(to) * speed * mult
-
-
-func _fly_dir(dir: Vector3) -> Vector3:
-	## Voa por cima de chão e abismos, mas não sai da caverna por cima das paredes baixas.
-	dir.y = 0.0
-	if dir.length() < 0.01:
-		return Vector3.ZERO
-	dir = dir.normalized()
-	var ahead := global_position + dir * 0.9
-	var layer = GameState.current_layer
-	if layer != null and "cave" in layer and layer.get("cave") != null:
-		if (layer.get("cave") as CaveBuilder).open_at(Vector2(ahead.x, ahead.z)) < 0.8:
-			return Vector3.ZERO
-		return dir
-	var q := PhysicsRayQueryParameters3D.create(Vector3(ahead.x, 4.0, ahead.z), Vector3(ahead.x, -1.0, ahead.z), 1)
-	var hit := get_world_3d().direct_space_state.intersect_ray(q)
-	if hit.is_empty() or float(hit["position"].y) > 0.25:
-		return Vector3.ZERO
-	return dir
+	var d := safe_dir(to)
+	if d == Vector3.ZERO:
+		d = safe_dir(center - global_position)
+	return d * speed * mult
 
 
 func _divers() -> int:
 	var n := 0
-	for b in get_tree().get_nodes_in_group("bat"):
+	for b in World.near(global_position, 16.0):
 		var bat := b as Bat
-		if bat != null and bat != self and not bat.dead and (bat.mode == Mode.WINDUP or bat.mode == Mode.DIVE):
+		if bat != null and bat != self and (bat.mode == Mode.WINDUP or bat.mode == Mode.DIVE):
 			n += 1
 	return n
 
 
+# ---------------------------------------------------------------- bando
+
+func pick_roam_destination() -> Variant:
+	## O primeiro do bando a ficar inquieto escolhe o destino; os outros vão junto.
+	var now := Time.get_ticks_msec() / 1000.0
+	var f: Dictionary = World.flocks.get(flock, {})
+	# destino novo se não há um em andamento, ou se este morcego já chegou nele (viagem velha)
+	if f.is_empty() or now > float(f["until"]) or Fx.flat_dist(f["dest"], anchor) < 4.0 or Fx.flat_dist(f["dest"], global_position) < 4.0:
+		var dest = super.pick_roam_destination()
+		if dest == null:
+			return null
+		f = {"dest": dest, "until": now + 20.0}
+		World.flocks[flock] = f
+		for b in World.creatures:
+			var mate := b as Bat
+			if mate != null and mate != self and mate.flock == flock:
+				mate.needs.restless = 100.0
+	var off := Vector3(randf_range(-2.0, 2.0), 0.0, randf_range(-2.0, 2.0))
+	return (f["dest"] as Vector3) + off
+
+
+# ---------------------------------------------------------------- fios
+
 func _check_strands() -> void:
-	if is_entangled() or catch_immunity > 0.0:
+	if catch_immunity > 0.0:
 		return
 	for s in WebNetwork.strands:
 		if is_instance_valid(s) and s.distance_to(global_position) < 0.45:
 			entangle(5.0)
-			catch_immunity = 2.0   # só conta depois de soltar
+			catch_immunity = 7.0   # cobre o tempo enredado + 2 s depois de soltar
 			mode = Mode.ALERT
 			EventBus.web_touched.emit(global_position, self)
 			EventBus.message.emit("Um Morcego-eco bateu no fio e caiu!")
@@ -213,12 +275,62 @@ func _check_strands() -> void:
 
 
 func _on_hurt(_source: Node3D) -> void:
-	memory = 5.0
 	if mode == Mode.ROOST:
 		mode = Mode.ALERT
 
 
 func _animate(_delta: float, _speed_now: float) -> void:
 	var flap := 0.0 if is_entangled() else sin(_anim_t * 22.0) * 0.7
+	if asleep:
+		flap = -1.2   # asas fechadas, pendurado
 	for i in _wings.size():
 		_wings[i].rotation.z = flap * (1.0 if i == 0 else -1.0)
+
+
+class HuntLarva extends Behavior:
+	## Na hora da caça, mergulha nas larvas que ouve lá embaixo.
+	var prey: Larva = null
+
+	func _init() -> void:
+		id = "hunt"
+		label = "Caçando larvas"
+
+	func utility(c: Creature) -> float:
+		if c.needs.hunger < c.hunger_threshold:
+			return 0.0
+		if prey == null or not is_instance_valid(prey) or prey.dead:
+			prey = World.nearest(c.global_position, 12.0, func(o): return o is Larva) as Larva
+		return 0.0 if prey == null else c.needs.hunger / 100.0 * 0.8
+
+	func locked(c: Creature) -> bool:
+		var b := c as Bat
+		return b.mode == Bat.Mode.WINDUP or b.mode == Bat.Mode.DIVE
+
+	func stop(c: Creature) -> void:
+		(c as Bat).mode = Bat.Mode.ROOST
+		c.telegraph = false
+
+	func run(c: Creature, delta: float) -> Vector3:
+		var b := c as Bat
+		if prey == null or not is_instance_valid(prey) or prey.dead:
+			if prey != null:
+				b.needs.hunger = maxf(0.0, b.needs.hunger - 60.0)
+			prey = null
+			b.mode = Bat.Mode.ROOST
+			return Vector3.ZERO
+		return b.dive_cycle(prey, true, delta)
+
+
+class Circle extends Behavior:
+	## Voa em círculos sobre o ponto de referência (poleiro ou lugar onde o bando chegou).
+	func _init() -> void:
+		id = "circle"
+		label = "Voando em círculos"
+
+	func utility(_c: Creature) -> float:
+		return 0.1
+
+	func run(c: Creature, delta: float) -> Vector3:
+		var b := c as Bat
+		b.mode = Bat.Mode.ROOST
+		return b._orbit(b.anchor, 3.0, 0.5, delta)

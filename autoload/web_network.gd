@@ -150,9 +150,8 @@ func _physics_process(delta: float) -> void:
 		return
 	_touch_timer = 0.25
 	var now := Time.get_ticks_msec()
-	for n in get_tree().get_nodes_in_group("creature"):
-		var c := n as Creature
-		if c == null or c.dead:
+	for c in World.creatures:
+		if not is_instance_valid(c) or c.dead:
 			continue
 		var id := c.get_instance_id()
 		if _touch_cooldown.has(id) and now - int(_touch_cooldown[id]) < TOUCH_COOLDOWN_MS:

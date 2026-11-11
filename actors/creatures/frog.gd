@@ -1,10 +1,11 @@
 class_name Frog
 extends Creature
-## Sapo-de-rocha (M): predador de emboscada. Caça por visão (cone) e audição.
-## Ataques: mordida corpo a corpo e língua que puxa (dá para esquivar).
-## Quando está com fome, caça larvas e come os cadáveres — ecossistema básico.
+## Sapo-de-rocha (M): predador de emboscada que caça na fase da Caça e dorme na poça no Brilho.
+## Sentidos: visão em cone (10 m, 140°) e audição. Contra a jogadora: mordida e língua que puxa.
+## Vida: come larvas e cadáveres, passeia entre câmaras, foge de bichos grandes e,
+## ferido, volta para a poça para se curar. Comer o sapo dá Resistência a Ácido.
 
-enum Mode { IDLE, CHASE, SEARCH, HUNT, EAT, BITE, TONGUE }
+enum Mode { IDLE, CHASE, SEARCH, BITE, TONGUE }
 
 const SIGHT := 10.0
 const FOV := 140.0
@@ -14,12 +15,8 @@ const TONGUE_DAMAGE := 8.0
 var mode: Mode = Mode.IDLE
 var mode_time := 0.0
 var attack_done := false
-var last_seen := Vector3.ZERO
-var memory := 0.0
 var bite_cd := 0.0
 var tongue_cd := 2.0
-var hunger := 40.0
-var prey: Node3D = null
 
 
 func _init() -> void:
@@ -33,16 +30,37 @@ func _init() -> void:
 	food_satiety = 60.0
 	food_silk = 30.0
 	food_xp = 50
-	senses_text = "visão (10 m, cone de 140°) e audição"
 	food_acid = 1
+	senses_text = "visão (10 m, cone de 140°) e audição"
 	model_name = "sapo"
 	model_size = 2.0
 	model_fit = "length"
+	rest_phase = CaveClock.Phase.BRILHO
+	sight_range = SIGHT
+	sight_fov = FOV
+	attack_damage = BITE_DAMAGE
+	attack_reach = 1.6
+	hunger_threshold = 50.0
+	retreat_frac = 0.3
+	roam_speed = 0.5
+	needs.hunger_rate = 0.5
 
 
 func _ready() -> void:
 	super._ready()
 	add_to_group("predator")
+
+
+func _make_brain() -> Brain:
+	return Brain.new() \
+		.add(Behaviors.Combat.new("Caçando você")) \
+		.add(Behaviors.Retreat.new()) \
+		.add(Behaviors.Flee.new()) \
+		.add(Behaviors.Fight.new()) \
+		.add(Behaviors.Forage.new()) \
+		.add(Behaviors.Sleep.new()) \
+		.add(Behaviors.Roam.new()) \
+		.add(Behaviors.Wander.new(5.0, 0.25))
 
 
 func _build_visual() -> void:
@@ -57,52 +75,65 @@ func _build_visual() -> void:
 		_visual.add_child(eye)
 
 
-func _think(delta: float) -> Vector3:
+# ---------------------------------------------------------------- vida
+
+func is_prey(o: Creature) -> bool:
+	return o is Larva or (o is Bat and o.global_position.y < 1.0)
+
+
+func eats_carrion() -> bool:
+	return true
+
+
+func find_rival() -> Creature:
+	## Revida quem o atacou (outro bicho, não a jogadora).
+	var a: Creature = _last_attacker as Creature if is_instance_valid(_last_attacker) else null
+	if a != null and is_instance_valid(a) and not a.dead and flat_dist_to(a) < 7.0 and not (a is Larva):
+		return a
+	return null
+
+
+func _release_prey() -> void:
+	## (compatibilidade) a comida agora é escolhida pelo cérebro (Behaviors.Forage)
+	pass
+
+
+# ---------------------------------------------------------------- combate com a jogadora
+
+func combat_wants() -> bool:
+	return player_memory > 0.0 or mode == Mode.BITE or mode == Mode.TONGUE
+
+
+func combat_locked() -> bool:
+	return mode == Mode.BITE or mode == Mode.TONGUE
+
+
+func combat_start() -> void:
+	if mode == Mode.IDLE:
+		EventBus.message.emit("O %s te viu!" % display_name)
+	mode = Mode.CHASE
+	mode_time = 0.0
+
+
+func combat_stop() -> void:
+	mode = Mode.IDLE
+	telegraph = false
+
+
+func combat_tick(delta: float) -> Vector3:
 	bite_cd -= delta
 	tongue_cd -= delta
 	mode_time += delta
-	hunger = minf(100.0, hunger + delta)
-
 	var p := GameState.player as Player
-	var sees := false
-	if p != null and not p.dead:
-		if can_see(p, SIGHT * p.visibility_mult(), FOV) or flat_dist_to(p) < p.noise_radius():
-			sees = true
-			last_seen = p.global_position
-			memory = 4.0
-
 	if mode == Mode.BITE:
 		return _do_bite(p)
 	if mode == Mode.TONGUE:
 		return _do_tongue(p)
-
-	if sees and mode != Mode.CHASE:
-		if mode != Mode.SEARCH:
-			EventBus.message.emit("O %s te viu!" % display_name)
-		_release_prey()
+	if p != null and not p.dead and noticed_player:
 		mode = Mode.CHASE
-		mode_time = 0.0
-
-	match mode:
-		Mode.CHASE:
-			if not sees:
-				mode = Mode.SEARCH
-				return Vector3.ZERO
-			return _chase(p)
-		Mode.SEARCH:
-			memory -= delta
-			if memory <= 0.0:
-				mode = Mode.IDLE
-			return move_to(last_seen, 0.7)
-		Mode.EAT:
-			return _do_eat()
-		Mode.HUNT:
-			return _do_hunt()
-
-	if hunger > 50.0 and _find_prey():
-		mode = Mode.HUNT
-		return Vector3.ZERO
-	return wander(delta, 5.0, 0.25)
+		return _chase(p)
+	mode = Mode.SEARCH
+	return nav_to(last_player_pos, 0.7)
 
 
 func _begin(m: Mode) -> void:
@@ -123,7 +154,7 @@ func _chase(p: Player) -> Vector3:
 		return Vector3.ZERO
 	if d <= 1.6:
 		return Vector3.ZERO
-	return move_to(p.global_position, 1.0)
+	return nav_to(p.global_position, 1.0)
 
 
 func _do_bite(p: Player) -> Vector3:
@@ -159,88 +190,12 @@ func _do_tongue(p: Player) -> Vector3:
 	return Vector3.ZERO
 
 
-func _find_prey() -> bool:
-	var best: Node3D = null
-	var best_d := 9.0
-	for n in get_tree().get_nodes_in_group("corpse"):
-		var c := n as Corpse
-		if c == null or c.is_rotten():
-			continue
-		if c.reserved_by != null and is_instance_valid(c.reserved_by) and c.reserved_by != self:
-			continue
-		var d := flat_dist_to(c)
-		if d < best_d:
-			best = c
-			best_d = d
-	if best == null:
-		for n in get_tree().get_nodes_in_group("creature"):
-			var l := n as Larva
-			if l == null or l.dead:
-				continue
-			var d := flat_dist_to(l)
-			if d < best_d and can_see(l, 9.0, 200.0):
-				best = l
-				best_d = d
-	prey = best
-	if prey is Corpse:
-		(prey as Corpse).reserved_by = self
-	return prey != null
-
-
-func _do_hunt() -> Vector3:
-	if prey == null or not is_instance_valid(prey):
-		prey = null
-		mode = Mode.IDLE
-		return Vector3.ZERO
-	var d := flat_dist_to(prey)
-	if prey is Corpse:
-		if d <= 1.4:
-			mode = Mode.EAT
-			mode_time = 0.0
-			return Vector3.ZERO
-		return move_to(prey.global_position, 0.8)
-	var l := prey as Larva
-	if l == null or l.dead:
-		prey = null
-		mode = Mode.IDLE
-		return Vector3.ZERO
-	if d <= 1.5:
-		l.take_damage(999.0, self)
-		prey = null
-		mode = Mode.IDLE
-		return Vector3.ZERO
-	return move_to(l.global_position, 1.1)
-
-
-func _do_eat() -> Vector3:
-	if prey == null or not is_instance_valid(prey):
-		prey = null
-		mode = Mode.IDLE
-		return Vector3.ZERO
-	if mode_time >= 3.0:
-		(prey as Corpse).consume()
-		prey = null
-		hunger = 0.0
-		mode = Mode.IDLE
-	return Vector3.ZERO
-
-
-func _release_prey() -> void:
-	if prey != null and is_instance_valid(prey) and prey is Corpse:
-		(prey as Corpse).reserved_by = null
-	prey = null
-
-
 func _on_hurt(source: Node3D) -> void:
-	if source != null and source.is_in_group("player"):
-		last_seen = source.global_position
-		memory = 5.0
-		if mode != Mode.BITE and mode != Mode.TONGUE and mode != Mode.CHASE:
-			_release_prey()
-			mode = Mode.CHASE
-			mode_time = 0.0
+	if source != null and source.is_in_group("player") and mode == Mode.IDLE:
+		mode = Mode.CHASE
+		mode_time = 0.0
 
 
 func _animate(_delta: float, speed_now: float) -> void:
 	var hop := absf(sin(_anim_t * 7.0)) * 0.25 * clampf(speed_now / speed, 0.0, 1.0)
-	_visual.position.y = hop
+	_visual.position.y = hop - (0.15 if asleep else 0.0)

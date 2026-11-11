@@ -40,6 +40,7 @@ func save_now() -> void:
 		"map": current_layer.map_system.to_dict() if current_layer != null else {},
 		"said": said,
 		"flags": flags,
+		"clock": World.clock.t if World.clock != null else 0.0,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:

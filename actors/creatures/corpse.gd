@@ -32,6 +32,7 @@ func setup(name_: String, satiety_: float, silk_: float, xp_: int, color: Color,
 
 func _ready() -> void:
 	add_to_group("corpse")
+	World.register_corpse(self)
 	_mat = Fx.mat(Color(0.86, 0.86, 0.92) if preserved else _color.darkened(0.25))
 	var body := Fx.sphere(_radius, _mat)
 	body.scale = Vector3(1.0, 0.7, 1.4) if preserved else Vector3(1.2, 0.45, 1.2)
@@ -50,6 +51,10 @@ func _process(delta: float) -> void:
 		_mat.albedo_color = Color(0.3, 0.33, 0.18)
 	if age >= DESPAWN_TIME:
 		queue_free()
+
+
+func _exit_tree() -> void:
+	World.unregister_corpse(self)
 
 
 func is_rotten() -> bool:

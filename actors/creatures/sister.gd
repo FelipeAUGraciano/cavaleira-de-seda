@@ -15,7 +15,6 @@ var bite_cd := 0.0
 var biting := false
 var bite_done := false
 var target: Node3D = null
-var hunger := 60.0
 
 
 func _init(is_hunter: bool = false) -> void:
@@ -46,7 +45,9 @@ func _init(is_hunter: bool = false) -> void:
 
 
 func _ready() -> void:
+	needs.hunger = 60.0
 	super._ready()
+	needs.hunger = 60.0
 	if hunter:
 		add_to_group("predator")
 	if _model != null and Models.tuning(model_name).get("legs", false):
@@ -93,18 +94,14 @@ func _think(delta: float) -> Vector3:
 
 
 func _think_small(delta: float) -> Vector3:
-	var threat: Node3D = null
+	var danger: Node3D = null
 	var p := GameState.player as Player
 	if p != null and not p.dead and flat_dist_to(p) < maxf(4.0, p.noise_radius()):
-		threat = p
-	if threat == null:
-		for n in get_tree().get_nodes_in_group("predator"):
-			var c := n as Creature
-			if c != null and not c.dead and flat_dist_to(c) < 5.0:
-				threat = c
-				break
-	if threat != null:
-		var away := global_position - threat.global_position
+		danger = p
+	if danger == null:
+		danger = World.nearest(global_position, 5.0, func(c): return c.is_in_group("predator"))
+	if danger != null:
+		var away := global_position - danger.global_position
 		var dir := safe_dir(away)
 		if dir == Vector3.ZERO:
 			dir = safe_dir(away.rotated(Vector3.UP, PI * 0.5))
@@ -142,7 +139,7 @@ func _think_hunter(delta: float) -> Vector3:
 			target = pl
 	if target == null and hunger > 30.0:
 		var best_d := 8.0
-		for n in get_tree().get_nodes_in_group("creature"):
+		for n in World.near(global_position, 8.0):
 			var s := n as Sister
 			if s != null and s != self and not s.hunter and not s.dead:
 				var d := flat_dist_to(s)
@@ -161,6 +158,12 @@ func _think_hunter(delta: float) -> Vector3:
 		return move_to(target.global_position, 1.0)
 	hunger += delta
 	return wander(delta, 6.0, 0.35)
+
+
+func _lod_changed(near: bool) -> void:
+	# longe da câmera, as patas com IK (raios de física por pata) param de calcular
+	legs.process_mode = Node.PROCESS_MODE_INHERIT if near and (_model == null or not Models.tuning(model_name).get("legs", false)) else Node.PROCESS_MODE_DISABLED
+	legs.visible = near and legs.process_mode != Node.PROCESS_MODE_DISABLED
 
 
 func _animate(_delta: float, speed_now: float) -> void:

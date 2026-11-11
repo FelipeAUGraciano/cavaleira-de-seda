@@ -15,6 +15,12 @@ func _ready() -> void:
 	add_child(layer)
 	await _frames(20)
 	player = GameState.player
+	# relógio parado na Caça: predadores acordados, ninguém vai dormir no meio do teste
+	World.clock.paused = true
+	World.clock.set_phase(CaveClock.Phase.CACA)
+	for c in World.creatures:
+		c.needs.fatigue = 0.0
+		c.needs.restless = 0.0
 	await _run()
 	print("\n==== %s (%d falha(s)) ====" % ["OK" if failures == 0 else "FALHOU", failures])
 	GameState.delete_save()

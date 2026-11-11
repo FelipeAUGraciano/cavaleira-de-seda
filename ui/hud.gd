@@ -191,7 +191,7 @@ func _draw_boss(vp: Vector2) -> void:
 	## Barra de vida do chefe acordado (topo da tela).
 	for n in get_tree().get_nodes_in_group("boss"):
 		var b := n as Centipede
-		if b == null or b.dead or b.mode == Centipede.Mode.SLEEP:
+		if b == null or b.dead or not (b.engaged() or (b.hp < b.max_hp and b.near_player and b.flat_dist_to(player) < 30.0)):
 			continue
 		var w := 520.0
 		var x := vp.x * 0.5 - w * 0.5
@@ -240,7 +240,7 @@ func _draw_weave_hint(vp: Vector2) -> void:
 
 func _draw_help(vp: Vector2) -> void:
 	var x := vp.x - 440.0
-	var y := 216.0
+	var y := 240.0
 	_cv.draw_rect(Rect2(x - 12.0, y - 6.0, 436.0, HELP_LINES.size() * 20.0 + 16.0), Color(0, 0, 0, 0.45))
 	for i in HELP_LINES.size():
 		_text(x, y + 14.0 + i * 20.0, HELP_LINES[i], 14 if i == 0 else 13, TEXT if i == 0 else QUIET)
@@ -248,8 +248,8 @@ func _draw_help(vp: Vector2) -> void:
 
 func _draw_reading(vp: Vector2) -> void:
 	var x := vp.x - 380.0
-	var y := 216.0
-	_cv.draw_rect(Rect2(x - 12.0, y - 6.0, 376.0, 150.0), Color(0, 0, 0, 0.55))
+	var y := 240.0
+	_cv.draw_rect(Rect2(x - 12.0, y - 6.0, 376.0, 196.0), Color(0, 0, 0, 0.55))
 	var c := _creature_near(player.aim_point, 3.5)
 	if c == null:
 		_text(x, y + 16.0, "LEITURA", 15, TEXT)
@@ -268,6 +268,18 @@ func _draw_reading(vp: Vector2) -> void:
 		st.append("Veneno x%d" % c.poison_stacks)
 	if not st.is_empty():
 		_text(x, y + 128.0, ", ".join(st), 13, Color(0.6, 0.95, 1.0))
+	if c.brain != null:
+		_text(x, y + 152.0, "Fazendo: %s" % c.activity, 14, TEXT)
+		var feel: Array[String] = []
+		if c.needs.hunger > 60.0:
+			feel.append("com fome")
+		if c.needs.fatigue > 60.0:
+			feel.append("com sono")
+		if c.needs.fear > 30.0:
+			feel.append("com medo")
+		if c.hp < c.max_hp * 0.4:
+			feel.append("muito ferida")
+		_text(x, y + 174.0, ("Parece " + ", ".join(feel)) if not feel.is_empty() else "Parece tranquila", 13, QUIET)
 
 
 func _draw_messages() -> void:
@@ -279,17 +291,7 @@ func _draw_messages() -> void:
 
 
 func _creature_near(point: Vector3, radius: float) -> Creature:
-	var best: Creature = null
-	var best_d := radius
-	for n in get_tree().get_nodes_in_group("creature"):
-		var c := n as Creature
-		if c == null or c.dead:
-			continue
-		var d := Fx.flat_dist(c.global_position, point)
-		if d < best_d:
-			best = c
-			best_d = d
-	return best
+	return World.nearest(point, radius, func(_c): return true)
 
 
 func _text(x: float, y: float, s: String, size: int, color: Color) -> void:
@@ -333,6 +335,10 @@ func _draw_minimap(ms, vp: Vector2) -> void:
 	if not here.is_empty():
 		room_name = "%s · %s" % [here["id"], here["name"]]
 	_text(area.position.x + 8.0, area.position.y + area.size.y + 16.0, room_name, 13, QUIET)
+	if World.clock != null:
+		var left := int(World.clock.seconds_to_change())
+		var col := Color(0.65, 1.0, 0.75) if World.clock.phase == CaveClock.Phase.BRILHO else Color(0.75, 0.65, 1.0)
+		_text(area.position.x + 8.0, area.position.y + area.size.y + 34.0, "%s (%d:%02d)" % [CaveClock.NAMES[World.clock.phase], left / 60, left % 60], 12, col)
 
 
 func _draw_full_map(ms, vp: Vector2) -> void:
@@ -399,6 +405,15 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 			_cv.draw_colored_polygon(PackedVector2Array([lp + Vector2(0, -k), lp + Vector2(k, 0), lp + Vector2(0, k), lp + Vector2(-k, 0)]), Color(1.0, 0.7, 0.3))
 			if full:
 				_text(lp.x + 10.0, lp.y + 5.0, String(LOCK_NAMES.get(l["type"], l["type"])), 12, Color(1.0, 0.8, 0.5))
+	# Bichos que você sente pela teia (dentro do território) e a Centopeia quando luta com você
+	for c in World.creatures:
+		if not is_instance_valid(c) or c.dead:
+			continue
+		var boss := c as Centipede
+		if WebNetwork.is_in_territory(c.global_position) or (boss != null and boss.engaged()):
+			var col: Color = [Color(0.6, 1.0, 0.6), Color(1.0, 0.85, 0.35), Color(1.0, 0.35, 0.3), Color(0.85, 0.4, 1.0)][int(c.size)]
+			var cp := _ms(c.global_position.x, c.global_position.z)
+			_cv.draw_circle(cp, (2.5 + int(c.size) * 1.5) * (1.4 if full else 1.0), col)
 	var pp := _ms(player.global_position.x, player.global_position.z)
 	var f := Vector2(player.aim_dir.x, player.aim_dir.z).normalized()
 	if f.length() < 0.1:

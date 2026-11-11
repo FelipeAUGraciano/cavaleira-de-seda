@@ -2,13 +2,18 @@ class_name Centipede
 extends Creature
 ## Centopeia-blindada (G, chefe das Galerias).
 ##
+## Vida (como um monstro de Monster Hunter): patrulha as câmaras do leste (G8, G9, G11, G13,
+## G14), caça sapos, lagartos e larvas, dorme no covil quando os fungos acendem, deixa rastro
+## de arrasto e arrebenta os fios por onde passa. Ferida (35% do PV), foge mancando para o
+## covil e dorme para se curar. Quando chega na câmara onde você está, o chão treme.
+##
 ## Sente VIBRAÇÃO: percebe quem anda no chão (correr vibra mais). Quem está sobre um fio
 ## ou parada não vibra. Ataques: mordida de perto e investida em linha reta.
 ## A carapaça segura 90% do dano e o veneno não entra. Ela só cede quando a Centopeia
 ## está ENREDADA, e isso só acontece quando ela investe ATRAVÉS de um fio esticado
 ## (o fio arrebenta). Na metade da vida ela se enfurece: investe mais rápido e com aviso menor.
 
-enum Mode { SLEEP, PATROL, HUNT, WINDUP, CHARGE, RECOVER, BITE }
+enum Mode { IDLE, HUNT, WINDUP, CHARGE, RECOVER, BITE }
 
 const SEGMENTS := 12
 const SPACING := 1.05
@@ -21,15 +26,15 @@ const ARMOR := 0.1
 const TANGLE_TIME := 4.5
 
 var arena_center := Vector3.ZERO
-var arena_radius := 9.0
-var mode: Mode = Mode.SLEEP
+var mode: Mode = Mode.IDLE
 var mode_time := 0.0
-var last_heard := Vector3.ZERO
-var memory := 0.0
 var charge_dir := Vector3.FORWARD
 var phase := 1
 var attack_done := false
-var _patrol_angle := 0.0
+var announced := false          ## já avisou "Centopeia-blindada" na primeira luta
+var _room := ""
+var _arrive_cd := 0.0
+var _track_from := Vector3.ZERO
 var _trail: Array[Vector3] = []
 var _segs: Array[Node3D] = []
 var _armor_msg_cd := 0.0
@@ -51,6 +56,20 @@ func _init() -> void:
 	model_name = "centopeia_cabeca"
 	model_size = 2.2
 	model_fit = "length"
+	rest_phase = CaveClock.Phase.BRILHO
+	nav_kind = NavGrid.Kind.LARGE
+	roam_speed = 0.55
+	hunt_burst = 1.6
+	retreat_frac = 0.35
+	retreat_speed = 0.55
+	retreat_cooldown = 120.0
+	sleep_heal = 0.004
+	den_radius = 3.0
+	hunger_threshold = 45.0
+	attack_damage = BITE_DAMAGE
+	attack_reach = 1.8
+	memory_time = 3.0
+	needs.hunger_rate = 0.35
 
 
 func _ready() -> void:
@@ -61,6 +80,17 @@ func _ready() -> void:
 	facing = Vector3(0, 0, -1)
 	_build_segments()
 	_reset_trail()
+	_track_from = global_position
+
+
+func _make_brain() -> Brain:
+	return Brain.new() \
+		.add(Behaviors.Combat.new("Caçando você")) \
+		.add(Behaviors.Retreat.new()) \
+		.add(Behaviors.Forage.new()) \
+		.add(Behaviors.Sleep.new()) \
+		.add(Behaviors.Roam.new()) \
+		.add(Behaviors.Wander.new(6.0, 0.3))
 
 
 func _build_visual() -> void:
@@ -123,70 +153,107 @@ func feels(p: Player) -> bool:
 	if spd < 0.8:
 		return d < 2.0
 	var r := SENSE_RANGE if spd > Player.WALK_SPEED + 0.5 else SENSE_RANGE * 0.75
+	if asleep:
+		r *= 0.3
 	return d <= r
+
+
+func notices_player(p: Player) -> bool:
+	return feels(p)
+
+
+func is_threat(_o: Creature) -> bool:
+	return false
+
+
+func is_prey(o: Creature) -> bool:
+	if int(o.size) >= int(Size.G):
+		return false
+	return not (o is Bat and o.global_position.y > 1.0)
+
+
+func eats_carrion() -> bool:
+	return true
+
+
+func engaged() -> bool:
+	return brain != null and brain.is_doing("combat")
+
+
+func on_retreat() -> void:
+	mode = Mode.IDLE
+	telegraph = false
+	EventBus.big_message.emit("A Centopeia foge mancando para o covil!")
+	GameState.say_once("centopeia_foge", "Ela tá fugindo! Ferida! ...Eu devia ir atrás? Eu devia ir atrás.")
+
+
+func _sense() -> void:
+	super._sense()
+	_arrive_cd -= sense_interval()
+	if World.nav == null:
+		return
+	var r := World.nav.room_at(global_position)
+	if r != "" and r != _room:
+		_room = r
+		var layer = GameState.current_layer
+		if _arrive_cd <= 0.0 and layer != null and layer.map_system != null and layer.map_system.current_room == r and not engaged():
+			_arrive_cd = 30.0
+			EventBus.message.emit("O chão treme: a Centopeia-blindada chegou aqui!")
+			GameState.say_once("centopeia_chegou", "Esse tremor... ela está AQUI.")
+
+
+func _tear_strands() -> void:
+	## Passeando, ela arrebenta fios; lutando, só a investida conta (e aí ela se enrosca).
+	if not engaged():
+		super._tear_strands()
 
 
 # ---------------------------------------------------------------- comportamento
 
-func wake() -> void:
-	if mode == Mode.SLEEP:
-		mode = Mode.PATROL
+func combat_wants() -> bool:
+	return player_memory > 0.0 or mode == Mode.WINDUP or mode == Mode.CHARGE or mode == Mode.BITE or (mode == Mode.RECOVER and mode_time < 0.0)
+
+
+func combat_locked() -> bool:
+	return mode == Mode.WINDUP or mode == Mode.CHARGE or mode == Mode.BITE
+
+
+func combat_start() -> void:
+	if mode == Mode.IDLE:
+		mode = Mode.HUNT
 		mode_time = 0.0
+	if not announced:
+		announced = true
+		EventBus.big_message.emit("Centopeia-blindada")
+		EventBus.hint.emit("Ela sente o chão vibrar. Sobre um fio você não vibra. Faça ela investir ATRAVÉS de um fio esticado: enroscada, a carapaça abre.")
+		GameState.say_once("centopeia_inicio", "Uma centopeia. Blindada. Do tamanho de um corredor. Claro que é.")
 
 
-func reset() -> void:
-	hp = max_hp
-	phase = 1
-	poison_stacks = 0
-	entangled_time = 0.0
-	_web_overlay.visible = false
+func combat_stop() -> void:
+	mode = Mode.IDLE
 	telegraph = false
-	mode = Mode.SLEEP
-	global_position = home
-	velocity = Vector3.ZERO
-	external_velocity = Vector3.ZERO
-	facing = Vector3(0, 0, -1)
-	_reset_trail()
 
 
-func _think(delta: float) -> Vector3:
+func combat_tick(delta: float) -> Vector3:
 	mode_time += delta
-	_armor_msg_cd -= delta
-	if mode == Mode.SLEEP:
-		return Vector3.ZERO
 	var p := GameState.player as Player
-	if feels(p):
-		last_heard = p.global_position
-		memory = 3.0
-	else:
-		memory -= delta
 	var windup := 0.8 if phase == 1 else 0.55
 	var mult := 1.0 if phase == 1 else 1.25
-
+	var last_heard := last_player_pos
 	match mode:
-		Mode.PATROL:
-			if memory > 0.0:
-				mode = Mode.HUNT
-				mode_time = 0.0
-				return Vector3.ZERO
-			_patrol_angle += delta * 0.35
-			var target := arena_center + Vector3(cos(_patrol_angle), 0.0, sin(_patrol_angle)) * arena_radius * 0.6
-			return move_to(target, 0.6)
-		Mode.HUNT:
-			if memory <= 0.0:
-				mode = Mode.PATROL
-				return Vector3.ZERO
+		Mode.IDLE, Mode.HUNT:
+			mode = Mode.HUNT
 			face_toward(last_heard)
 			var d := Fx.flat_dist(global_position, last_heard)
 			if p != null and not p.dead and flat_dist_to(p) < 2.6:
 				_begin(Mode.BITE)
 				return Vector3.ZERO
-			if d > 3.5 and d < 12.0 and mode_time > 0.7 and has_line_of_sight(p):
+			if d > 3.5 and d < 12.0 and mode_time > 0.7 and p != null and has_line_of_sight(p):
 				_begin(Mode.WINDUP)
 				return Vector3.ZERO
-			return move_to(last_heard, 1.0 * mult)
+			return nav_to(last_heard, 1.0 * mult)
 		Mode.WINDUP:
-			if memory > 0.0:
+			if player_memory > 0.0:
 				face_toward(last_heard)
 			if mode_time >= windup:
 				telegraph = false
@@ -206,7 +273,7 @@ func _think(delta: float) -> Vector3:
 		Mode.RECOVER:
 			if mode_time < 0.0:
 				return Vector3.ZERO
-			mode = Mode.HUNT if memory > 0.0 else Mode.PATROL
+			mode = Mode.HUNT
 			mode_time = 0.0
 			return Vector3.ZERO
 		Mode.BITE:
@@ -241,6 +308,10 @@ func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if dead:
 		return
+	if Fx.flat_dist(global_position, _track_from) > 1.6 and not is_entangled():
+		var dir := global_position - _track_from
+		Track.drop(get_parent(), _track_from, dir, 1.3)
+		_track_from = global_position
 	if mode == Mode.CHARGE and not is_entangled():
 		_check_strands()
 		var real := get_real_velocity()
@@ -285,12 +356,9 @@ func add_poison() -> void:
 
 
 func _on_hurt(source: Node3D) -> void:
-	if source != null and source.is_in_group("player"):
-		last_heard = source.global_position
-		memory = 3.0
-		if mode == Mode.PATROL or mode == Mode.SLEEP:
-			mode = Mode.HUNT
-			mode_time = 0.0
+	if source != null and source.is_in_group("player") and mode == Mode.IDLE:
+		mode = Mode.HUNT
+		mode_time = 0.0
 
 
 # ---------------------------------------------------------------- corpo

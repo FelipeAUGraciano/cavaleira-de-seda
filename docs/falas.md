@@ -69,5 +69,9 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `g15_racha` | Na Borda da Fenda, o chão começa a rachar | Ok. Isso aí não é um barulho bom. |
 | `g15_queda` | O chão cede | NÃO NÃO NÃO NÃO NÃÃÃÃÃO... |
 | `a1_fundo` | Acordando no fundo do Abismo | ...Tô viva. Acho. Tá TUDO escuro aqui embaixo. |
+| `primeira_caca` | Primeira vez que os fungos apagam (hora da caça) | Os fungos estão apagando... e a caverna inteira acordou. |
+| `primeiro_brilho` | Primeira vez que os fungos acendem de novo | Luz de novo. Quem caça de noite foi dormir. Hora de eu caçar. |
+| `centopeia_chegou` | A Centopeia chega na câmara onde você está | Esse tremor... ela está AQUI. |
+| `centopeia_foge` | A Centopeia foge ferida para o covil | Ela tá fugindo! Ferida! ...Eu devia ir atrás? Eu devia ir atrás. |
 
 Dica de gravação: mono, 44,1 kHz, com uns 0,2 s de silêncio no começo e no fim. O Godot importa `.ogg` e `.wav` direto.
