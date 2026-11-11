@@ -4,7 +4,17 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 
 | id | Quando toca | Texto |
 | --- | --- | --- |
-| `inicio` | Ao começar | ...Ok. Eu sou uma aranha. Uma aranha MINÚSCULA. Numa caverna. Ótimo. |
+| `inicio` | Ao começar (Berçário) | ...Ok. Eu sou uma aranha. Uma aranha MINÚSCULA. Num ninho. Ótimo. |
+| `b1_fome` | Entrando na Câmara de eclosão (B1) | Minhas irmãs estão me olhando do mesmo jeito que eu olho pra elas. |
+| `b2_irma` | Entrando no Corredor das cascas (B2) | Ela é maior que eu. E mais rápida. E muito, MUITO mais faminta. |
+| `b3_teias` | Entrando no Salão das teias (B3) | As teias da Mãe são enormes. Dá pra prender um fio nelas... |
+| `b4_fresta` | Entrando na Fresta do ninho (B4) | Ser pequena tem suas vantagens. |
+| `b5_pata` | Entrando na Despensa da Mãe (B5) | Aquilo é... a pata da Mãe. Não respira. Não brilha. Não existe. |
+| `b5_visto` | Quando a pata da Mãe a percebe | Ela me sentiu! |
+| `b6_fuga` | Entrando na Fuga (B6) | CORRE, CORRE, CORRE, CORRE! |
+| `b6_pega` | Quando a Mãe a alcança | AAAH! Ela é ENORME! |
+| `b_saida` | Saindo do Berçário | Ela não cabe no túnel... Consegui. Acho. |
+| `galerias` | Chegando às Galerias (câmara de teste) | Galerias úmidas... cheiro de musgo. E de comida. |
 | `primeiro_dano` | Primeiro dano recebido | AI! Ok, ok, tudo aqui é maior que eu. Anotado. |
 | `primeira_refeicao` | Primeira vez que come | Larva crua. Gosto de musgo molhado. Mas a fome venceu o nojo. |
 | `comeu_podre` | Primeira carne podre | Eca. Eca, eca, eca. ...Mas acho que meu estômago ficou mais forte. |

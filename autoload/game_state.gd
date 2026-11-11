@@ -7,6 +7,11 @@ const SAVE_PATH := "user://save.json"
 var player = null
 ## Falas do monólogo que já tocaram (cada uma toca uma vez só).
 var said: Dictionary = {}
+## Camada atual (LayerBase) e itens/eventos únicos já resolvidos.
+var current_layer = null
+var flags: Dictionary = {}
+## Atributos levados de uma camada para a próxima.
+var carry: Dictionary = {}
 
 
 func _ready() -> void:
@@ -28,10 +33,13 @@ func save_now() -> void:
 	if player == null:
 		return
 	var data := {
-		"version": 1,
+		"version": 2,
+		"scene": current_layer.scene_file_path if current_layer != null else "",
 		"player": player.to_dict(),
 		"web": WebNetwork.to_dict(),
+		"map": current_layer.map_system.to_dict() if current_layer != null else {},
 		"said": said,
+		"flags": flags,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -56,9 +64,11 @@ func reset_run() -> void:
 	## Apaga o save e recomeça a câmara do zero (F8).
 	Engine.time_scale = 1.0
 	said = {}
+	flags = {}
+	carry = {}
 	delete_save()
 	get_tree().paused = false
-	get_tree().reload_current_scene()
+	get_tree().change_scene_to_file("res://world/main.tscn")
 
 
 # ---------------------------------------------------------------- controles
@@ -83,6 +93,7 @@ func _setup_input() -> void:
 	_add("rune", [_k(KEY_F), _jb(JOY_BUTTON_RIGHT_STICK)])
 	_add("cocoon", [_k(KEY_C), _jb(JOY_BUTTON_DPAD_DOWN)])
 	_add("help", [_k(KEY_H), _jb(JOY_BUTTON_BACK)])
+	_add("map", [_k(KEY_M), _jb(JOY_BUTTON_DPAD_UP)])
 	_add("pause", [_k(KEY_ESCAPE), _jb(JOY_BUTTON_START)])
 	_add("debug_level", [_k(KEY_F1)])
 	_add("debug_reset", [_k(KEY_F8)])

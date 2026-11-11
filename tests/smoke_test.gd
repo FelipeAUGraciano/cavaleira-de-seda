@@ -11,7 +11,7 @@ var failures := 0
 func _ready() -> void:
 	GameState.delete_save()
 	GameState.said = {}
-	main = load("res://world/main.tscn").instantiate()
+	main = load("res://world/layers/test_chamber.tscn").instantiate()
 	add_child(main)
 	await _frames(20)
 	player = GameState.player
@@ -120,6 +120,9 @@ func _run() -> void:
 	if frog != null:
 		player.hp = player.max_hp
 		player.rune_on = true
+		frog._release_prey()
+		frog.mode = Frog.Mode.IDLE
+		frog.hunger = 0.0
 		frog.facing = Vector3(0, 0, -1)
 		_teleport(frog.global_position + Vector3(0.0, 0.1, -4.0))
 		await _seconds(4.0)

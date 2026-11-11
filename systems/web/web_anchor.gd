@@ -4,23 +4,25 @@ extends StaticBody3D
 
 var height := 4.0
 var radius := 0.5
+var color := Color(0.42, 0.42, 0.47)
 var _ring: MeshInstance3D
 var _ring_mat: StandardMaterial3D
 
 
-func _init(h: float = 4.0, r: float = 0.5) -> void:
+func _init(h: float = 4.0, r: float = 0.5, c: Color = Color(0.42, 0.42, 0.47)) -> void:
 	height = h
 	radius = r
+	color = c
 
 
 func _ready() -> void:
 	add_to_group("anchor")
 	collision_layer = 1
 	collision_mask = 0
-	var mesh := Fx.cylinder(radius, height, Fx.mat(Color(0.42, 0.42, 0.47)))
+	var mesh := Fx.cylinder(radius, height, Fx.mat(color))
 	mesh.position.y = height * 0.5
 	add_child(mesh)
-	var cap := Fx.sphere(radius * 0.9, Fx.mat(Color(0.5, 0.5, 0.55)))
+	var cap := Fx.sphere(radius * 0.9, Fx.mat(color.lightened(0.12)))
 	cap.position.y = height
 	add_child(cap)
 	var cs := CollisionShape3D.new()

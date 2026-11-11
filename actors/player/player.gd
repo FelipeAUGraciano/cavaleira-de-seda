@@ -93,11 +93,10 @@ var _safe_timer := 0.0
 var _death_timer := 0.0
 var _starve_msg_timer := 0.0
 var _hurt_flash := 0.0
-var _walk_cycle := 0.0
 
 # visual (formas cinza; troque por um modelo depois)
 var _visual: Node3D
-var _legs: Array[Node3D] = []
+var _leg_rig: SpiderLegs
 var _body_mat: StandardMaterial3D
 var _rune_mat: StandardMaterial3D
 var _rune_light: OmniLight3D
@@ -138,7 +137,6 @@ func _build_visual() -> void:
 	add_child(_visual)
 	_body_mat = Fx.mat(Color(0.16, 0.14, 0.38))
 	var plate_mat := Fx.mat(Color(0.62, 0.66, 0.8), 0.15)
-	var leg_mat := Fx.mat(Color(0.12, 0.11, 0.26))
 
 	var head := Fx.sphere(0.32, _body_mat)
 	head.position = Vector3(0.0, 0.45, -0.18)
@@ -185,26 +183,10 @@ func _build_visual() -> void:
 	_scarf_tail.position = Vector3(0.12, 0.66, 0.5)
 	_visual.add_child(_scarf_tail)
 
-	# 8 patas: pivô com fêmur subindo e tíbia descendo até o chão
-	var spread := [0.7, 0.25, -0.2, -0.6]
-	for i in range(8):
-		var side := -1.0 if i < 4 else 1.0
-		var idx := i % 4
-		var pivot := Node3D.new()
-		pivot.position = Vector3(0.2 * side, 0.45, -0.32 + idx * 0.16)
-		var base_y: float = side * float(spread[idx])
-		pivot.rotation.y = base_y
-		pivot.set_meta("base_y", base_y)
-		var femur := Fx.box(Vector3(0.4, 0.05, 0.05), leg_mat)
-		femur.position = Vector3(side * 0.18, 0.1, 0.0)
-		femur.rotation.z = side * 0.5
-		pivot.add_child(femur)
-		var tibia := Fx.box(Vector3(0.05, 0.62, 0.05), leg_mat)
-		tibia.position = Vector3(side * 0.42, -0.12, 0.0)
-		tibia.rotation.z = side * 0.3
-		pivot.add_child(tibia)
-		_visual.add_child(pivot)
-		_legs.append(pivot)
+	# 8 patas com IK procedural (systems/spider_legs.gd)
+	_leg_rig = SpiderLegs.new()
+	_leg_rig.setup(_visual, 1.0, 1 | 8)
+	add_child(_leg_rig)
 
 
 func _build_camera() -> void:
@@ -237,6 +219,7 @@ func _process(delta: float) -> void:
 	_last_real_us = now
 	_update_aim()
 	_handle_weave(real_dt)
+	_leg_rig.curled = dead
 	_update_visual(delta)
 	_update_camera(real_dt, false)
 	if Input.is_action_just_pressed("debug_level") and not dead:
@@ -881,14 +864,7 @@ func _update_visual(delta: float) -> void:
 	if dead:
 		return
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-aim_dir.x, -aim_dir.z), clampf(delta * 14.0, 0.0, 1.0))
-	var spd := Vector2(velocity.x, velocity.z).length()
-	_walk_cycle += delta * spd * 2.2
-	var amount := clampf(spd / 5.0, 0.0, 1.0)
-	for i in _legs.size():
-		var leg := _legs[i]
-		var base: float = leg.get_meta("base_y")
-		var phase := 0.0 if i % 2 == 0 else PI
-		leg.rotation.y = base + sin(_walk_cycle + phase) * 0.3 * amount
+	_leg_rig.velocity_hint = Vector3(velocity.x, 0.0, velocity.z)
 
 	# Runa = Energia (e luz). Apagada = furtiva.
 	var e := energy / max_energy
@@ -981,6 +957,16 @@ func to_dict() -> Dictionary:
 		"level": level, "xp": xp, "resist_rot": resist_rot,
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z],
 	}
+
+
+func apply_carry(d: Dictionary) -> void:
+	## Atributos vindos da camada anterior (sem posição: a jogadora entra pela entrada da camada).
+	var keep := respawn_pos
+	from_dict(d)
+	respawn_pos = keep
+	global_position = keep
+	last_safe_pos = keep
+	snap_camera()
 
 
 func from_dict(d: Dictionary) -> void:

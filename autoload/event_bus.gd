@@ -3,6 +3,7 @@ extends Node
 
 signal message(text: String)
 signal big_message(text: String)
+signal hint(text: String)
 signal monologue(id: String, text: String)
 signal creature_died(creature: Node)
 signal web_touched(position: Vector3, by: Node)

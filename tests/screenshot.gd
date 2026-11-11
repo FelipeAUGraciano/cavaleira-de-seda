@@ -13,7 +13,7 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	GameState.delete_save()
 	GameState.said = {}
-	main = load("res://world/main.tscn").instantiate()
+	main = load("res://world/layers/test_chamber.tscn").instantiate()
 	add_child(main)
 	var p: Player = null
 	await _frames(30)
