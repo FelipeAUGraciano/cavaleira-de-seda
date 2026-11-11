@@ -40,6 +40,7 @@ func _ready() -> void:
 	upper.position = Vector3(0.0, 10.0, -2.6)
 	upper.rotation.x = 0.6
 	_leg.add_child(upper)
+	Models.swap(_leg, "mae_pata", 11.0, [tip, lower, joint, upper], "height")
 	_marker = Fx.cylinder(1.6, 0.03, Fx.mat(Color(1.0, 0.2, 0.2), 1.5, true, 0.5))
 	_marker.visible = false
 	add_child(_marker)

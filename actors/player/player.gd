@@ -103,6 +103,7 @@ var _rune_light: OmniLight3D
 var _scarf_tail: MeshInstance3D
 var _abdomen: MeshInstance3D
 var _plates: Array[MeshInstance3D] = []
+var _model_overlay: StandardMaterial3D
 
 
 # ================================================================= setup
@@ -175,6 +176,8 @@ func _build_visual() -> void:
 		_visual.add_child(plate)
 		_plates.append(plate)
 
+	_apply_model([head, _abdomen, rune])
+
 	var scarf_mat := Fx.mat(Color(0.6, 0.72, 0.95), 0.3)
 	var scarf := Fx.box(Vector3(0.52, 0.07, 0.14), scarf_mat)
 	scarf.position = Vector3(0.0, 0.6, 0.02)
@@ -187,6 +190,25 @@ func _build_visual() -> void:
 	_leg_rig = SpiderLegs.new()
 	_leg_rig.setup(_visual, 1.0, 1 | 8)
 	add_child(_leg_rig)
+
+
+func _apply_model(base_parts: Array) -> void:
+	## Com o modelo do corpo (assets/models/cavaleira_corpo), as formas cinza do corpo somem.
+	## Patas e cachecol continuam por código. A luz da runa continua acendendo e apagando.
+	var parts := base_parts.duplicate()
+	for c in _visual.get_children():
+		if c is MeshInstance3D and not parts.has(c):
+			parts.append(c)
+	var m := Models.swap(_visual, "cavaleira_corpo", 1.4, parts, "length")
+	if m == null:
+		return
+	m.position.y = 0.15
+	_plates.clear()
+	_model_overlay = StandardMaterial3D.new()
+	_model_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_model_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_model_overlay.albedo_color = Color(1.0, 0.2, 0.2, 0.0)
+	Models.set_overlay(m, _model_overlay)
 
 
 func _build_camera() -> void:
@@ -422,6 +444,8 @@ func _melee(damage: float, reach: float, arc_deg: float, poison: bool) -> void:
 		to.y = 0.0
 		if to.length() > reach + c.body_radius:
 			continue
+		if c.global_position.y - global_position.y > 1.3:
+			continue   # voando alto demais (morcego): use fio (Q) ou espere o mergulho
 		if to.length() > 0.3 and rad_to_deg(aim_dir.angle_to(to.normalized())) > arc_deg * 0.5:
 			continue
 		var dmg := damage
@@ -441,6 +465,13 @@ func _throw_silk() -> void:
 	silk -= SILK_THROW
 	var from := global_position + Vector3.UP * 0.5
 	var to := from + aim_dir * THROW_RANGE
+	var flyer := _flyer_in_aim()
+	if flyer != null:
+		Fx.beam(get_parent(), from, flyer.global_position, Color(0.9, 0.95, 1.0), 0.3, 0.05)
+		flyer.entangle(4.0)
+		_msg("Fio no ar! %s caiu enredado." % flyer.display_name)
+		GameState.say_once("derrubou_morcego", "Desce daí, rato de asa!")
+		return
 	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 4)
 	q.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
@@ -461,6 +492,26 @@ func _throw_silk() -> void:
 	zip_target.y = global_position.y
 	_start_state(State.ZIP)
 	GameState.say_once("primeiro_zip", "Fio, parede, VOOOU!")
+
+
+func _flyer_in_aim() -> Creature:
+	## Criatura voando na direção da mira (fio lançado sobe até ela).
+	var best: Creature = null
+	var best_d := THROW_RANGE
+	for n in get_tree().get_nodes_in_group("flyer"):
+		var c := n as Creature
+		if c == null or c.dead or c.is_entangled():
+			continue
+		var to := c.global_position - global_position
+		to.y = 0.0
+		var d := to.length()
+		if d > best_d or d < 0.3:
+			continue
+		if rad_to_deg(aim_dir.angle_to(to.normalized())) > 14.0:
+			continue
+		best = c
+		best_d = d
+	return best
 
 
 func _interact() -> void:
@@ -489,6 +540,11 @@ func _eat(c: Corpse) -> void:
 	else:
 		_msg("Comeu %s: +%d saciedade, +%d seda, +%d XP" % [c.display_name, int(c.satiety), int(c.silk), c.xp])
 	GameState.say_once("primeira_refeicao", "Larva crua. Gosto de musgo molhado. Mas a fome venceu o nojo.")
+	if c.energy_bonus > 0.0:
+		max_energy += c.energy_bonus
+		energy = minf(max_energy, energy + c.energy_bonus)
+		_msg("A luz do lagarto agora é sua: +%d Energia máxima." % int(c.energy_bonus))
+		GameState.say_once("comeu_lagarto", "Comi uma lanterna. Agora EU sou a lanterna.")
 	gain_xp(c.xp)
 	c.consume()
 
@@ -892,6 +948,8 @@ func _update_visual(delta: float) -> void:
 	_hurt_flash = maxf(0.0, _hurt_flash - delta)
 	_body_mat.emission_enabled = _hurt_flash > 0.0
 	_body_mat.emission = Color(1.0, 0.2, 0.2)
+	if _model_overlay != null:
+		_model_overlay.albedo_color.a = 0.5 if _hurt_flash > 0.0 else 0.0
 	if state == State.DODGE:
 		_visual.scale = Vector3(1.15, 0.7, 1.15)
 	elif state == State.EAT:

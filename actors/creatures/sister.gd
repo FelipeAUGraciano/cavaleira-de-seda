@@ -49,6 +49,9 @@ func _ready() -> void:
 	super._ready()
 	if hunter:
 		add_to_group("predator")
+	if _model != null and Models.tuning(model_name).get("legs", false):
+		legs.visible = false
+		legs.process_mode = Node.PROCESS_MODE_DISABLED
 
 
 func _build_visual() -> void:
@@ -60,10 +63,23 @@ func _build_visual() -> void:
 	abdomen.position = Vector3(0.0, 0.55 * k, 0.45 * k)
 	_visual.add_child(abdomen)
 	var eye_mat := Fx.mat(Color(1.0, 0.25, 0.2) if hunter else Color(1.0, 0.65, 0.15), 1.5)
+	_body_parts = [head, abdomen]
 	for x in [-0.12, 0.12]:
 		var eye := Fx.sphere(0.075 * k, eye_mat)
 		eye.position = Vector3(x * k, 0.52 * k, -0.45 * k)
 		_visual.add_child(eye)
+		_body_parts.append(eye)
+	model_name = "irma_corpo"
+	model_size = 1.35 * k
+	model_fit = "length"
+	model_lift = 0.15 * k
+	if Models.tuning(model_name).get("legs", false):
+		# modelo com patas: mede pela envergadura e pisa no chão
+		model_size = 1.9 * k
+		model_fit = "max"
+		model_lift = 0.0
+	if hunter:
+		model_tint = Color(1.6, 0.55, 0.6)
 	legs = SpiderLegs.new()
 	legs.leg_color = body_color.darkened(0.3)
 	legs.setup(_visual, k, 1)
@@ -147,5 +163,10 @@ func _think_hunter(delta: float) -> Vector3:
 	return wander(delta, 6.0, 0.35)
 
 
-func _animate(_delta: float, _speed_now: float) -> void:
+func _animate(_delta: float, speed_now: float) -> void:
 	legs.velocity_hint = Vector3(velocity.x, 0.0, velocity.z)
+	if _model != null and not legs.visible:
+		# patas do modelo não andam: um balanço rápido dá a impressão de passos
+		var moving := clampf(speed_now / maxf(speed, 0.1), 0.0, 1.0)
+		_model.position.y = absf(sin(_anim_t * 18.0)) * 0.04 * moving
+		_model.rotation.z = sin(_anim_t * 18.0) * 0.06 * moving

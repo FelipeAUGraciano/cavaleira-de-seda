@@ -36,10 +36,16 @@ func _ready() -> void:
 	rune.position = Vector3(-5.0, 7.6, 0.0)
 	add_child(rune)
 	var eye_mat := Fx.mat(Color(1.0, 0.3, 0.2), 3.0, true)
+	var parts: Array = [head, abdomen, rune]
 	for i in 8:
 		var eye := Fx.sphere(0.32 if i < 2 else 0.18, eye_mat)
 		eye.position = Vector3(2.5, 3.6 + (i % 3) * 0.35, -1.0 + (i % 4) * 0.66)
 		add_child(eye)
+		parts.append(eye)
+	var body_model := Models.swap(self, "mae_corpo", 12.0, parts, "length")
+	if body_model != null:
+		body_model.position = Vector3(-3.0, 1.2, 0.0)
+		body_model.rotation_degrees.y = -90.0   # o modelo olha para -Z; a Mãe corre para +X
 	var leg_mat := Fx.mat(Color(0.12, 0.1, 0.18))
 	for i in 8:
 		var side := -1.0 if i < 4 else 1.0
@@ -50,6 +56,15 @@ func _ready() -> void:
 		leg.rotation.x = side * 0.45
 		pivot.add_child(leg)
 		add_child(pivot)
+		var leg_model := Models.instance("mae_pata", 7.5, "max")
+		if leg_model != null:
+			var wrap := Node3D.new()
+			wrap.transform = leg.transform
+			pivot.add_child(wrap)
+			leg_model.rotation.x = PI * 0.5   # comprimento do modelo (Y) ao longo da pata (Z)
+			leg_model.position.z = -3.6
+			wrap.add_child(leg_model)
+			leg.visible = false
 		_legs.append(pivot)
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.3, 0.25)

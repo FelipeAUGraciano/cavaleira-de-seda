@@ -4,7 +4,7 @@ extends LayerBase
 ## Coordenadas em metros: x cresce para leste, z para o sul. Ver a aba "Mapa da Fenda" do GDD.
 
 const SILK_PILLAR := Color(0.78, 0.76, 0.84)
-const NEXT_LAYER := "res://world/layers/test_chamber.tscn"
+const NEXT_LAYER := "res://world/layers/galerias.tscn"
 
 const CHASE_ROUTE := [Vector2(46, -3), Vector2(55, -2), Vector2(61, 2), Vector2(70, 7), Vector2(82, 6), Vector2(92, -1), Vector2(104, -2), Vector2(109, 0)]
 
@@ -90,7 +90,7 @@ func _build_level() -> void:
 	for n in pillars:
 		var pos: Vector3 = pillars[n]
 		var tall := 5.0 if String(n).begins_with("B3") else 4.0
-		add_anchor(n, pos, tall, 0.55, SILK_PILLAR)
+		add_anchor(n, pos, tall, 0.55, SILK_PILLAR, "pilar_teia")
 		if not cave.is_floor(Vector2(pos.x, pos.z), 0.6):
 			push_warning("Pilar %s fora do chão firme em %s" % [n, pos])
 
@@ -101,6 +101,10 @@ func _build_level() -> void:
 		egg.scale = Vector3(1.0, 0.8, 1.0)
 		egg.position = e + Vector3(0.0, 0.3, 0.0)
 		add_child(egg)
+		var m := Models.swap(self, "ovo", 0.75, [egg], "max")
+		if m != null:
+			m.position = e
+			m.rotation.y = e.x
 
 	# Teias decorativas no chão
 	for w in [Vector3(-58, 0, 4), Vector3(-28, 0, -10), Vector3(-5, 0, 1), Vector3(15, 0, 3), Vector3(44, 0, -4), Vector3(84, 0, 4), Vector3(102, 0, -1), Vector3(-36, 0, 15)]:

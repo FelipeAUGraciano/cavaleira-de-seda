@@ -153,9 +153,10 @@ func _build_environment() -> void:
 	add_child(fill)
 
 
-func add_anchor(anchor_name: String, pos: Vector3, height: float = 4.0, radius: float = 0.5, color: Color = Color(0.42, 0.42, 0.47)) -> WebAnchor:
+func add_anchor(anchor_name: String, pos: Vector3, height: float = 4.0, radius: float = 0.5, color: Color = Color(0.42, 0.42, 0.47), model: String = "") -> WebAnchor:
 	var a := WebAnchor.new(height, radius, color)
 	a.name = anchor_name
+	a.model_name = model
 	a.position = pos
 	add_child(a)
 	WebNetwork.register_anchor(a)
@@ -181,6 +182,10 @@ func add_fungus(pos: Vector3, color: Color = Color(0.45, 1.0, 0.6)) -> void:
 	var cap := Fx.sphere(0.25, Fx.mat(color, 3.0, true))
 	cap.position = pos + Vector3(0.0, 0.2, 0.0)
 	add_child(cap)
+	var m := Models.swap(self, "fungo_roxo" if color.b > color.g else "fungo_verde", 0.55, [cap], "max")
+	if m != null:
+		m.position = pos
+		m.rotation.y = fposmod(pos.x * 1.7 + pos.z * 2.3, TAU)
 	var light := OmniLight3D.new()
 	light.light_color = color
 	light.omni_range = 5.0
@@ -195,6 +200,11 @@ func add_web_decal(pos: Vector3, radius: float = 2.5) -> void:
 	var root := Node3D.new()
 	root.position = pos + Vector3(0.0, 0.03, 0.0)
 	add_child(root)
+	var m := Models.instance("teia_canto", radius * 2.0, "length")
+	if m != null:
+		root.add_child(m)
+		m.rotation.y = fposmod(pos.x + pos.z, TAU)
+		return
 	for i in 6:
 		var spoke := Fx.box(Vector3(radius * 2.0, 0.01, 0.03), mat)
 		spoke.rotation.y = i * PI / 6.0

@@ -9,6 +9,8 @@ const MIN_SPAWN_DISTANCE := 14.0
 
 var larva_spawns: Array[Vector3] = []
 var frog_spawns: Array[Vector3] = []
+var larva_target := LARVA_TARGET
+var frog_target := FROG_TARGET
 var _timer := LARVA_RESPAWN_INTERVAL
 
 
@@ -41,15 +43,15 @@ func _process(delta: float) -> void:
 	_timer -= delta
 	if _timer <= 0.0:
 		_timer = LARVA_RESPAWN_INTERVAL
-		_top_up(LARVA_TARGET, 0, 1)
+		_top_up(larva_target, 0, 1)
 
 
 func _on_rested(_c: Node) -> void:
 	# O tempo passou: a caverna se repovoa.
-	_top_up(LARVA_TARGET, FROG_TARGET, 99)
+	_top_up(larva_target, frog_target, 99)
 
 
-func _top_up(larva_target: int, frog_target: int, max_spawns: int) -> void:
+func _top_up(want_larvae: int, want_frogs: int, max_spawns: int) -> void:
 	var larvae := 0
 	var frogs := 0
 	for n in get_children():
@@ -58,14 +60,14 @@ func _top_up(larva_target: int, frog_target: int, max_spawns: int) -> void:
 		elif n is Frog and not (n as Frog).dead:
 			frogs += 1
 	var spawned := 0
-	while larvae < larva_target and spawned < max_spawns:
+	while larvae < want_larvae and spawned < max_spawns:
 		var p = _far_point(larva_spawns)
 		if p == null:
 			break
 		spawn_larva(p)
 		larvae += 1
 		spawned += 1
-	while frogs < frog_target:
+	while frogs < want_frogs:
 		var p = _far_point(frog_spawns)
 		if p == null:
 			break

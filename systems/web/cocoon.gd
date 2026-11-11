@@ -14,6 +14,7 @@ func _ready() -> void:
 	var band := Fx.cylinder(0.72, 0.08, Fx.mat(Color(0.5, 0.9, 1.0), 1.5, true))
 	band.position.y = 1.0
 	add_child(band)
+	Models.swap(self, "casulo", 1.8, [shell, band], "height")
 	var light := OmniLight3D.new()
 	light.light_color = Color(0.75, 0.9, 1.0)
 	light.omni_range = 3.5

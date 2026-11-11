@@ -4,7 +4,7 @@ extends Area3D
 
 var kind := "cristal_pv"
 var flag_id := ""
-var _crystal: MeshInstance3D
+var _crystal: Node3D
 
 
 func _init(kind_: String = "cristal_pv", flag: String = "") -> void:
@@ -21,12 +21,17 @@ func _ready() -> void:
 	cs.shape = shape
 	cs.position.y = 0.6
 	add_child(cs)
-	_crystal = Fx.box(Vector3(0.35, 0.6, 0.35), Fx.mat(Color(0.7, 0.75, 1.0), 2.0))
+	var col := Color(0.4, 1.0, 0.85) if kind == "cristal_en" else Color(0.7, 0.75, 1.0)
+	_crystal = Fx.box(Vector3(0.35, 0.6, 0.35), Fx.mat(col, 2.0))
 	_crystal.position.y = 0.7
 	_crystal.rotation = Vector3(0.6, 0.0, 0.6)
 	add_child(_crystal)
+	var m := Models.swap(self, "cristal", 0.8, [_crystal], "height")
+	if m != null:
+		m.position.y = 0.3
+		_crystal = m
 	var light := OmniLight3D.new()
-	light.light_color = Color(0.7, 0.75, 1.0)
+	light.light_color = col
 	light.omni_range = 3.0
 	light.light_energy = 1.0
 	light.position.y = 1.0
@@ -46,6 +51,11 @@ func _on_body_entered(body: Node3D) -> void:
 		p.max_hp += 10.0
 		p.hp = minf(p.max_hp, p.hp + 10.0)
 		EventBus.message.emit("Cristal de pedra-da-lua! +10 PV máximo.")
+	elif kind == "cristal_en":
+		p.max_energy += 15.0
+		p.energy = minf(p.max_energy, p.energy + 15.0)
+		EventBus.message.emit("Cristal de energia! +15 Energia máxima.")
+		GameState.say_once("cristal_lago", "Valeu cada fio. E eu nem molhei as patas.")
 	if flag_id != "":
 		GameState.flags[flag_id] = true
 	queue_free()

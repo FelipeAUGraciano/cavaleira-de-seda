@@ -22,6 +22,15 @@ var food_satiety := 20.0
 var food_silk := 10.0
 var food_xp := 10
 var senses_text := "?"
+var food_energy := 0.0       ## bônus permanente de Energia máx. ao comer (Lagarto-lanterna)
+
+# Modelo 3D (systems/models.gd): troca as formas cinza quando o .glb existir
+var model_name := ""
+var model_size := 0.0        ## 0 = body_radius * 2.5
+var model_fit := "max"
+var model_lift := 0.0        ## sobe o modelo (corpos sem patas ficam acima do chão)
+var model_tint := Color(1, 1, 1)  ## multiplica as cores do modelo (ex.: irmã faminta mais vermelha)
+var hover_y := -1.0         ## >= 0: voa nessa altura (morcegos). Enredado, cai.
 
 # Estado
 var hp := 0.0
@@ -44,6 +53,9 @@ var _web_overlay: MeshInstance3D
 var _flash := 0.0
 var _anim_t := 0.0
 var _last_attacker: Node = null
+var _model: Node3D
+var _body_parts: Array = []  ## formas cinza que o modelo substitui (vazio = todas do _visual)
+var _overlay: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -64,6 +76,7 @@ func _ready() -> void:
 	add_child(_visual)
 	_mat = Fx.mat(body_color)
 	_build_visual()
+	_apply_model()
 	_web_overlay = Fx.sphere(body_radius * 1.3, Fx.mat(Color(0.9, 0.95, 1.0), 0.6, true, 0.45))
 	_web_overlay.position.y = body_radius
 	_web_overlay.visible = false
@@ -75,6 +88,22 @@ func _build_visual() -> void:
 	var body := Fx.sphere(body_radius, _mat)
 	body.position.y = body_radius
 	_visual.add_child(body)
+
+
+func _apply_model() -> void:
+	var parts: Array = _body_parts if not _body_parts.is_empty() else _visual.get_children()
+	var sz := model_size if model_size > 0.0 else body_radius * 2.5
+	_model = Models.swap(_visual, model_name, sz, parts, model_fit)
+	if _model == null:
+		return
+	_model.position.y = model_lift
+	_overlay = StandardMaterial3D.new()
+	_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_overlay.albedo_color = Color(0, 0, 0, 0)
+	Models.set_overlay(_model, _overlay)
+	if model_tint != Color(1, 1, 1):
+		Models.tint(_model, model_tint)
 
 
 func _think(_delta: float) -> Vector3:
@@ -103,7 +132,9 @@ func _physics_process(delta: float) -> void:
 		telegraph = false
 	velocity.x = desired.x + external_velocity.x
 	velocity.z = desired.z + external_velocity.z
-	if is_on_floor():
+	if hover_y >= 0.0 and entangled_time <= 0.0:
+		velocity.y = clampf((hover_y - global_position.y) * 6.0, -9.0, 7.0)
+	elif is_on_floor():
 		velocity.y = -0.5
 	else:
 		velocity.y -= GRAVITY * delta
@@ -123,6 +154,13 @@ func _physics_process(delta: float) -> void:
 
 func _update_glow(delta: float) -> void:
 	_flash = maxf(0.0, _flash - delta)
+	if _overlay != null:
+		if _flash > 0.0:
+			_overlay.albedo_color = Color(1, 1, 1, 0.6)
+		elif telegraph:
+			_overlay.albedo_color = Color(1.0, 0.8, 0.1, 0.35 + 0.25 * sin(_anim_t * 30.0))
+		else:
+			_overlay.albedo_color = Color(0, 0, 0, 0)
 	if _flash > 0.0:
 		_mat.emission_enabled = true
 		_mat.emission = Color(1, 1, 1)
@@ -208,6 +246,7 @@ func die(fell: bool = false) -> void:
 	if not fell:
 		var corpse := Corpse.new()
 		corpse.setup(display_name, food_satiety, food_silk, food_xp, body_color, body_radius)
+		corpse.energy_bonus = food_energy
 		get_parent().add_child(corpse)
 		corpse.global_position = Vector3(global_position.x, maxf(global_position.y, 0.0), global_position.z)
 		var killer: Player = null

@@ -5,6 +5,7 @@ extends StaticBody3D
 var height := 4.0
 var radius := 0.5
 var color := Color(0.42, 0.42, 0.47)
+var model_name := ""   ## "pilar_teia", "estalagmite_a"... (systems/models.gd)
 var _ring: MeshInstance3D
 var _ring_mat: StandardMaterial3D
 
@@ -25,6 +26,7 @@ func _ready() -> void:
 	var cap := Fx.sphere(radius * 0.9, Fx.mat(color.lightened(0.12)))
 	cap.position.y = height
 	add_child(cap)
+	Models.swap(self, model_name, height + radius * 0.9, [mesh, cap], "height")
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = radius

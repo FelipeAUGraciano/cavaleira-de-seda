@@ -34,5 +34,23 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `primeira_morte_pre` | Na primeira morte | Ah, não... tudo ficou escuro... |
 | `primeira_morte` | Ao acordar depois da primeira morte | ...Tá. Aranha teimosa não desiste. |
 | `saida` | Ao chegar na saída | Ar fresco?! ...Não. Só mais caverna. Mas é um começo. |
+| `g_chegada` | Ao chegar nas Galerias | Saí do ninho. Agora é só eu, a caverna... e tudo que mora nela. |
+| `g2_poca` | Entrando na Poça rasa (G2) | Aquela pedra perto da água... piscou? |
+| `g3_morcegos` | Entrando no Túnel dos morcegos (G3) | Um túnel cheio de asas. Que maravilha. |
+| `morcegos_ouviram` | Quando os morcegos ouvem você pela primeira vez | Eles me ouviram. Se eu ficar parada... será que somem? |
+| `morcego_no_fio` | Primeiro morcego preso num fio esticado | Fio esticado no caminho... e lá vem o jantar voando direto nele. |
+| `derrubou_morcego` | Primeiro morcego derrubado com fio lançado (Q) | Desce daí, rato de asa! |
+| `g4_gruta` | Entrando na Grande Gruta (G4) | Espaço, pilares, ninguém me caçando... por enquanto. Aqui vai ser minha casa. |
+| `g4_territorio` | Ao tecer o primeiro território (casulo + 3 fios) | Meu cantinho. Meus fios. Quem tocar, eu sinto. Isso é poder. |
+| `g5_lagarto` | Entrando no Jardim de musgo (G5) | Uma lanterna com dentes. Claro. |
+| `lagarto_aviso` | Quando o Lagarto-lanterna avisa pela primeira vez | Ok, ok, entendi o recado luminoso. ...Ou não entendi? |
+| `comeu_lagarto` | Ao comer o Lagarto-lanterna | Comi uma lanterna. Agora EU sou a lanterna. |
+| `g6_ponte` | Entrando na Ponte quebrada (G6) | Quem quebrou essa ponte? ...Eu nem sei se isso era uma ponte. |
+| `g7_lago` | Entrando no Lago escondido (G7) | Tem algo brilhando na ilha. E eu odeio água. |
+| `cristal_lago` | Ao pegar o cristal da ilha | Valeu cada fio. E eu nem molhei as patas. |
+| `g11_acido` | Ao pisar nas Poças ácidas | AI, AI, queima! Volta, volta! |
+| `g12_desabamento` | Perto do desabamento ao sul do jardim | Pedra. Muita pedra. Nem minhas patinhas passam. |
+| `g16_cristal` | Perto da parede de cristal (G16) | Luz... lá em cima. Um dia eu volto aqui. |
+| `g_fim_trecho` | No fim do trecho jogável, a leste | Mais túneis, mais escuro... e vozes? Vozes de gente? |
 
 Dica de gravação: mono, 44,1 kHz, com uns 0,2 s de silêncio no começo e no fim. O Godot importa `.ogg` e `.wav` direto.

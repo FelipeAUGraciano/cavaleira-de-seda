@@ -526,11 +526,22 @@ func scatter_decor(parent: Node3D, seed_: int = 3) -> void:
 				cone.position = Vector3(p.x, hgt * 0.5, p.y)
 				cone.rotation = Vector3(rng.randf_range(-0.12, 0.12), rng.randf(), rng.randf_range(-0.12, 0.12))
 				parent.add_child(cone)
+				var sm := Models.swap(parent, "estalagmite_" + "abc"[rng.randi() % 3], hgt, [cone], "height")
+				if sm != null:
+					sm.position = Vector3(p.x, 0.0, p.y)
+					sm.rotation.y = rng.randf() * TAU
 			elif f > 1.5 and rng.randf() < 0.05:
 				var rock := Fx.sphere(rng.randf_range(0.12, 0.3), pebble)
 				rock.scale = Vector3(1.0, rng.randf_range(0.4, 0.8), rng.randf_range(0.8, 1.3))
 				rock.position = Vector3(p.x, 0.05, p.y)
 				rock.rotation.y = rng.randf() * TAU
 				parent.add_child(rock)
+			elif f > 1.2 and o < 2.2 and rng.randf() < 0.012:
+				# rochas maiores perto das paredes: só aparecem quando os modelos existem
+				var big := Models.instance("rocha_" + "abc"[rng.randi() % 3], rng.randf_range(0.9, 1.6), "max")
+				if big != null:
+					big.position = Vector3(p.x, -0.1, p.y)
+					big.rotation.y = rng.randf() * TAU
+					parent.add_child(big)
 			z += 1.5
 		x += 1.5

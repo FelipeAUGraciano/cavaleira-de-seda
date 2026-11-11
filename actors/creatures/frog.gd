@@ -34,6 +34,9 @@ func _init() -> void:
 	food_silk = 30.0
 	food_xp = 50
 	senses_text = "visão (10 m, cone de 140°) e audição"
+	model_name = "sapo"
+	model_size = 2.0
+	model_fit = "length"
 
 
 func _ready() -> void:

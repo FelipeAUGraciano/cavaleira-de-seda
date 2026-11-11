@@ -94,6 +94,10 @@ func is_in_territory(pos: Vector3) -> bool:
 	return false
 
 
+func territory_anchor_count() -> int:
+	return _territory_anchors.size()
+
+
 func recompute() -> void:
 	## Território = casulos + âncoras perto deles + tudo ligado a essas âncoras por fios.
 	_territory_anchors.clear()

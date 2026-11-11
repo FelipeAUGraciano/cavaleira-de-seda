@@ -23,7 +23,7 @@ const HELP_LINES := [
 	"Segurar Alt ou Tab: Leitura da criatura sob o cursor",
 	"M mapa · Esc pausa · F1 +1 nível (teste) · F8 apagar save",
 ]
-const LOCK_NAMES := {"fresta": "fresta", "cristal": "parede de cristal", "acido": "poça ácida", "abismo_longo": "abismo longo", "brasa": "brasa", "cortina": "cortina viva"}
+const LOCK_NAMES := {"fresta": "fresta", "cristal": "parede de cristal", "acido": "poça ácida", "abismo_longo": "abismo longo", "brasa": "brasa", "cortina": "cortina viva", "desabamento": "desabamento"}
 
 var player: Player = null
 var _root: Control
