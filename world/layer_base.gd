@@ -87,7 +87,7 @@ func _ready() -> void:
 		WebNetwork.load_from(data.get("web", {}))
 		map_system.from_dict(data.get("map", {}))
 		player.from_dict(data.get("player", {}))
-		EventBus.message.emit("Save carregado do último casulo (F8 apaga e recomeça).")
+		EventBus.message.emit("Save carregado do último casulo. (Esc → Menu inicial → Novo jogo para recomeçar.)")
 	elif not GameState.carry.is_empty():
 		player.apply_carry(GameState.carry)
 		GameState.carry = {}

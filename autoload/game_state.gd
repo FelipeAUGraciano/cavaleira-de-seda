@@ -61,15 +61,41 @@ func delete_save() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 
 
+const TITLE_SCENE := "res://world/title.tscn"
+const FIRST_LAYER := "res://world/layers/bercario.tscn"
+
+
+func new_game() -> void:
+	## Apaga o save e começa do Berçário (menu inicial ou F8).
+	_clear_run()
+	delete_save()
+	get_tree().change_scene_to_file.call_deferred(FIRST_LAYER)
+
+
+func continue_game() -> void:
+	## Abre a camada do último casulo (o boot lê o save).
+	_clear_run()
+	get_tree().change_scene_to_file.call_deferred("res://world/main.tscn")
+
+
+func to_title() -> void:
+	## Volta ao menu inicial. O que não foi salvo num casulo se perde.
+	_clear_run()
+	get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
+
+
 func reset_run() -> void:
-	## Apaga o save e recomeça a câmara do zero (F8).
+	new_game()
+
+
+func _clear_run() -> void:
 	Engine.time_scale = 1.0
+	get_tree().paused = false
 	said = {}
 	flags = {}
 	carry = {}
-	delete_save()
-	get_tree().paused = false
-	get_tree().change_scene_to_file("res://world/main.tscn")
+	player = null
+	current_layer = null
 
 
 # ---------------------------------------------------------------- controles

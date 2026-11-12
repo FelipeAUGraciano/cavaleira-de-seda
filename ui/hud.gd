@@ -21,7 +21,7 @@ const HELP_LINES := [
 	"C tecer casulo (30 seda) · E comer / descansar",
 	"F apagar/acender runa (furtividade)",
 	"Segurar Alt ou Tab: Leitura da criatura sob o cursor",
-	"M mapa · Esc pausa · F1 +1 nível (teste) · F8 apagar save",
+	"M mapa · Esc pausa / menu · F1 +1 nível (teste) · F8 novo jogo",
 ]
 const LOCK_NAMES := {"fresta": "fresta", "cristal": "parede de cristal", "acido": "poça ácida", "abismo_longo": "abismo longo", "brasa": "brasa", "cortina": "cortina viva", "desabamento": "desabamento"}
 
@@ -43,6 +43,7 @@ var _title := ""
 var _subtitle := ""
 var _title_time := 0.0
 const TITLE_SECS := 5.0   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
+var _pause_box: MenuBox
 var _hint_text := ""
 var _hint_time := 0.0
 var _last_us := 0
@@ -66,6 +67,14 @@ func _ready() -> void:
 	_root.add_child(_mini)
 	_mini.draw.connect(_on_draw_mini)
 	EventBus.stalked.connect(_on_stalked)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.offset_top = 40.0
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE   # não pode comer os cliques do jogo
+	_root.add_child(center)
+	_pause_box = MenuBox.new()
+	_pause_box.visible = false
+	center.add_child(_pause_box)
 	_cv = _root
 	_font = ThemeDB.fallback_font
 	EventBus.message.connect(_on_message)
@@ -93,7 +102,10 @@ func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("help"):
 		_show_help = not _show_help
 	if Input.is_action_just_pressed("pause"):
-		get_tree().paused = not get_tree().paused
+		if get_tree().paused:
+			close_pause()
+		else:
+			open_pause()
 	if Input.is_action_just_pressed("debug_reset"):
 		GameState.reset_run()
 		return
@@ -103,6 +115,31 @@ func _process(_delta: float) -> void:
 	_mini.visible = _map_system() != null and not _show_map and player != null
 	_root.queue_redraw()
 	_mini.queue_redraw()
+
+
+# ---------------------------------------------------------------- pausa
+
+func open_pause() -> void:
+	get_tree().paused = true
+	_pause_box.clear()
+	_pause_box.add_button("Voltar ao jogo", close_pause)
+	_pause_box.add_button("Esconder controles" if _show_help else "Mostrar controles", _toggle_help_from_pause)
+	_pause_box.add_button("Menu inicial", GameState.to_title)
+	_pause_box.add_label("O jogo salva quando você descansa num casulo.\nO que fez depois disso se perde ao sair.", 15, QUIET)
+	_pause_box.add_button("Sair do jogo", func(): get_tree().quit(), true)
+	_pause_box.visible = true
+	_pause_box.focus_first()
+
+
+func close_pause() -> void:
+	_pause_box.visible = false
+	get_tree().paused = false
+
+
+func _toggle_help_from_pause() -> void:
+	_show_help = not _show_help
+	open_pause()
+	MenuBox.focus_later(_pause_box.buttons()[1])
 
 
 # ---------------------------------------------------------------- eventos
@@ -181,8 +218,8 @@ func _on_draw() -> void:
 	if _big_time > 0.0:
 		_text_center(vp.x, vp.y * 0.42, _big_text, 34, Color(1, 1, 1, clampf(_big_time, 0.0, 1.0)))
 	if get_tree().paused:
-		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.5))
-		_text_center(vp.x, vp.y * 0.45, "PAUSA — Esc para voltar", 32, TEXT)
+		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.65))
+		_text_center(vp.x, vp.y * 0.5 - 170.0, "PAUSA", 40, TEXT)
 	_draw_transition(vp)   # por último: tela preta e título por cima de tudo
 
 func _draw_bars(vp: Vector2) -> void:

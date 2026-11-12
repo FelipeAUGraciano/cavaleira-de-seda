@@ -12,7 +12,9 @@ Resposta ao primeiro teste ("monótono e fácil, ninguém me caça, já começo 
 - **Fim do prólogo:** sair do Berçário agora tem epílogo, um cartão "Fim do prólogo" e fala da protagonista antes de escurecer. Cada camada abre com escurecimento e um título (nome + ato).
 - **Patas novas:** andar de aranha de verdade (dois grupos de quatro patas alternados). As patas pisam no chão, miram onde o corpo vai estar e não esticam mais para trás nem sobem nas paredes.
 
-**Saves antigos:** aperte **F8** e comece de novo. O balanço mudou e o jogo começa na forma Filhote.
+- **Menu inicial:** Continuar (mostra onde e em que nível está o save), Novo jogo (pede confirmação antes de apagar), Controles e Sair. **Esc** no jogo abre a pausa com Voltar ao jogo, mostrar/esconder controles, Menu inicial e Sair.
+
+**Saves antigos:** no menu inicial escolha **Novo jogo**. O balanço mudou e o jogo começa na forma Filhote.
 
 ## Novidades da v0.6 — mundo vivo
 
@@ -70,7 +72,7 @@ Documento de design (GDD): https://claude.ai/artifact/1GWcAejdRMa5iN3mmC9C1K
 
 1. Instale o **Godot 4.7.x** (versão padrão, não a .NET): https://godotengine.org/download
 2. Abra o Godot → **Importar** → escolha o arquivo `project.godot` desta pasta.
-3. Aperte **F5** para jogar.
+3. Aperte **F5** para jogar. Abre o menu inicial: **Novo jogo** começa do Berçário, **Continuar** volta ao último casulo.
 
 ## Controles
 
@@ -91,7 +93,8 @@ Documento de design (GDD): https://claude.ai/artifact/1GWcAejdRMa5iN3mmC9C1K
 | Mapa | M | Direcional para cima |
 | Ajuda na tela | H | Back |
 | Pausa | Esc | Start |
-| Testes: +1 nível / apagar save | F1 / F8 | — |
+| Pausa e menu | Esc | Start |
+| Testes: +1 nível / novo jogo direto | F1 / F8 | — |
 
 No **Modo Tecelagem** o tempo cai para 25%. Clique em um pilar e depois em outro (até 12 m) para esticar um **fio-guia**. Andar no fio é 1,5× mais rápido, silencioso, e é o único jeito de cruzar o abismo. O botão direito arma uma **teia de captura** (a partir do nível 3).
 
@@ -107,7 +110,7 @@ Sistemas: 4 recursos que aparecem no corpo da aranha (placas = PV, runa = Energi
 
 ## Roteiro de teste (20 min)
 
-Comece um jogo novo (F8 apaga o save) e jogue o Berçário e as Galerias em sequência.
+Comece um jogo novo (menu inicial → Novo jogo) e jogue o Berçário e as Galerias em sequência.
 
 Jogue sem ler o código e anote:
 
@@ -190,6 +193,7 @@ godot --headless --path . res://tests/covil_test.tscn      # G8–G15 e a Centop
 godot --headless --path . res://tests/models_test.tscn     # troca de modelos (12 verificações)
 godot --headless --path . res://tests/vida_test.tscn       # mundo vivo: relógio, sono, pasto, bando, medo, brigas e desempenho
 godot --headless --path . res://tests/dificuldade_test.tscn  # Filhote, evolução, predadores que te caçam, transição e patas (18 verificações)
+godot --headless --path . res://tests/menu_test.tscn       # menu inicial, pausa, continuar e novo jogo (15 verificações)
 ```
 
 Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, sapo, teia de captura, paredes, mapa, irmãs, fresta, cristal, pata da Mãe e a fuga.

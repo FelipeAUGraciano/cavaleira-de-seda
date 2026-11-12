@@ -7,7 +7,7 @@ config_version=5
 
 config/name="Cavaleira de Seda"
 config/description="Protótipo cinza: sobrevivência e estratégia top-down numa caverna."
-run/main_scene="res://world/main.tscn"
+run/main_scene="res://world/title.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
