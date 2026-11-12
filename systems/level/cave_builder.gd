@@ -51,6 +51,12 @@ static func path(pts: Array, w: float, rough: float = 0.6) -> Dictionary:
 	return {"t": "path", "pts": pts, "w": w, "n": rough, "box": box.grow(w * 0.5 + rough + 1.0)}
 
 
+static func field(data: PackedFloat32Array, w: int, h: int, origin: Vector2, rough: float = 0.0) -> Dictionary:
+	## Campo de distância pronto (1 m por célula), vindo de uma caverna gerada (OrganicCave).
+	return {"t": "field", "data": data, "w": w, "h": h, "o": origin, "n": rough,
+		"box": Rect2(origin, Vector2(w - 1, h - 1)).grow(rough + 0.5)}
+
+
 # ---------------------------------------------------------------- campos
 
 func _init() -> void:
@@ -74,6 +80,20 @@ func _sdf(s: Dictionary, p: Vector2, nv: float) -> float:
 			var rz: float = s["rz"]
 			var k := sqrt((q.x / rx) * (q.x / rx) + (q.y / rz) * (q.y / rz))
 			return (1.0 - k) * minf(rx, rz) + n
+		"field":
+			var d: PackedFloat32Array = s["data"]
+			var fw: int = s["w"]
+			var fh: int = s["h"]
+			var q: Vector2 = p - s["o"]
+			var i := int(floor(q.x))
+			var j := int(floor(q.y))
+			if i < 0 or j < 0 or i >= fw - 1 or j >= fh - 1:
+				return NO
+			var tx := q.x - i
+			var tz := q.y - j
+			var a := lerpf(d[j * fw + i], d[j * fw + i + 1], tx)
+			var b := lerpf(d[(j + 1) * fw + i], d[(j + 1) * fw + i + 1], tx)
+			return lerpf(a, b, tz) + n
 		_:
 			var pts: Array = s["pts"]
 			var best := 1e9
@@ -99,7 +119,8 @@ func open_at(p: Vector2) -> float:
 	var nv := noise.get_noise_2d(p.x, p.y)
 	var v := _max_of(tunnels, p, nv)
 	for r in rooms:
-		v = maxf(v, _max_of(r["shapes"], p, nv))
+		if not r.get("label_only", false):
+			v = maxf(v, _max_of(r["shapes"], p, nv))
 	return v
 
 
@@ -107,7 +128,8 @@ func floor_at(p: Vector2) -> float:
 	var nv := noise.get_noise_2d(p.x, p.y)
 	var o := _max_of(tunnels, p, nv)
 	for r in rooms:
-		o = maxf(o, _max_of(r["shapes"], p, nv))
+		if not r.get("label_only", false):
+			o = maxf(o, _max_of(r["shapes"], p, nv))
 	return _floor_from(o, _max_of(chasms, p, nv), _max_of(bridges, p, nv))
 
 
@@ -171,7 +193,7 @@ func _sample(arr: PackedFloat32Array, p: Vector2) -> float:
 
 
 func is_floor(p: Vector2, margin: float = 0.0) -> bool:
-	return floor_at(p) > margin
+	return _floor_cached(p) > margin   # depois do build() lê a grade pronta (bem mais rápido)
 
 
 func room_index_at(p: Vector2) -> int:
@@ -203,7 +225,8 @@ func build(parent: Node3D) -> Dictionary:
 	var first := true
 	var all_shapes: Array = tunnels.duplicate()
 	for r in rooms:
-		all_shapes.append_array(r["shapes"])
+		if not r.get("label_only", false):   # câmaras só de nome não abrem espaço
+			all_shapes.append_array(r["shapes"])
 	for s in all_shapes:
 		if first:
 			bounds = s["box"]

@@ -187,6 +187,8 @@ func on_player_fell(p: Player) -> void:
 		var below: Vector3 = Vector3(p.global_position.x, 0.0, p.global_position.z) + (c["drop"] as Vector3)
 		if World.nav != null and World.nav.walkable(below, NavGrid.Kind.SMALL):
 			to = below
+		else:
+			to = landing_near(below)
 	p.falling = true
 	if hud != null:
 		await hud.fade(1.0, 0.35)
@@ -196,6 +198,11 @@ func on_player_fell(p: Player) -> void:
 
 
 var _passing := false
+
+
+func landing_near(p: Vector3) -> Vector3:
+	## Chão mais perto de p no andar de baixo (a camada com caverna gerada responde melhor).
+	return p
 
 
 func add_passage(rect: Rect2, to: Vector3, msg: String, label: String = "Rampa") -> void:
