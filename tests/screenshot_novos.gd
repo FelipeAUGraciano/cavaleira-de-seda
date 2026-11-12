@@ -51,14 +51,25 @@ func _run() -> void:
 	arc[0] = cen.global_position
 	cen._trail = arc
 	cen._place_segments()
+	# e agora andando de verdade: a cabeça faz uma curva fechada por 4 s
+	var ctr := cen.global_position + Vector3(-3.0, 0, 0)
+	for f in 240:
+		var ang := float(f) / 60.0 * 1.1
+		var np := ctr + Vector3(cos(ang) * 3.0, 0.0, -sin(ang) * 3.0)
+		var tang := Vector3(-sin(ang), 0, -cos(ang))
+		cen.global_position = np
+		cen.facing = tang
+		cen._anim_t += 1.0 / 60.0
+		cen._update_trail()
+		await get_tree().process_frame
 	await _frames(5)
 	var cam := Camera3D.new()
 	add_child(cam)
 	cam.fov = 40.0
 	cam.make_current()
 	layer.dark_vision = false
-	var shots := [[base + Vector3(0, 9, 9), base + Vector3(0.5, 0, 1)], [lz.global_position + Vector3(2.0, 1.6, 2.6), lz.global_position],
-		[bat.global_position + Vector3(0.6, 1.4, 1.2), bat.global_position], [cen.global_position + Vector3(2, 12, 2.01), cen.global_position + Vector3(2, 0, 2)]]
+	var shots := [[base + Vector3(0, 9, 9), base + Vector3(0.5, 0, 1)], [cen.global_position + Vector3(3.0, 2.6, 3.0), cen.global_position],
+		[bat.global_position + Vector3(0.6, 1.4, 1.2), bat.global_position], [cen.global_position + Vector3(0, 8, 0.01), cen.global_position]]
 	var sheet := Image.create(1600, 900, false, Image.FORMAT_RGBA8)
 	for i in shots.size():
 		cam.global_position = shots[i][0]

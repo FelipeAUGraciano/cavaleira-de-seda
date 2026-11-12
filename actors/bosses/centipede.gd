@@ -38,8 +38,9 @@ var _track_from := Vector3.ZERO
 var _trail: Array[Vector3] = []
 var _segs: Array[Node3D] = []
 var _seg_depth: Array[float] = []     ## comprimento (frente-trás) de cada placa
+var _seg_pos: Array[Vector3] = []     ## onde cada placa está (a corrente puxa daqui)
 var _joints: Array[MeshInstance3D] = []   ## "coluna" escura entre as placas: o corpo nunca parece solto
-const HEAD_BACK := 0.85                ## da posição da cabeça até a nuca
+const HEAD_BACK := 1.45                ## da posição da cabeça até a nuca (a nuca fica a 70% disso: a borda de trás do casco)
 const OVERLAP := 0.78                  ## placas se sobrepõem um pouco, como armadura
 var _armor_msg_cd := 0.0
 
@@ -163,6 +164,7 @@ func _build_segments() -> void:
 
 
 func _reset_trail() -> void:
+	_seg_pos.clear()   # a corrente volta reta atrás da cabeça
 	_trail.clear()
 	var back := -facing
 	for i in int(SEGMENTS * SPACING / 0.15) + 10:
@@ -401,35 +403,38 @@ func _update_trail() -> void:
 
 
 func _place_segments() -> void:
-	## Cada placa vai para o ponto do rastro da cabeça à distância certa e olha para a
-	## placa da frente (corrente: nada fica torto ou solto). Juntas escuras ligam as placas,
-	## e uma onda suave sobe e desce pelo corpo enquanto ela anda.
-	if _trail.size() < 2:
-		return
+	## Corrente "segue o líder": a nuca é presa à cabeça; cada placa fica à distância certa
+	## da placa da frente, puxada na direção de onde ela estava. Nada solta, nada atravessa,
+	## e nas curvas o corpo corta a curva de leve, como uma centopeia de verdade.
 	var wave := 0.0 if is_entangled() else _anim_t * 6.0
-	var prev := global_position - facing * HEAD_BACK * 0.7   # a junta começa na nuca, não no meio da cabeça
+	if _seg_pos.size() != _segs.size():
+		_seg_pos.clear()
+		for i in _segs.size():
+			_seg_pos.append(global_position - facing * (HEAD_BACK + 0.8 * (i + 1)))
+	# a cabeça olha para onde vai, mas no máximo ~20° fora da linha do corpo (gira pela nuca)
+	var body_dir := global_position - _seg_pos[0]
+	body_dir.y = 0.0
+	body_dir = body_dir.normalized() if body_dir.length() > 0.05 else facing
+	var yaw_body := atan2(-body_dir.x, -body_dir.z)
+	var yaw_face := atan2(-facing.x, -facing.z)
+	var yaw := yaw_body + clampf(wrapf(yaw_face - yaw_body, -PI, PI), -0.35, 0.35)
+	_visual.rotation.y = yaw
+	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	var prev := global_position - fwd * HEAD_BACK * 0.7   # a nuca
 	prev.y = maxf(global_position.y, 0.0)
-	var prev_half := HEAD_BACK
-	var want := 0.0
-	var j := 0
-	var acc := 0.0
+	var prev_half := 0.0
 	for i in _segs.size():
 		var half := _seg_depth[i] * 0.5 if i < _seg_depth.size() else 0.45
-		want += (prev_half + half) * OVERLAP if i > 0 else prev_half + half * OVERLAP
-		# anda pelo rastro até a distância `want` (continua de onde a placa anterior parou)
-		var pos := _trail[_trail.size() - 1]
-		while j < _trail.size() - 1:
-			var a := _trail[j]
-			var b := _trail[j + 1]
-			var seg_len := a.distance_to(b)
-			if acc + seg_len >= want:
-				pos = a.lerp(b, (want - acc) / maxf(seg_len, 0.001))
-				break
-			acc += seg_len
-			j += 1
-		pos.y = maxf(pos.y, 0.0) + sin(wave - i * 0.8) * 0.05
+		var gap := (prev_half + half) * OVERLAP
+		var d := _seg_pos[i] - prev
+		d.y = 0.0
+		if d.length() < 0.01:
+			d = -fwd
+		var pos := prev + d.normalized() * gap
+		pos.y = 0.0
+		_seg_pos[i] = pos
 		var seg := _segs[i]
-		seg.global_position = pos
+		seg.global_position = pos + Vector3.UP * sin(wave - i * 0.8) * 0.05
 		var dir := prev - pos
 		dir.y = 0.0
 		if dir.length() > 0.01:
@@ -438,6 +443,20 @@ func _place_segments() -> void:
 			_place_joint(_joints[i], prev, pos, 0.28 * (1.0 - float(i) / SEGMENTS * 0.45))
 		prev = pos
 		prev_half = half
+
+
+func _trail_dir_near_head(dist: float) -> Vector3:
+	## Direção do corpo logo atrás da cabeça (do ponto do rastro a `dist` m até a cabeça).
+	var acc := 0.0
+	for j in _trail.size() - 1:
+		acc += _trail[j].distance_to(_trail[j + 1])
+		if acc >= dist:
+			var d := global_position - _trail[j + 1]
+			d.y = 0.0
+			if d.length() > 0.05:
+				return d.normalized()
+			break
+	return facing
 
 
 func _place_joint(joint: MeshInstance3D, a: Vector3, b: Vector3, h: float) -> void:
