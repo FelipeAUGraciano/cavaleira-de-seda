@@ -11,7 +11,6 @@ signal closed
 
 const W := 1600.0
 const H := 900.0
-const PORTRAIT_LAYER := 1 << 19
 const BG := Color(0.035, 0.04, 0.085)
 const PANEL := Color(0.05, 0.06, 0.13, 0.92)
 const BORDER := Color(0.25, 0.35, 0.6, 0.55)
@@ -42,10 +41,7 @@ var _page_btns: Array = []
 var _rest_btn: Button
 var _learn_btn: Button
 var _leave_btn: Button
-var _vp: SubViewport
-var _cam: Camera3D
-var _lights: Array = []
-var _orbit0 := 0.0
+var _art: Texture2D
 var _threads: Array = []
 
 
@@ -72,7 +68,7 @@ func _init() -> void:
 	_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_frame)
 	_frame.draw.connect(_draw_frame)
-	_build_portrait()
+	_art = load(PORTRAIT_ART) as Texture2D
 	_build_static_buttons()
 
 
@@ -85,19 +81,12 @@ func open(p: Player, c: Node3D) -> void:
 	message = ""
 	tab = "evo" if player.can_evolve() else "hab"
 	selected = _first_learnable()
-	_setup_portrait()
 	_show_tab(tab)
 	GameState.say_once("menu_casulo", "Meu cantinho. Aqui dá pra pensar com calma no que eu quero virar.")
 
 
 func close() -> void:
 	visible = false
-	for l in _lights:
-		if is_instance_valid(l):
-			l.queue_free()
-	_lights.clear()
-	if _cam != null:
-		_cam.current = false
 	Settings.block_input(0.25)
 	closed.emit()
 
@@ -122,71 +111,10 @@ func _first_learnable() -> String:
 
 
 # ================================================================= retrato
+## Arte 2D da protagonista (recorte do design do menu): assets/ui/retrato_cavaleira.png.
+## O Filhote usa a mesma arte menor (ainda não tem uma própria).
 
-func _build_portrait() -> void:
-	var box := SubViewportContainer.new()
-	box.position = PORTRAIT.position
-	box.size = PORTRAIT.size
-	box.stretch = true
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_frame.add_child(box)
-	_vp = SubViewport.new()
-	_vp.transparent_bg = true
-	_vp.msaa_3d = Viewport.MSAA_4X
-	_vp.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
-	box.add_child(_vp)
-	_cam = Camera3D.new()
-	_cam.fov = 28.0
-	_cam.cull_mask = PORTRAIT_LAYER
-	var env := Environment.new()
-	env.background_mode = Environment.BG_CLEAR_COLOR
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.62, 0.63, 0.72)
-	env.ambient_light_energy = 0.7
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.glow_enabled = true
-	env.glow_intensity = 0.5
-	_cam.environment = env
-	_vp.add_child(_cam)
-
-
-func _setup_portrait() -> void:
-	## A câmera do retrato vê só a jogadora (camada própria) e tem luz só para ela.
-	_vp.world_3d = player.get_world_3d()
-	_tag_layers(player)
-	var s := player.vis_scale
-	for d in [[Vector3(1.8, 2.6, 1.6), Color(1.0, 0.95, 0.9), 2.0, 9.0], [Vector3(-2.0, 1.4, -1.8), Color(0.4, 0.8, 1.0), 2.2, 7.0]]:
-		var l := OmniLight3D.new()
-		l.light_cull_mask = PORTRAIT_LAYER
-		l.light_color = d[1]
-		l.light_energy = d[2]
-		l.omni_range = d[3]
-		l.shadow_enabled = false
-		player.add_child(l)
-		l.top_level = true
-		l.global_position = player.global_position + (d[0] as Vector3) * s
-		_lights.append(l)
-	var f := player.aim_dir
-	_orbit0 = atan2(f.x, f.z) + 0.6
-	_place_cam()
-	_cam.make_current()
-
-
-func _tag_layers(n: Node) -> void:
-	if n is GeometryInstance3D and not (n is Light3D):
-		(n as GeometryInstance3D).layers |= PORTRAIT_LAYER
-	for c in n.get_children():
-		_tag_layers(c)
-
-
-func _place_cam() -> void:
-	if player == null or not is_instance_valid(player):
-		return
-	var s := player.vis_scale
-	var a := _orbit0 + sin(_t * 0.35) * 0.4
-	var target := player.global_position + Vector3.UP * 0.8 * s
-	_cam.global_position = target + Vector3(sin(a), 0.0, cos(a)) * 5.6 * s + Vector3.UP * 2.0 * s
-	_cam.look_at(target + Vector3(0.0, 0.0, 0.0), Vector3.UP)
+const PORTRAIT_ART := "res://assets/ui/retrato_cavaleira.png"
 
 
 # ================================================================= botões
@@ -327,7 +255,6 @@ func _process(delta: float) -> void:
 	var k := minf(vp.x / W, vp.y / H)
 	_frame.scale = Vector2(k, k)
 	_frame.position = (vp - Vector2(W, H) * k) * 0.5
-	_place_cam()
 	if tab == "hab":
 		var why := player.skill_block(selected)
 		var br := _badge_rect(why)
@@ -383,14 +310,11 @@ func _draw() -> void:
 
 func _draw_frame() -> void:
 	var ci := _frame
-	# plataforma do retrato
-	var pc := Vector2(400, 672)
-	for i in 7:
-		var rr := 300.0 - i * 38.0
-		_ellipse(ci, pc, Vector2(rr, rr * 0.22), Color(0.4, 0.75, 1.0, 0.06 + 0.035 * i), 1.5)
-	ci.draw_set_transform(pc, 0.0, Vector2(1.0, 0.22))
-	ci.draw_circle(Vector2.ZERO, 260.0, Color(0.25, 0.5, 1.0, 0.1))
-	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# retrato (a arte já traz a plataforma de luz)
+	if _art != null:
+		var k := 1.0 if player.form == Player.Form.CAVALEIRA else 0.78
+		var anchor := Vector2(392, 659)   # centro da plataforma, em pixels da arte
+		ci.draw_texture_rect(_art, Rect2(Vector2(400, 668) - anchor * k, _art.get_size() * k), false)
 	_draw_leave(ci)
 	# painel da direita
 	_panel(ci, RIGHT, PANEL, BORDER, 14.0)

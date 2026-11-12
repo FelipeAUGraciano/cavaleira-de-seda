@@ -6,7 +6,7 @@ Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida prec
 
 Feito a partir do design escolhido pelo criador. **E perto de um casulo** abre o menu (o jogo pausa):
 
-- **Retrato ao vivo** da aranha à esquerda (é a própria jogadora, com a forma e as lâminas atuais).
+- **Retrato** da Cavaleira à esquerda (arte 2D recortada do design do menu; o Filhote aparece menor).
 - **Habilidades:** uma teia com 17 nós. O centro (Fiandeira) já vem aprendido; dá para aprender um nó ligado a outro que você já tem. Cada nível dá **1 Ponto de Habilidade** (saves antigos recebem os pontos dos níveis que já tinham). Ramos:
   - Lâmina (para cima): Garras Afiadas, Corte em Espiral (Cavaleira), Investida.
   - Teia (direita): Fio Leve, Puxão, Teia Venenosa.
