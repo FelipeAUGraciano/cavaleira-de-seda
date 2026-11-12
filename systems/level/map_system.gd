@@ -73,6 +73,34 @@ func is_tunnel_revealed(t: Rect2) -> bool:
 	return false
 
 
+func floor_of_room(r: Dictionary) -> int:
+	return int(r.get("floor", 0))
+
+
+func current_floor() -> int:
+	for r in rooms:
+		if String(r["id"]) == current_room:
+			return floor_of_room(r)
+	return 0
+
+
+func floor_bounds(f: int) -> Rect2:
+	## Retângulo das câmaras de um andar (o mapa cheio mostra um andar por vez).
+	var b := Rect2()
+	var first := true
+	for r in rooms:
+		if floor_of_room(r) != f:
+			continue
+		var rects: Array = grid["runs"].get(r["id"], []) if not grid.is_empty() else [r["rect"]]
+		for rr in rects:
+			if first:
+				b = rr
+				first = false
+			else:
+				b = b.merge(rr)
+	return b if not first else bounds()
+
+
 func bounds() -> Rect2:
 	if not grid.is_empty():
 		return grid["bounds"]

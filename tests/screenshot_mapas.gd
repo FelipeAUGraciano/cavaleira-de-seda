@@ -26,8 +26,17 @@ func _ready() -> void:
 		layer.hud._hint_time = 0.0
 		layer.hud._mono_time = 0.0
 		layer.hud._messages.clear()
+		layer.hud.fade_alpha = 0.0
+		layer.hud._title_time = 0.0
 		await _frames(10)
 		await _shot("mapa_" + layer.layer_id)
+		if layer.get("FLOOR_NAMES") != null:
+			# os outros andares: põe a jogadora numa câmara de cada andar
+			for f in range(1, (layer.FLOOR_NAMES as Array).size()):
+				GameState.player.set_physics_process(false)
+				GameState.player.global_position = Vector3(86, 0.1, 208) if layer.layer_id == "G" else GameState.player.global_position
+				await _frames(20)
+				await _shot("mapa_%s_andar%d" % [layer.layer_id, f])
 		layer.queue_free()
 		await _frames(5)
 	GameState.delete_save()

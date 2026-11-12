@@ -1,6 +1,13 @@
-# Cavaleira de Seda — protótipo (v0.8-etapa2)
+# Cavaleira de Seda — protótipo (v0.8-etapa3)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.8 (etapa 3) — Galerias maiores, em dois andares
+
+- **As Profundezas (P1–P11):** um andar inteiro embaixo das Galerias. Você chega lá **caindo** nas fendas da Ponte quebrada, no abismo da Galeria do eco, na fenda da Galeria torta ou no Poço das raízes (35% da vida a menos), ou descendo uma das **rampas** (Poça rasa e Antecâmara). Lá embaixo: Ninho dos sapos, Salão dos ecos baixos com um bando de morcegos, Fenda dupla (duas fendas sem fundo: fio ou volta), becos com cristais e duas rampas de volta.
+- **Becos novos em cima:** Beco dos ossos (G17, poço sem fundo e um cristal), Galeria torta (G18, atalho para o meio da Ponte com uma fenda no caminho e outro bando de morcegos), Poço das raízes (G19) e Mirante (G20).
+- **Mapa cheio de bicho:** 56 criaturas no começo (antes eram 21). Sapos nos dois andares, mais morcegos, dois lagartos lá embaixo e **irmãs caçadoras**, irmãs que fugiram do ninho e caçam a Filhote pelo cheiro.
+- **Mapa (M) por andar:** mostra o andar onde você está, com as rampas marcadas (seta para cima ou para baixo).
 
 ## Novidades da v0.8 (etapa 2) — escuro e quedas
 

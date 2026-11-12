@@ -124,24 +124,20 @@ func _pursuit() -> void:
 	player.rune_on = true
 	frog.player_memory = frog.memory_time
 	frog.last_player_pos = player.global_position
+	frog.set_physics_process(false)   # parado enquanto procuramos o esconderijo
 	# Achar um lugar perto do sapo sem linha de visão
-	var hide := Vector3.INF
-	for r in [5.0, 7.0, 9.0, 11.0, 13.0, 15.0]:
-		for k in 36:
-			var q: Vector3 = frog.global_position + Vector3(cos(k * TAU / 36.0), 0.0, sin(k * TAU / 36.0)) * float(r)
-			q.y = 0.1
-			if World.nav.walkable(q, NavGrid.Kind.SMALL):
-				player.global_position = q
-				await get_tree().physics_frame
-				if not frog.has_line_of_sight(player):
-					hide = q
-					break
-		if hide != Vector3.INF:
-			break
+	# Atrás de um pilar, do outro lado do sapo
+	var pil: Vector3 = WebNetwork.anchors["G2_b"].global_position
+	frog.global_position = Vector3(pil.x, 0.0, pil.z - 6.0)
+	var hide := Vector3(pil.x, 0.1, pil.z + 1.2)
+	_teleport(hide)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if frog.has_line_of_sight(player):
+		hide = Vector3.INF
 	_check(hide != Vector3.INF, "achou um esconderijo atrás de pedra")
 	if hide == Vector3.INF:
 		return
-	_teleport(hide)
 	player.velocity = Vector3(3.0, 0.0, 0.0)   # andando: faz barulho
 	_check(frog.keeps_tracking(player), "fora de vista mas andando: ele segue o rastro")
 	player.velocity = Vector3.ZERO
@@ -151,6 +147,7 @@ func _pursuit() -> void:
 	frog.search_left = frog.search_time
 	_check(frog.combat_wants(), "perdeu você: vasculha a área antes de desistir")
 	player.rune_on = true
+	frog.set_physics_process(true)
 
 
 func _webs() -> void:
@@ -194,22 +191,25 @@ func _falls() -> void:
 	# Visão curta
 	_check(layer.dark_vision and player.sight_radius() < 4.0, "visão curta: a Filhote enxerga %.1f m no escuro" % player.sight_radius())
 	# Queda com andar de baixo
-	var landing := Vector3(-2.0, 0.0, 30.0)
-	layer.chasms.append({"rect": Rect2(70, 29, 3, 20), "to": landing, "name": "as Galerias de baixo"})
-	_teleport(Vector3(71.0, -3.0, 38.0))
+	_teleport(Vector3(71.0, -3.0, 38.0))   # 1ª fenda da Ponte quebrada
 	player.last_safe_pos = Vector3(67.0, 0.0, 38.0)
 	player.hp = player.max_hp
 	await _frames(80)
-	_check(Fx.flat_dist(player.global_position, landing) < 1.0 and not player.dead, "caiu na fenda e acordou no andar de baixo")
+	_check(not player.dead and layer.map_system.room_at(player.global_position).get("id", "") == "P1", "caiu na fenda da Ponte e acordou nas Profundezas (%s)" % layer.map_system.room_at(player.global_position).get("id", "?"))
 	_check(absf(player.hp - player.max_hp * 0.65) < 1.5, "a queda tira 35%% da vida (%.0f/%.0f)" % [player.hp, player.max_hp])
 	layer.hud.fade_alpha = 0.0
 	# Sem fundo
-	layer.chasms.pop_back()
-	_teleport(Vector3(86.0, -3.0, 36.0))
-	player.last_safe_pos = Vector3(83.0, 0.0, 36.0)
+	_teleport(Vector3(77.0, -3.0, 2.0))   # abismo longo da G16: sem fundo
+	player.last_safe_pos = Vector3(70.0, 0.0, 10.0)
 	await _frames(10)
 	_check(player.dead, "abismo sem fundo mata")
 	player._respawn()
+	# Rampa leva de volta para cima
+	_teleport(Vector3(22.0, 0.1, 214.0))
+	await _frames(70)
+	_check(layer.map_system.room_at(player.global_position).get("id", "") == "G2", "rampa das Profundezas leva à Poça rasa (%s)" % layer.map_system.room_at(player.global_position).get("id", "?"))
+	layer.hud.fade_alpha = 0.0
+	await _frames(60)
 	_teleport(Vector3(-2.0, 0.1, 30.0))
 
 

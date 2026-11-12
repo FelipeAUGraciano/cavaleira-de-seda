@@ -20,7 +20,8 @@ var nav_blockers: Array = []   ## [Vector3 centro, Vector3 tamanho] de caixas s�
 ## Quedas: cada abismo diz para onde você cai. {"rect": Rect2 (x, z), "to": Vector3 = pouso no
 ## andar de baixo, ou ausente = sem fundo (morte)}. Fora de qualquer rect vale fall_default.
 var chasms: Array = []
-var fall_default := "fundo"     ## "fundo" = sem fundo (morre); "volta" = antigo (volta pra beirada, -25 PV)
+var fall_default := "fundo"
+var passages: Array = []        ## [{rect, to, label}] rampas entre andares (add_passage)     ## "fundo" = sem fundo (morre); "volta" = antigo (volta pra beirada, -25 PV)
 const FALL_DAMAGE_FRAC := 0.35  ## cair para o andar de baixo tira 35% da vida máxima
 ## Visão curta: o ambiente fica quase preto; só o que tem luz aparece (fungos, isca, fogo, runa).
 var dark_vision := true
@@ -181,12 +182,62 @@ func on_player_fell(p: Player) -> void:
 		EventBus.big_message.emit("Abismo sem fundo...")
 		p.fall_to_death()
 		return
+	if c.has("drop"):
+		# cai bem embaixo de onde estava, se lá embaixo tiver chão
+		var below: Vector3 = Vector3(p.global_position.x, 0.0, p.global_position.z) + (c["drop"] as Vector3)
+		if World.nav != null and World.nav.walkable(below, NavGrid.Kind.SMALL):
+			to = below
 	p.falling = true
 	if hud != null:
 		await hud.fade(1.0, 0.35)
 	p.land_after_fall(to, p.max_hp * FALL_DAMAGE_FRAC, String(c.get("name", "o andar de baixo")))
 	if hud != null:
 		hud.fade(0.0, 0.7)
+
+
+var _passing := false
+
+
+func add_passage(rect: Rect2, to: Vector3, msg: String, label: String = "Rampa") -> void:
+	## Rampa entre andares: pisou, a tela escurece e você aparece no outro andar.
+	var c := rect.get_center()
+	var mark := Fx.cylinder(1.4, 0.05, Fx.mat(Color(0.55, 0.6, 0.7), 0.4))
+	mark.position = Vector3(c.x, 0.04, c.y)
+	add_child(mark)
+	for k in 3:
+		var step := Fx.box(Vector3(1.6 - k * 0.4, 0.12, 0.5), Fx.mat(Color(0.45, 0.48, 0.55)))
+		step.position = Vector3(c.x, 0.08 + k * 0.1, c.y - 0.5 + k * 0.5)
+		add_child(step)
+	var l := OmniLight3D.new()
+	l.light_color = Color(0.75, 0.8, 1.0)
+	l.omni_range = 4.5
+	l.light_energy = 0.9
+	l.position = Vector3(c.x, 1.6, c.y)
+	add_child(l)
+	var a := add_trigger(rect, func(body): _use_passage(body, to, msg))
+	a.set_meta("label", label)
+	passages.append({"rect": rect, "to": to, "label": label})
+
+
+func _use_passage(body: Node3D, to: Vector3, msg: String) -> void:
+	var p := body as Player
+	if p == null or _passing or p.dead:
+		return
+	_passing = true
+	p.set_physics_process(false)
+	p.velocity = Vector3.ZERO
+	if hud != null:
+		await hud.fade(1.0, 0.4)
+	p.global_position = to + Vector3.UP * 0.1
+	p.last_safe_pos = to
+	p.external_velocity = Vector3.ZERO
+	p.snap_camera()
+	p.set_physics_process(true)
+	EventBus.message.emit(msg)
+	if hud != null:
+		hud.fade(0.0, 0.6)
+	await get_tree().create_timer(0.8).timeout
+	_passing = false
 
 
 func chasm_at(safe: Vector3, now: Vector3) -> Dictionary:

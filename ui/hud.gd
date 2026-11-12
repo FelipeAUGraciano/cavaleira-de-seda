@@ -451,7 +451,12 @@ func _draw_minimap(ms, vp: Vector2) -> void:
 
 func _draw_full_map(ms, vp: Vector2) -> void:
 	_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0.01, 0.01, 0.02, 0.88))
-	_text(60.0, 50.0, "MAPA — %s" % ms.layer_name, 22, TEXT)
+	var fl: int = ms.current_floor()
+	var names = GameState.current_layer.get("FLOOR_NAMES") if GameState.current_layer != null else null
+	var fname := ""
+	if names is Array and fl < (names as Array).size():
+		fname = " · " + String(names[fl])
+	_text(60.0, 50.0, "MAPA — %s%s" % [ms.layer_name, fname], 22, TEXT)
 	_text(60.0, 74.0, "M fecha · câmaras aparecem quando você entra nelas · losangos = travas já vistas", 14, QUIET)
 	_draw_map(ms, Rect2(60.0, 96.0, vp.x - 120.0, vp.y - 170.0), true)
 
@@ -461,7 +466,8 @@ func _ms(x: float, z: float) -> Vector2:
 
 
 func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
-	_m_b = view if view.size != Vector2.ZERO else ms.bounds().grow(2.0)
+	var floor_now: int = ms.current_floor()
+	_m_b = view if view.size != Vector2.ZERO else ms.floor_bounds(floor_now).grow(4.0)
 	_m_sc = minf(area.size.x / _m_b.size.x, area.size.y / _m_b.size.y)
 	_m_off = area.position + (area.size - _m_b.size * _m_sc) * 0.5
 	for t in ms.tunnels:
@@ -471,6 +477,8 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 	for r in ms.rooms:
 		if not ms.revealed.has(r["id"]):
 			continue
+		if full and ms.floor_of_room(r) != floor_now:
+			continue   # o mapa cheio mostra só o andar onde você está
 		var current: bool = String(r["id"]) == ms.current_room
 		var fill := Color(0.42, 0.58, 0.72, 0.95) if current else Color(0.3, 0.33, 0.42, 0.95)
 		if not ms.grid.is_empty():
@@ -500,14 +508,28 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 			if not here.is_empty() and ms.revealed.has(here["id"]):
 				_cv.draw_rect(Rect2(_ms(pr.position.x, pr.position.y), pr.size * _m_sc + Vector2(0.6, 0.6)), Color(0.05, 0.05, 0.08, 0.95))
 	for s in WebNetwork.strands:
-		if is_instance_valid(s):
+		if is_instance_valid(s) and _m_b.grow(2.0).has_point(Vector2(s.a_pos.x, s.a_pos.z)):
 			var col := Color(0.55, 0.95, 1.0) if s.in_territory else Color(0.9, 0.92, 1.0)
 			_cv.draw_line(_ms(s.a_pos.x, s.a_pos.z), _ms(s.b_pos.x, s.b_pos.z), col, 2.0)
 	for c in WebNetwork.cocoons:
-		if is_instance_valid(c):
+		if is_instance_valid(c) and _m_b.has_point(Vector2(c.global_position.x, c.global_position.z)):
 			_cv.draw_circle(_ms(c.global_position.x, c.global_position.z), 4.0 if not full else 6.0, Color(0.6, 1.0, 0.7))
+	var lay = GameState.current_layer
+	if lay != null and lay.get("passages") != null:
+		for pa in lay.passages:
+			var c2: Vector2 = (pa["rect"] as Rect2).get_center()
+			var room: Dictionary = ms.room_at(Vector3(c2.x, 0.0, c2.y))
+			if room.is_empty() or not ms.revealed.has(room["id"]) or not _m_b.has_point(c2):
+				continue
+			var pp2 := _ms(c2.x, c2.y)
+			var up: bool = (pa["to"] as Vector3).z < c2.y
+			var k3 := 5.0 if not full else 8.0
+			var tip := Vector2(0, -k3) if up else Vector2(0, k3)
+			_cv.draw_colored_polygon(PackedVector2Array([pp2 + tip, pp2 - tip * 0.6 + Vector2(k3, 0), pp2 - tip * 0.6 - Vector2(k3, 0)]), Color(0.8, 0.85, 1.0))
+			if full:
+				_text(pp2.x + 10.0, pp2.y + 5.0, String(pa["label"]), 12, Color(0.8, 0.85, 1.0))
 	for l in ms.locks:
-		if l["seen"]:
+		if l["seen"] and _m_b.has_point(Vector2(l["pos"].x, l["pos"].z)):
 			var lp := _ms(l["pos"].x, l["pos"].z)
 			var k := 5.0 if not full else 7.0
 			_cv.draw_colored_polygon(PackedVector2Array([lp + Vector2(0, -k), lp + Vector2(k, 0), lp + Vector2(0, k), lp + Vector2(-k, 0)]), Color(1.0, 0.7, 0.3))
@@ -518,6 +540,8 @@ func _draw_map(ms, area: Rect2, full: bool, view: Rect2 = Rect2()) -> void:
 		if not is_instance_valid(c) or c.dead:
 			continue
 		var boss := c as Centipede
+		if not _m_b.has_point(Vector2(c.global_position.x, c.global_position.z)):
+			continue
 		if WebNetwork.is_in_territory(c.global_position) or (boss != null and boss.engaged()):
 			var col: Color = [Color(0.6, 1.0, 0.6), Color(1.0, 0.85, 0.35), Color(1.0, 0.35, 0.3), Color(0.85, 0.4, 1.0)][int(c.size)]
 			var cp := _ms(c.global_position.x, c.global_position.z)

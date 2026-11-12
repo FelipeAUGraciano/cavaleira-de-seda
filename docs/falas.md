@@ -79,5 +79,12 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `b_epilogo` | Saindo do Berçário (fim do prólogo) | Irmãs, Mãe, ninho... tudo pra trás. Agora é só eu. E eu tô com FOME. |
 | `morcego_grito` | Primeira vez que um morcego grita perto de você | AAH, meus ouvidos! ...E agora a caverna inteira sabe onde eu tô. |
 | `queda_fatal` | Caindo num abismo sem fundo | Não tem chão... não tem chão...! |
+| `g17_ossos` | Entrando no Beco dos ossos (G17) | Ossos. Muitos ossos. Alguém come aqui... e não limpa. |
+| `g18_torta` | Entrando na Galeria torta (G18) | Um atalho! Que tem um buraco. Óbvio. |
+| `g19_poco` | Entrando no Poço das raízes (G19) | Raízes descendo pro escuro. Bem fundo. Bem, bem fundo. |
+| `g20_mirante` | Entrando no Mirante (G20) | Daqui dá pra ver o nada. Muito nada. |
+| `p1_fundo` | Acordando no Fundo da ponte (P1), nas Profundezas | Ai... minhas pernas. Todas as oito. Onde eu tô? |
+| `p3_sapos` | Entrando no Ninho dos sapos (P3) | Um. Dois. Quatro. Ok, isso é um ninho. De SAPOS. |
+| `p10_fendas` | Entrando na Fenda dupla (P10) | Essas não têm fundo. Eu sei. Eu SINTO. |
 
 Dica de gravação: mono, 44,1 kHz, com uns 0,2 s de silêncio no começo e no fim. O Godot importa `.ogg` e `.wav` direto.

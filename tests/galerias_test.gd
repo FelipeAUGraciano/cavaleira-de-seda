@@ -30,14 +30,16 @@ func _ready() -> void:
 
 func _run() -> void:
 	# Estrutura
-	_check(layer.rooms.size() == 16, "G1–G15 + a vista da G16 (%d)" % layer.rooms.size())
+	_check(layer.rooms.size() == 31, "G1–G20 em cima + P1–P11 nas Profundezas (%d)" % layer.rooms.size())
 	_check(layer.map_system.current_room == "G1", "começa na Entrada (G1)")
 	var bats := _alive("bat")
-	_check(bats.size() == 5, "bando de 5 morcegos (%d)" % bats.size())
-	var lizards := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Lizard and not c.has_meta("nest_id"))
+	var g3 := bats.filter(func(b): return String(b.flock).begins_with("g3_"))
+	_check(g3.size() == 5 and bats.size() == 12, "bando de 5 morcegos no túnel, 12 no mapa (%d/%d)" % [g3.size(), bats.size()])
+	var lizards := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Lizard and not c.has_meta("nest_id") and not c.has_meta("flag"))
 	_check(lizards.size() == 1, "um Lagarto-lanterna no jardim")
 	var frogs := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Frog)
-	_check(frogs.size() == 2, "dois Sapos-de-rocha (poça e Galeria do eco)")
+	_check(frogs.size() == 8, "oito Sapos-de-rocha nos dois andares (%d)" % frogs.size())
+	_check(World.creatures.size() >= 50, "mapa cheio: %d criaturas" % World.creatures.size())
 
 	# Caminhos: chão contínuo nas duas rotas até a Grande Gruta e dela para G5, G6 e G7
 	var routes := {
