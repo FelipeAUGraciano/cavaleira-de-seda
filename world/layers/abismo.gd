@@ -8,6 +8,7 @@ var cave: CaveBuilder
 func _configure() -> void:
 	layer_id = "A"
 	layer_name = "Abismo"
+	layer_subtitle = "Ato 2 · Em breve"
 	spawn_point = Vector3(0.0, 0.1, 0.0)
 	ambient_color = Color(0.2, 0.22, 0.35)
 	ambient_energy = 0.18

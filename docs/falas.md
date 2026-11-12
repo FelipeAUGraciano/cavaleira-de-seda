@@ -73,5 +73,9 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `primeiro_brilho` | Primeira vez que os fungos acendem de novo | Luz de novo. Quem caça de noite foi dormir. Hora de eu caçar. |
 | `centopeia_chegou` | A Centopeia chega na câmara onde você está | Esse tremor... ela está AQUI. |
 | `centopeia_foge` | A Centopeia foge ferida para o covil | Ela tá fugindo! Ferida! ...Eu devia ir atrás? Eu devia ir atrás. |
+| `cacada` | Primeira vez que um predador começa a te seguir | Tem alguma coisa me seguindo. Eu... SINTO. |
+| `pronta_evoluir` | Ao chegar no nível 8 (pronta para a muda) | Tá coçando tudo... minha casca tá apertada. Preciso de um casulo. AGORA. |
+| `evolucao_1` | A muda: vira Cavaleira de Seda | Eu... cresci? Lâminas! Eu tenho LÂMINAS! Ok, caverna. Agora a conversa é outra. |
+| `b_epilogo` | Saindo do Berçário (fim do prólogo) | Irmãs, Mãe, ninho... tudo pra trás. Agora é só eu. E eu tô com FOME. |
 
 Dica de gravação: mono, 44,1 kHz, com uns 0,2 s de silêncio no começo e no fim. O Godot importa `.ogg` e `.wav` direto.

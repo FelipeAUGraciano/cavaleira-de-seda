@@ -60,6 +60,9 @@ func _init() -> void:
 	nav_kind = NavGrid.Kind.LARGE
 	roam_speed = 0.55
 	hunt_burst = 1.6
+	aggression = 1.0
+	track_range = 24.0
+	stalk_speed = 0.6
 	retreat_frac = 0.35
 	retreat_speed = 0.55
 	retreat_cooldown = 120.0
@@ -87,6 +90,7 @@ func _make_brain() -> Brain:
 	return Brain.new() \
 		.add(Behaviors.Combat.new("Caçando você")) \
 		.add(Behaviors.Retreat.new()) \
+		.add(Behaviors.Stalk.new()) \
 		.add(Behaviors.Forage.new()) \
 		.add(Behaviors.Sleep.new()) \
 		.add(Behaviors.Roam.new()) \

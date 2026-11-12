@@ -11,6 +11,7 @@ extends RefCounted
 ##   Combat   lutar com a jogadora (cada espécie tem seus ataques em combat_tick)
 ##   Retreat  ferida, volta mancando para a toca para dormir e se curar
 ##   Fight    brigar com um rival que invadiu o território
+##   Stalk    caçar a jogadora: com fome, segue o cheiro e o barulho dela até achar
 
 
 class Wander extends Behavior:
@@ -259,3 +260,48 @@ class Fight extends Behavior:
 		if rival == null or not is_instance_valid(rival) or rival.dead:
 			return Vector3.ZERO
 		return c.fight(rival, delta)
+
+
+class Stalk extends Behavior:
+	## Predador com fome trata a jogadora como presa: vai atrás do cheiro e do barulho dela
+	## (uma estimativa que melhora quanto mais perto) até vê-la — aí o Combate assume.
+	## Só caça quem é maior que você (ou do mesmo tamanho, faminto). Depois da muda, menos
+	## bichos te veem como comida.
+	var guess := Vector3.ZERO
+	var _refresh := 0.0
+
+	func _init() -> void:
+		id = "stalk"
+		label = "Te caçando"
+
+	func utility(c: Creature) -> float:
+		if c.aggression <= 0.0 or c.needs.hunger < 35.0:
+			return 0.0
+		var p := GameState.player as Player
+		if p == null or p.dead or not c.sees_player_as_prey(p):
+			return 0.0
+		var d := c.flat_dist_to(p)
+		var r := c.track_range * c.activity_level()
+		if d > r:
+			return 0.0
+		# a Filhote cheira a presa fácil: quanto mais perto, mais ela vale que outra comida
+		var near := 1.0 - d / maxf(r, 0.1)
+		return (0.5 + c.needs.hunger / 100.0 * 0.45 + 0.2 * near) * c.aggression
+
+	func start(c: Creature) -> void:
+		_refresh = 0.0
+		c.on_stalk_start()
+
+	func run(c: Creature, delta: float) -> Vector3:
+		var p := GameState.player as Player
+		if p == null or p.dead:
+			return Vector3.ZERO
+		_refresh -= delta
+		if _refresh <= 0.0:
+			_refresh = 1.5
+			var d := c.flat_dist_to(p)
+			var err := d * 0.18
+			guess = p.global_position + Vector3(randf_range(-err, err), 0.0, randf_range(-err, err))
+		if Fx.flat_dist(c.global_position, guess) < 1.2:
+			return c.wander(delta, 3.0, 0.4)   # farejando em volta
+		return c.nav_to(guess, c.stalk_speed)

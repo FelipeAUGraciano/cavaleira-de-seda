@@ -51,8 +51,11 @@ func _init() -> void:
 	nav_kind = NavGrid.Kind.AIR
 	roam_speed = 0.8
 	hunger_threshold = 40.0
-	memory_time = 4.0
+	memory_time = 6.0
 	needs.hunger_rate = 0.7
+	aggression = 0.7
+	track_range = 18.0
+	stalk_speed = 0.8
 
 
 func _ready() -> void:
@@ -69,6 +72,7 @@ func _make_brain() -> Brain:
 	return Brain.new() \
 		.add(Behaviors.Combat.new("Mergulhando em você")) \
 		.add(HuntLarva.new()) \
+		.add(Behaviors.Stalk.new()) \
 		.add(Behaviors.Sleep.new()) \
 		.add(Behaviors.Roam.new()) \
 		.add(Circle.new())
@@ -109,6 +113,10 @@ func hears(p: Player) -> bool:
 
 func notices_player(p: Player) -> bool:
 	return hears(p)
+
+
+func sees_player_as_prey(p: Player) -> bool:
+	return p.body_size() == 0   # o bando ataca qualquer coisa pequena; a Cavaleira já é grande demais
 
 
 func is_threat(_o: Creature) -> bool:

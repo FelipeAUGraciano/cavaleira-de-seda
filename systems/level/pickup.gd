@@ -48,12 +48,10 @@ func _on_body_entered(body: Node3D) -> void:
 	if p == null:
 		return
 	if kind == "cristal_pv":
-		p.max_hp += 10.0
-		p.hp = minf(p.max_hp, p.hp + 10.0)
+		p.add_bonus(10.0, 0.0)
 		EventBus.message.emit("Cristal de pedra-da-lua! +10 PV máximo.")
 	elif kind == "cristal_en":
-		p.max_energy += 15.0
-		p.energy = minf(p.max_energy, p.energy + 15.0)
+		p.add_bonus(0.0, 15.0)
 		EventBus.message.emit("Cristal de energia! +15 Energia máxima.")
 		GameState.say_once("cristal_lago", "Valeu cada fio. E eu nem molhei as patas.")
 	if flag_id != "":

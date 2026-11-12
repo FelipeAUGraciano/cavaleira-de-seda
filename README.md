@@ -1,6 +1,18 @@
-# Cavaleira de Seda — protótipo (v0.6)
+# Cavaleira de Seda — protótipo (v0.7)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.7 — mais difícil e você vira a presa
+
+Resposta ao primeiro teste ("monótono e fácil, ninguém me caça, já começo forte, o tutorial acaba do nada, as patas estão ruins").
+
+- **Você começa como Filhote de Seda:** 70% do tamanho, 50 PV, garra fraca (um sapo aguenta vários golpes). Para matar algo maior, use teia de captura, veneno e armadilhas de fio. Bicho maior que você te enxerga como comida.
+- **Evolução:** no **nível 8**, descanse num casulo e ela faz a muda para **Cavaleira de Seda**: lâminas de cristal, 110 PV de base, golpes mais fortes e o nível volta a 1. Os cristais que você já comeu continuam valendo. Depois da muda, só bicho faminto de verdade arrisca te caçar.
+- **Os predadores te caçam:** com fome, sapos, morcegos (só a Filhote), irmãs e a Centopeia seguem seu cheiro mesmo sem te ver. A estimativa deles melhora quanto mais perto estão. Quando alguém começa a te seguir, aparece uma **seta vermelha na borda da tela** apontando para ele (mais forte quanto mais perto).
+- **Fim do prólogo:** sair do Berçário agora tem epílogo, um cartão "Fim do prólogo" e fala da protagonista antes de escurecer. Cada camada abre com escurecimento e um título (nome + ato).
+- **Patas novas:** andar de aranha de verdade (dois grupos de quatro patas alternados). As patas pisam no chão, miram onde o corpo vai estar e não esticam mais para trás nem sobem nas paredes.
+
+**Saves antigos:** aperte **F8** e comece de novo. O balanço mudou e o jogo começa na forma Filhote.
 
 ## Novidades da v0.6 — mundo vivo
 
@@ -107,8 +119,9 @@ Jogue sem ler o código e anote:
 6. O Lagarto-lanterna: o aviso de luz ficou claro antes do ataque?
 7. A Centopeia: você entendeu sozinha que precisava fazer ela investir através de um fio? Quantas tentativas levou?
 8. A cena dos aventureiros e a queda no fim: deram vontade de continuar?
-9. O mundo pareceu vivo? Você reparou nos fungos apagando, nos morcegos saindo em bando, na Centopeia aparecendo onde você estava?
-10. Qual foi o momento mais divertido? E o mais frustrante?
+9. Você se sentiu caçada? As setas vermelhas ajudaram ou só assustaram? A evolução no nível 8 chegou na hora certa?
+10. O mundo pareceu vivo? Você reparou nos fungos apagando, nos morcegos saindo em bando, na Centopeia aparecendo onde você estava?
+11. Qual foi o momento mais divertido? E o mais frustrante?
 
 ## Estrutura do projeto
 
@@ -176,6 +189,7 @@ godot --headless --path . res://tests/galerias_test.tscn   # Galerias G1–G7 (3
 godot --headless --path . res://tests/covil_test.tscn      # G8–G15 e a Centopeia (34 verificações)
 godot --headless --path . res://tests/models_test.tscn     # troca de modelos (12 verificações)
 godot --headless --path . res://tests/vida_test.tscn       # mundo vivo: relógio, sono, pasto, bando, medo, brigas e desempenho
+godot --headless --path . res://tests/dificuldade_test.tscn  # Filhote, evolução, predadores que te caçam, transição e patas (18 verificações)
 ```
 
 Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, sapo, teia de captura, paredes, mapa, irmãs, fresta, cristal, pata da Mãe e a fuga.

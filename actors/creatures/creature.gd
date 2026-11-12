@@ -60,6 +60,9 @@ var attack_damage := 8.0
 var attack_reach := 1.3
 var nav_kind: int = NavGrid.Kind.SMALL
 var hunt_burst := 1.0        ## arrancada ao perseguir uma presa (×velocidade)
+var aggression := 0.0        ## vontade de caçar a jogadora (0 = nunca; 1 = predador de verdade)
+var track_range := 18.0      ## de quão longe sente o cheiro/barulho dela para ir atrás
+var stalk_speed := 0.75
 
 # Estado do corpo
 var hp := 0.0
@@ -252,6 +255,23 @@ func combat_stop() -> void:
 
 func on_retreat() -> void:
 	pass
+
+
+func sees_player_as_prey(p: Player) -> bool:
+	## Maior que ela, sempre; do mesmo tamanho, só se estiver faminto.
+	var mine := int(size)
+	var hers := p.body_size()
+	return mine > hers or (mine == hers and needs.hunger > 75.0)
+
+
+func on_stalk_start() -> void:
+	if near_player:
+		EventBus.stalked.emit(self)
+
+
+func hunting_player() -> bool:
+	## Para o HUD: este bicho está atrás de você agora?
+	return brain != null and (brain.is_doing("stalk") or brain.is_doing("combat"))
 
 
 func _on_hurt(_source: Node3D) -> void:

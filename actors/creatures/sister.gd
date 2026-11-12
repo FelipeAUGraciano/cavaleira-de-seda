@@ -4,11 +4,16 @@ extends Creature
 ##   Irmã menor (P): foge pela vibração e vira comida.
 ##   Irmã faminta (P, maior): caça a jogadora pela visão e devora as irmãs menores.
 
-const BITE_DAMAGE := 8.0
+const TRACK_RANGE := 13.0         ## faminta sente o cheiro da filhote a esta distância
+const BITE_DAMAGE := 10.0
 const SIGHT := 9.0
 const FOV := 160.0
 
 var hunter := false
+var stalking := false          ## faminta seguindo o cheiro da jogadora
+var _was_stalking := false
+var _guess := Vector3.ZERO
+var _guess_t := 0.0
 var legs: SpiderLegs
 var mode_time := 0.0
 var bite_cd := 0.0
@@ -146,6 +151,20 @@ func _think_hunter(delta: float) -> Vector3:
 				if d < best_d and has_line_of_sight(s):
 					target = s
 					best_d = d
+	stalking = false
+	if target == null and pl != null and not pl.dead and flat_dist_to(pl) < TRACK_RANGE and pl.body_size() == 0:
+		# faminta: segue o cheiro da filhote mesmo sem ver
+		stalking = true
+		if not _was_stalking:
+			EventBus.stalked.emit(self)
+		_was_stalking = true
+		if _guess_t <= 0.0 or Fx.flat_dist(global_position, _guess) < 1.0:
+			_guess_t = 1.5
+			var err := flat_dist_to(pl) * 0.2
+			_guess = pl.global_position + Vector3(randf_range(-err, err), 0.0, randf_range(-err, err))
+		_guess_t -= delta
+		return nav_to(_guess, 0.85)
+	_was_stalking = stalking
 	if target != null:
 		var dist := flat_dist_to(target)
 		face_toward(target.global_position)
@@ -158,6 +177,10 @@ func _think_hunter(delta: float) -> Vector3:
 		return move_to(target.global_position, 1.0)
 	hunger += delta
 	return wander(delta, 6.0, 0.35)
+
+
+func hunting_player() -> bool:
+	return hunter and (stalking or target == GameState.player)
 
 
 func _lod_changed(near: bool) -> void:

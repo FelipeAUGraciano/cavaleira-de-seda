@@ -33,6 +33,7 @@ var _acid_timer := 0.0
 func _configure() -> void:
 	layer_id = "G"
 	layer_name = "Galerias Úmidas"
+	layer_subtitle = "Ato 1 · Você ainda é uma Filhote. Fuja do que é maior, cace o que é menor."
 	spawn_point = Vector3(1.0, 0.1, -17.0)
 	ambient_color = Color(0.42, 0.56, 0.58)
 	ambient_energy = 0.34

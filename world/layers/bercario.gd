@@ -18,6 +18,7 @@ var _leaving := false
 func _configure() -> void:
 	layer_id = "B"
 	layer_name = "Berçário"
+	layer_subtitle = "Prólogo · O ninho da Mãe"
 	spawn_point = Vector3(-60.0, 0.1, 6.0)
 	ambient_color = Color(0.55, 0.48, 0.62)
 	ambient_energy = 0.32
@@ -197,7 +198,13 @@ func _on_exit(body: Node3D) -> void:
 	if _leaving or not (body is Player):
 		return
 	_leaving = true
+	player.velocity = Vector3.ZERO
+	player.set_physics_process(false)
 	GameState.say_once("b_saida", "Ela não cabe no túnel... Consegui. Acho.")
-	EventBus.big_message.emit("Fim do Berçário")
-	await get_tree().create_timer(2.0).timeout
+	EventBus.big_message.emit("Você escapou do ninho!")
+	await get_tree().create_timer(2.6).timeout
+	await hud.fade(0.85, 1.0)
+	hud.show_title("Fim do prólogo", "Lá fora tudo é maior que você. Coma, cresça, teça um território... e evolua.")
+	GameState.say_once("b_epilogo", "Irmãs, Mãe, ninho... tudo pra trás. Agora é só eu. E eu tô com FOME.")
+	await get_tree().create_timer(4.5).timeout
 	go_to_layer(NEXT_LAYER)

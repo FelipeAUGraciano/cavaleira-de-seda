@@ -43,6 +43,9 @@ func _init() -> void:
 	hunger_threshold = 50.0
 	retreat_frac = 0.3
 	roam_speed = 0.5
+	aggression = 0.9
+	track_range = 16.0
+	memory_time = 7.0
 	needs.hunger_rate = 0.5
 
 
@@ -57,6 +60,7 @@ func _make_brain() -> Brain:
 		.add(Behaviors.Retreat.new()) \
 		.add(Behaviors.Flee.new()) \
 		.add(Behaviors.Fight.new()) \
+		.add(Behaviors.Stalk.new()) \
 		.add(Behaviors.Forage.new()) \
 		.add(Behaviors.Sleep.new()) \
 		.add(Behaviors.Roam.new()) \

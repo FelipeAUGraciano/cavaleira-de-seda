@@ -9,6 +9,7 @@ extends Node3D
 
 var layer_id := "?"
 var layer_name := "Camada"
+var layer_subtitle := ""       ## frase embaixo do título quando a camada começa
 var spawn_point := Vector3.ZERO
 var rooms: Array = []        ## [{id, name, rect: Rect2, checkpoint, hint, line_id, line}]
 var tunnels: Array = []      ## [Rect2]
@@ -93,6 +94,7 @@ func _ready() -> void:
 
 	EventBus.player_died.connect(_on_player_died)
 	_start()
+	_arrival()
 
 
 func _build_nav() -> void:
@@ -158,7 +160,24 @@ func _on_room_entered(room: Dictionary) -> void:
 func go_to_layer(path: String) -> void:
 	GameState.carry = player.to_dict()
 	Engine.time_scale = 1.0
+	if player != null:
+		player.velocity = Vector3.ZERO
+		player.set_physics_process(false)
+	if hud != null:
+		await hud.fade(1.0, 1.0)
 	get_tree().change_scene_to_file.call_deferred(path)
+
+
+func _arrival() -> void:
+	## Ao chegar numa camada nova: a tela clareia e aparece o nome dela.
+	if hud == null:
+		return
+	hud.fade_alpha = 1.0
+	if resumed:
+		hud.fade(0.0, 0.6)
+		return
+	hud.fade(0.0, 1.6)
+	hud.show_title(layer_name, layer_subtitle)
 
 
 # ---------------------------------------------------------------- construção

@@ -10,4 +10,5 @@ signal web_touched(position: Vector3, by: Node)
 signal territory_changed
 signal player_leveled(level: int)
 signal player_died
+signal stalked(creature: Node)          ## um predador começou a seguir a jogadora
 signal rested(cocoon: Node)

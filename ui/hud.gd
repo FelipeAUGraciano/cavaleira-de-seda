@@ -37,7 +37,12 @@ var _big_text := ""
 var _big_time := 0.0
 var _show_help := true
 var _show_map := false
-var show_all_creatures := false   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
+var show_all_creatures := false
+var fade_alpha := 0.0             ## tela preta das transições (0 = some)
+var _title := ""
+var _subtitle := ""
+var _title_time := 0.0
+const TITLE_SECS := 5.0   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
 var _hint_text := ""
 var _hint_time := 0.0
 var _last_us := 0
@@ -60,6 +65,7 @@ func _ready() -> void:
 	_mini.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_mini)
 	_mini.draw.connect(_on_draw_mini)
+	EventBus.stalked.connect(_on_stalked)
 	_cv = _root
 	_font = ThemeDB.fallback_font
 	EventBus.message.connect(_on_message)
@@ -80,6 +86,7 @@ func _process(_delta: float) -> void:
 	_mono_time = maxf(0.0, _mono_time - dt)
 	_big_time = maxf(0.0, _big_time - dt)
 	_hint_time = maxf(0.0, _hint_time - dt)
+	_title_time = maxf(0.0, _title_time - dt)
 	if Input.is_action_just_pressed("map"):
 		_show_map = not _show_map
 
@@ -149,6 +156,7 @@ func _on_draw() -> void:
 		_draw_bars(vp)
 		_draw_status(vp)
 		_draw_boss(vp)
+		_draw_danger(vp)
 		if player.weaving:
 			_draw_weave_hint(vp)
 		var ms = _map_system()
@@ -175,7 +183,7 @@ func _on_draw() -> void:
 	if get_tree().paused:
 		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.5))
 		_text_center(vp.x, vp.y * 0.45, "PAUSA — Esc para voltar", 32, TEXT)
-
+	_draw_transition(vp)   # por último: tela preta e título por cima de tudo
 
 func _draw_bars(vp: Vector2) -> void:
 	var x := 24.0
@@ -186,6 +194,68 @@ func _draw_bars(vp: Vector2) -> void:
 	_bar(x, y + 48.0, "Seda", player.silk, player.max_silk, Color(0.85, 0.88, 0.95))
 	_bar(x, y + 72.0, "Saciedade", player.satiety, player.max_satiety, Color(0.95, 0.7, 0.25))
 	_text(x, y + 112.0, "Nível %d   XP %d / %d" % [player.level, player.xp, player.xp_to_next()], 15, TEXT)
+
+
+func fade(to: float, secs: float) -> Signal:
+	## Escurece (to = 1) ou clareia (to = 0) a tela. Devolve o sinal de fim para await.
+	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(self, "fade_alpha", to, secs)
+	return tw.finished
+
+
+func show_title(title: String, subtitle: String) -> void:
+	_title = title
+	_subtitle = subtitle
+	_title_time = TITLE_SECS
+
+
+func _draw_transition(vp: Vector2) -> void:
+	if fade_alpha > 0.001:
+		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, fade_alpha))
+	if _title_time > 0.0:
+		var a := clampf(minf(_title_time, TITLE_SECS - _title_time) / 0.8, 0.0, 1.0)
+		_text_center(vp.x, vp.y * 0.42, _title, 46, Color(TEXT.r, TEXT.g, TEXT.b, a))
+		_text_center(vp.x, vp.y * 0.42 + 46.0, _subtitle, 18, Color(QUIET.r, QUIET.g, QUIET.b, a))
+
+
+func _on_stalked(_c: Node) -> void:
+	if not GameState.said.has("cacada"):
+		EventBus.message.emit("Você está sendo caçada! As setas vermelhas na borda da tela mostram de onde.")
+	GameState.say_once("cacada", "Tem alguma coisa me seguindo. Eu... SINTO.")
+
+
+func _draw_danger(vp: Vector2) -> void:
+	## Setas vermelhas na borda da tela apontando para quem está te caçando e você não vê.
+	if player == null or player.dead or player.camera == null or vp.x < 120.0 or vp.y < 120.0:
+		return
+	var cam := player.camera
+	var center := vp * 0.5
+	var inner := Rect2(Vector2.ZERO, vp).grow(-46.0)
+	var t := Time.get_ticks_msec() / 1000.0
+	for c in World.near(player.global_position, 28.0):
+		if not c.hunting_player():
+			continue
+		var wp := c.global_position + Vector3.UP * 0.5
+		var sp := cam.unproject_position(wp)
+		if not cam.is_position_behind(wp) and inner.has_point(sp):
+			continue   # está na tela: você já vê
+		var dir := (sp - center)
+		if cam.is_position_behind(wp):
+			dir = -dir
+		if dir.length() < 1.0:
+			continue
+		dir = dir.normalized()
+		# ponto na borda do retângulo interno na direção do bicho
+		var kx := (inner.size.x * 0.5) / maxf(absf(dir.x), 0.001)
+		var ky := (inner.size.y * 0.5) / maxf(absf(dir.y), 0.001)
+		var edge := center + dir * minf(kx, ky)
+		var close := 1.0 - clampf(c.flat_dist_to(player) / 28.0, 0.0, 1.0)
+		var a := 0.45 + 0.45 * close + 0.1 * sin(t * (6.0 + close * 10.0))
+		var sz := 14.0 + 10.0 * close + 5.0 * int(c.size)
+		var side := Vector2(-dir.y, dir.x)
+		var pts := PackedVector2Array([edge + dir * sz, edge - dir * sz * 0.4 + side * sz * 0.8, edge - dir * sz * 0.4 - side * sz * 0.8])
+		_cv.draw_colored_polygon(pts, Color(1.0, 0.22, 0.2, a))
 
 
 func _draw_boss(vp: Vector2) -> void:

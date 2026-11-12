@@ -15,6 +15,8 @@ func _ready() -> void:
 	add_child(main)
 	await _frames(20)
 	player = GameState.player
+	World.clock.paused = true
+	World.clock.set_phase(CaveClock.Phase.CACA)   # predadores acordados durante o teste
 	await _run()
 	print("\n==== %s (%d falha(s)) ====" % ["OK" if failures == 0 else "FALHOU", failures])
 	GameState.delete_save()

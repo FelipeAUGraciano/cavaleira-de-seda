@@ -17,7 +17,7 @@ const BACKSTEP_TIME := 0.16
 const BACKSTEP_COST := 8.0
 const GRAVITY := 22.0
 
-const COMBO_DAMAGE := [8.0, 8.0, 14.0]
+const COMBO_DAMAGE := [8.0, 8.0, 14.0]   ## (Cavaleira) — a forma atual decide: veja FORMS
 const ATTACK_TIME := 0.3
 const ATTACK_RANGE := 1.7
 const ATTACK_ARC := 100.0
@@ -41,6 +41,19 @@ const SATIETY_DECAY := 1.0 / 6.0   ## ~10 min de cheia a vazia
 const STARVE_DPS := 1.0
 const FALL_DAMAGE := 25.0
 
+## Formas (evolução). A jogadora nasce Filhote: pequena, frágil, garras fracas — precisa de
+## teia, veneno e armadilha para caçar qualquer coisa do tamanho de um sapo. No nível
+## EVOLVE_LEVEL, descansar num casulo faz a muda: vira a Cavaleira de Seda (lâminas, placas,
+## o dobro da vida), o nível volta a 1 e o crescimento por nível dobra.
+enum Form { FILHOTE, CAVALEIRA }
+const EVOLVE_LEVEL := 8
+const FORMS := {
+	Form.FILHOTE: {"name": "Filhote de Seda", "scale": 0.7, "size": 0, "hp": 50.0, "energy": 80.0, "silk": 80.0,
+		"per_level": [5.0, 4.0, 4.0], "combo": [4.0, 4.0, 7.0], "bite": 3.0, "speed": 1.06, "hide": 0.8},
+	Form.CAVALEIRA: {"name": "Cavaleira de Seda", "scale": 1.0, "size": 1, "hp": 110.0, "energy": 110.0, "silk": 110.0,
+		"per_level": [10.0, 5.0, 5.0], "combo": [8.0, 8.0, 14.0], "bite": 5.0, "speed": 1.0, "hide": 1.0},
+}
+
 enum State { NORMAL, DODGE, BACKSTEP, ATTACK, BITE, ZIP, EAT, DEAD }
 
 # ---------------------------------------------------------------- recursos
@@ -54,6 +67,11 @@ var max_satiety := 100.0
 var satiety := 100.0
 var level := 1
 var xp := 0
+var form: Form = Form.FILHOTE
+var vis_scale := 1.0   ## tamanho do corpo na tela (a muda anima isso)
+var bonus_hp := 0.0          ## vida, energia e seda ganhas com cristais e comida (sobrevivem à muda)
+var bonus_energy := 0.0
+var bonus_silk := 0.0
 var resist_rot := 0
 var resist_acid := 0            ## sobe comendo Sapo-de-rocha; 3 = atravessa as Poças ácidas
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
@@ -135,6 +153,8 @@ func _ready() -> void:
 	last_safe_pos = global_position
 	aim_point = global_position + aim_dir * 3.0
 	_last_real_us = Time.get_ticks_usec()
+	recompute_stats(true)
+	_apply_form_visual()
 
 
 func _build_visual() -> void:
@@ -190,10 +210,88 @@ func _build_visual() -> void:
 	_scarf_tail.position = Vector3(0.12, 0.66, 0.5)
 	_visual.add_child(_scarf_tail)
 
-	# 8 patas com IK procedural (systems/spider_legs.gd)
+	# 8 patas com IK procedural (systems/spider_legs.gd); refeitas na muda (tamanho novo)
+	_build_legs(1.0)
+
+
+func _build_legs(sz: float) -> void:
+	if _leg_rig != null and is_instance_valid(_leg_rig):
+		_leg_rig.queue_free()
 	_leg_rig = SpiderLegs.new()
-	_leg_rig.setup(_visual, 1.0, 1 | 8)
+	_leg_rig.setup(_visual, sz, 1 | 8)
+	_leg_rig.root = self
 	add_child(_leg_rig)
+
+
+# ================================================================= forma e evolução
+
+func form_data() -> Dictionary:
+	return FORMS[form]
+
+
+func form_name() -> String:
+	return String(form_data()["name"])
+
+
+func body_size() -> int:
+	## 0 = P (Filhote), 1 = M (Cavaleira): predadores maiores que você te caçam.
+	return int(form_data()["size"])
+
+
+func can_evolve() -> bool:
+	return form == Form.FILHOTE and level >= EVOLVE_LEVEL
+
+
+func recompute_stats(refill: bool) -> void:
+	var f := form_data()
+	var per: Array = f["per_level"]
+	max_hp = float(f["hp"]) + float(per[0]) * (level - 1) + bonus_hp
+	max_energy = float(f["energy"]) + float(per[1]) * (level - 1) + bonus_energy
+	max_silk = float(f["silk"]) + float(per[2]) * (level - 1) + bonus_silk
+	if refill:
+		hp = max_hp
+		energy = max_energy
+		silk = max_silk
+	else:
+		hp = minf(hp, max_hp)
+		energy = minf(energy, max_energy)
+		silk = minf(silk, max_silk)
+
+
+func add_bonus(hp_: float, energy_: float, silk_: float = 0.0) -> void:
+	bonus_hp += hp_
+	bonus_energy += energy_
+	bonus_silk += silk_
+	max_hp += hp_
+	max_energy += energy_
+	max_silk += silk_
+	hp = minf(max_hp, hp + hp_)
+	energy = minf(max_energy, energy + energy_)
+	silk = minf(max_silk, silk + silk_)
+
+
+func _apply_form_visual() -> void:
+	var k := float(form_data()["scale"])
+	vis_scale = k
+	_visual.scale = Vector3.ONE * k
+	if _leg_rig == null or not is_equal_approx(_leg_rig.size, k):
+		_build_legs(k)
+	_rune_light.omni_range = 4.5 * k
+
+
+func evolve() -> void:
+	## A muda no casulo: Filhote -> Cavaleira de Seda.
+	form = Form.CAVALEIRA
+	level = 1
+	xp = 0
+	recompute_stats(true)
+	var tw := create_tween()
+	tw.tween_property(self, "vis_scale", float(form_data()["scale"]), 1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_build_legs(float(form_data()["scale"]))
+	_rune_light.omni_range = 4.5
+	EventBus.big_message.emit("Evolução: Cavaleira de Seda!")
+	_msg("A muda terminou. Lâminas de cristal, placas novas e muito mais vida. O nível voltou a 1.")
+	GameState.say_once("evolucao_1", "Eu... cresci? Lâminas! Eu tenho LÂMINAS! Ok, caverna. Agora a conversa é outra.")
 
 
 func _apply_model(base_parts: Array) -> void:
@@ -308,7 +406,7 @@ func _start_state(s: State) -> void:
 
 func _state_normal() -> Vector3:
 	var running := Input.is_action_pressed("run") and move_dir.length() > 0.1
-	var spd := RUN_SPEED if running else WALK_SPEED
+	var spd := (RUN_SPEED if running else WALK_SPEED) * float(form_data()["speed"])
 	if on_strand:
 		spd *= STRAND_SPEED_MULT
 	if satiety <= 0.0:
@@ -388,7 +486,7 @@ func _state_attack() -> Vector3:
 		return Vector3.ZERO
 	if not hit_done and state_time >= 0.1:
 		hit_done = true
-		_melee(float(COMBO_DAMAGE[combo_index]), ATTACK_RANGE, ATTACK_ARC, false)
+		_melee(float((form_data()["combo"] as Array)[combo_index]), ATTACK_RANGE * float(form_data()["scale"]) + 0.3, ATTACK_ARC, false)
 	if state_time >= ATTACK_TIME:
 		if combo_queued and combo_index < 2:
 			_start_attack(combo_index + 1)
@@ -402,7 +500,7 @@ func _state_bite() -> Vector3:
 	noise = 4.0
 	if not hit_done and state_time >= 0.2:
 		hit_done = true
-		_melee(BITE_DAMAGE, BITE_RANGE, 70.0, true)
+		_melee(float(form_data()["bite"]), BITE_RANGE, 70.0, true)
 	if state_time >= BITE_TIME:
 		_start_state(State.NORMAL)
 	return move_dir * 1.0
@@ -554,13 +652,11 @@ func _eat(c: Corpse) -> void:
 		GameState.say_once("acido_%d" % mini(resist_acid, 3), ["", "Gosto de pedra molhada... e de bateria.", "Minha boca formiga. Acho que estou me acostumando.", "Pronto. Ácido agora é só tempero."][mini(resist_acid, 3)])
 	if c.skin_bonus:
 		crystal_skin = true
-		max_hp += 20.0
-		hp = minf(max_hp, hp + 20.0)
+		add_bonus(20.0, 0.0)
 		_msg("Pele de Cristal! +20 PV máximo e -20% de dano recebido.")
 		GameState.say_once("pele_cristal", "Comi a armadura dela. Agora a armadura é minha.")
 	if c.energy_bonus > 0.0:
-		max_energy += c.energy_bonus
-		energy = minf(max_energy, energy + c.energy_bonus)
+		add_bonus(0.0, c.energy_bonus)
 		_msg("A luz do lagarto agora é sua: +%d Energia máxima." % int(c.energy_bonus))
 		GameState.say_once("comeu_lagarto", "Comi uma lanterna. Agora EU sou a lanterna.")
 	gain_xp(c.xp)
@@ -574,6 +670,8 @@ func _rest(c: Cocoon) -> void:
 	satiety = maxf(0.0, satiety - 15.0)
 	respawn_pos = c.global_position + Vector3(0.0, 0.1, 1.6)
 	EventBus.rested.emit(c)
+	if can_evolve():
+		evolve()
 	GameState.save_now()
 	_msg("Você descansou no casulo. Jogo salvo. O tempo passou (-15 saciedade).")
 	GameState.say_once("primeiro_descanso", "Casulo quentinho... Isso aqui é meu agora. Meu território.")
@@ -872,12 +970,15 @@ func gain_xp(amount: int) -> void:
 	while xp >= xp_to_next():
 		xp -= xp_to_next()
 		level += 1
-		max_hp += 10.0
-		max_energy += 5.0
-		max_silk += 5.0
-		hp = minf(max_hp, hp + 30.0)
+		var old_hp := hp
+		recompute_stats(false)
+		hp = minf(max_hp, old_hp + max_hp * 0.3)
 		EventBus.player_leveled.emit(level)
 		_msg("Nível %d! PV, Energia e Seda máximos aumentaram." % level)
+		if can_evolve():
+			EventBus.big_message.emit("Pronta para evoluir!")
+			_msg("Descanse num casulo (E) para fazer a muda e virar a Cavaleira de Seda.")
+			GameState.say_once("pronta_evoluir", "Tá coçando tudo... minha casca tá apertada. Preciso de um casulo. AGORA.")
 		if level == TRAP_LEVEL:
 			GameState.say_once("nivel_3", "Nível 3! Sinto que consigo tecer uma teia de captura. Modo Tecelagem e botão direito.")
 
@@ -893,7 +994,7 @@ func noise_radius() -> float:
 
 
 func visibility_mult() -> float:
-	return 1.0 if rune_on else 0.45
+	return (1.0 if rune_on else 0.45) * float(form_data()["hide"])
 
 
 # ================================================================= mira, câmera, visual
@@ -945,6 +1046,9 @@ func _update_visual(delta: float) -> void:
 		return
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-aim_dir.x, -aim_dir.z), clampf(delta * 14.0, 0.0, 1.0))
 	_leg_rig.velocity_hint = Vector3(velocity.x, 0.0, velocity.z)
+	# o corpo sobe um pouquinho a cada grupo de patas que pousa
+	var spd := Vector2(velocity.x, velocity.z).length()
+	_visual.position.y = absf(sin(_leg_rig.phase * TAU)) * 0.03 * clampf(spd / 4.0, 0.0, 1.0)
 
 	# Runa = Energia (e luz). Apagada = furtiva.
 	var e := energy / max_energy
@@ -975,11 +1079,11 @@ func _update_visual(delta: float) -> void:
 	if _model_overlay != null:
 		_model_overlay.albedo_color.a = 0.5 if _hurt_flash > 0.0 else 0.0
 	if state == State.DODGE:
-		_visual.scale = Vector3(1.15, 0.7, 1.15)
+		_visual.scale = Vector3(1.15, 0.7, 1.15) * vis_scale
 	elif state == State.EAT:
-		_visual.scale = Vector3(1.0, 0.85 + 0.1 * sin(state_time * 25.0), 1.0)
+		_visual.scale = Vector3(1.0, 0.85 + 0.1 * sin(state_time * 25.0), 1.0) * vis_scale
 	else:
-		_visual.scale = Vector3.ONE
+		_visual.scale = Vector3.ONE * vis_scale
 
 
 # ================================================================= utilidades
@@ -1053,6 +1157,7 @@ func to_dict() -> Dictionary:
 		"satiety": satiety,
 		"level": level, "xp": xp, "resist_rot": resist_rot,
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
+		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z],
 	}
 
@@ -1080,6 +1185,16 @@ func from_dict(d: Dictionary) -> void:
 	resist_rot = int(d.get("resist_rot", resist_rot))
 	resist_acid = int(d.get("resist_acid", resist_acid))
 	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
+	form = int(d.get("form", form)) as Form
+	var b: Array = d.get("bonus", [])
+	if b.size() == 3:
+		bonus_hp = float(b[0])
+		bonus_energy = float(b[1])
+		bonus_silk = float(b[2])
+	if not d.has("form"):
+		# save de antes das formas (v0.6 ou anterior): recalcula pela forma de Filhote
+		recompute_stats(false)
+	_apply_form_visual()
 	var r: Array = d.get("respawn", [])
 	if r.size() == 3:
 		respawn_pos = Vector3(float(r[0]), float(r[1]), float(r[2]))
