@@ -294,6 +294,113 @@ func chasm_pockets(threshold: float, min_wall: float, freq: float = 0.06) -> voi
 				grid[k] = 2
 
 
+func wall_hooks(max_pairs: int, span_max: float, min_pocket: int = 8) -> Array:
+	## Pares de ganchos de parede, um de cada lado de um bolsão de abismo: um fio entre eles
+	## é um atalho de fuga por cima do buraco. No máximo um par por bolsão (os maiores
+	## primeiro), para os ganchos continuarem raros. Devolve [{"p": Vector2, "n": Vector2}].
+	var dist := wall_distance()
+	var comps := _chasm_components()
+	comps.sort_custom(func(a, b): return a.size() > b.size())
+	var out: Array = []
+	for comp in comps:
+		if out.size() >= max_pairs * 2:
+			break
+		if comp.size() < min_pocket:
+			continue
+		var c := Vector2.ZERO
+		for k in comp:
+			c += center_of(k % w, k / w)
+		c /= float(comp.size())
+		var cands: Array = []
+		var cc := cell_of(c)
+		var R := int(ceil(span_max))
+		for j in range(cc.y - R, cc.y + R + 1):
+			for i in range(cc.x - R, cc.x + R + 1):
+				if not inside(i, j):
+					continue
+				var k := idx(i, j)
+				if grid[k] != 1 or dist[k] < 1.0 or dist[k] > 1.9:
+					continue
+				var p := center_of(i, j)
+				if p.distance_to(c) <= span_max * 0.75:
+					cands.append(p)
+		if cands.size() > 70:   # menos candidatos = busca rápida (pares é n²)
+			var thin: Array = []
+			var step := float(cands.size()) / 70.0
+			for q in 70:
+				thin.append(cands[int(q * step)])
+			cands = thin
+		var best := -1.0
+		var pair := []
+		for a_i in cands.size():
+			for b_i in range(a_i + 1, cands.size()):
+				var a: Vector2 = cands[a_i]
+				var b: Vector2 = cands[b_i]
+				var L := a.distance_to(b)
+				if L > span_max or L < 5.0:
+					continue
+				var over := 0
+				var ok := true
+				for s in range(1, 12):
+					var q := cell_of(a.lerp(b, s / 12.0))
+					if not inside(q.x, q.y):
+						ok = false
+						break
+					var g := grid[idx(q.x, q.y)]
+					if g == 0:
+						ok = false
+						break
+					if g == 2:
+						over += 1
+				if not ok or over < 3:
+					continue
+				var score := over / 11.0 - Geometry2D.get_closest_point_to_segment(c, a, b).distance_to(c) * 0.05
+				if score > best:
+					best = score
+					pair = [a, b]
+		for p in pair:
+			out.append({"p": p, "n": _away_from_wall(p, dist)})
+	return out
+
+
+func _away_from_wall(p: Vector2, dist: PackedFloat32Array) -> Vector2:
+	var c := cell_of(p)
+	var g := Vector2.ZERO
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]:
+		var q: Vector2i = c + d
+		if inside(q.x, q.y):
+			var v := dist[idx(q.x, q.y)]
+			g += Vector2(d) * (minf(v, 6.0) if grid[idx(q.x, q.y)] != 0 else -1.0)
+	return g.normalized() if g.length() > 0.01 else Vector2.UP
+
+
+func _chasm_components() -> Array:
+	var seen := PackedByteArray()
+	seen.resize(w * h)
+	var comps: Array = []
+	for k0 in w * h:
+		if grid[k0] != 2 or seen[k0]:
+			continue
+		var comp := PackedInt32Array()
+		var stack := [k0]
+		seen[k0] = 1
+		while not stack.is_empty():
+			var k: int = stack.pop_back()
+			comp.append(k)
+			var i := k % w
+			var j := k / w
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var ni: int = i + d.x
+				var nj: int = j + d.y
+				if inside(ni, nj):
+					var nk := idx(ni, nj)
+					if grid[nk] == 2 and not seen[nk]:
+						seen[nk] = 1
+						stack.append(nk)
+		comps.append(comp)
+	return comps
+
+
 func nearest_floor(p: Vector2, max_r: int = 30) -> Vector2:
 	var c := cell_of(p)
 	for r in max_r:

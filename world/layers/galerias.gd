@@ -26,6 +26,7 @@ var DOOR_OUT := W3(157.0, 0.0, 111.5)
 const NEXT_LAYER := "res://world/layers/abismo.tscn"
 var ARENA_2D := W2(135, 112)
 var LEDGE_ROUTE := [W2(119, 21), W2(138, 20.5), W2(157, 21)]
+var wall_hook_count := 0
 const DEEP := 135.0            ## as Profundezas ficam DEEP metros ao sul (mesmo plano y = 0)
 const FLOOR_NAMES := ["Andar de cima", "Profundezas"]
 const K := 0.72                ## v0.8b: o mapa encolheu 1/3 (as câmaras feitas à mão foram escritas na escala antiga)
@@ -220,6 +221,36 @@ func _generate_organic() -> void:
 	cave.chasms.append(lower.chasm_shape(0.25))
 
 
+func _add_wall_hooks() -> void:
+	## Ganchos de rocha nas paredes, só em pares atravessando os bolsões de abismo
+	## (uma rota de fuga por cima do buraco). Poucos de propósito: a rede de fios
+	## continua sendo de pilares; o gancho é um atalho que se descobre.
+	var hooks: Array = upper.wall_hooks(6, 11.0)
+	hooks.append_array(lower.wall_hooks(4, 11.0))
+	var k := 0
+	for i in range(0, hooks.size() - 1, 2):
+		var pair: Array = []
+		for hk in [hooks[i], hooks[i + 1]]:
+			var p: Vector2 = hk["p"]
+			var nrm: Vector2 = hk["n"]
+			var q := p
+			for step in 5:
+				if cave.is_floor(q, 0.4):
+					break
+				q += nrm * 0.35
+			if not cave.is_floor(q, 0.4):
+				break
+			pair.append([q, nrm])
+		if pair.size() < 2 or (pair[0][0] as Vector2).distance_to(pair[1][0]) > 11.6:
+			continue
+		for e in pair:
+			var q: Vector2 = e[0]
+			var nrm: Vector2 = e[1]
+			add_wall_anchor("Gancho_%02d" % k, Vector3(q.x, 0.0, q.y), Vector3(nrm.x, 0.0, nrm.y), STONE.lightened(0.04))
+			k += 1
+	wall_hook_count = k
+
+
 func _snap_floor(p: Vector3, margin: float = 0.5) -> Vector3:
 	## Chão firme mais perto (para posições escritas antes da caverna gerada).
 	var q := Vector2(p.x, p.z)
@@ -323,6 +354,7 @@ func _build_level() -> void:
 		i += 1
 		if not cave.is_floor(Vector2(pos.x, pos.z), 0.45):
 			push_warning("Pilar %s fora do chão firme em %s" % [n, pos])
+	_add_wall_hooks()
 
 	_build_pond(W3(-4, 0.03, 36), 3.4)
 	_build_lake()

@@ -189,6 +189,14 @@ func _run() -> void:
 	for pair in [["G6_a", "G6_c"], ["G6_f", "G6_h"], ["G6_j", "G6_l"]]:
 		_check(player._strand_error(WebNetwork.anchors[pair[0]], WebNetwork.anchors[pair[1]]) == "", "fenda %s ↔ %s alcançável" % pair)
 
+	# Ganchos de parede: poucos, em pares, no chão firme e com o fio entre eles possível
+	_check(layer.wall_hook_count >= 4 and layer.wall_hook_count <= 20, "ganchos de parede: %d (poucos, mas existem)" % layer.wall_hook_count)
+	for i in range(0, layer.wall_hook_count, 2):
+		var ha: WebAnchor = WebNetwork.anchors["Gancho_%02d" % i]
+		var hb: WebAnchor = WebNetwork.anchors["Gancho_%02d" % (i + 1)]
+		_check(ha.kind == "gancho" and layer.cave.is_floor(Vector2(ha.position.x, ha.position.z), 0.3), "gancho %d no chão firme" % i)
+		_check(player._strand_error(ha, hb) == "", "ganchos %d ↔ %d alcançáveis (%s)" % [i, i + 1, player._strand_error(ha, hb)])
+
 	# Grande Gruta: casulo + 3 fios = território
 	_teleport(Galerias.W(Vector3(44.0, 0.1, 38.0)))
 	await _seconds(0.3)

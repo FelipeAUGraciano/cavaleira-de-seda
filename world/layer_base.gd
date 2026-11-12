@@ -348,6 +348,19 @@ func add_anchor(anchor_name: String, pos: Vector3, height: float = 4.0, radius: 
 	return a
 
 
+func add_wall_anchor(anchor_name: String, pos: Vector3, normal: Vector3, color: Color = Color(0.36, 0.38, 0.4)) -> WebAnchor:
+	## Gancho de rocha na parede: âncora como um pilar, mas encostada na parede.
+	## Só deve aparecer onde vale a pena (beira de abismo): poucos e fáceis de ler.
+	var a := WebAnchor.new(1.3, 0.35, color)
+	a.name = anchor_name
+	a.kind = "gancho"
+	a.wall_normal = normal
+	a.position = pos
+	add_child(a)
+	WebNetwork.register_anchor(a)
+	return a
+
+
 func add_static_box(size: Vector3, pos: Vector3, color: Color) -> StaticBody3D:
 	nav_blockers.append([pos, size])
 	var body := StaticBody3D.new()
