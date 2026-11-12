@@ -45,8 +45,8 @@ func _run() -> void:
 		if c is Frog:
 			frog = c
 			break
-	_teleport(Vector3(-2.0, 0.1, 30.0))
-	frog.global_position = Vector3(-2.0, 0.3, 31.6)
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
+	frog.global_position = player.global_position + Vector3(0, 0.2, 1.6)
 	frog.entangle(3.0)
 	var hp0 := frog.hp
 	player.aim_dir = Vector3(0, 0, 1)
@@ -55,10 +55,10 @@ func _run() -> void:
 
 	# Predador com fome caça a Filhote mesmo sem vê-la
 	frog.entangled_time = 0.0
-	frog.global_position = Vector3(-4.0, 0.3, 38.0)
+	frog.global_position = layer._snap_floor(Galerias.W(Vector3(-4.0, 0.3, 38.0)), 1.0)
 	frog.player_memory = 0.0
 	frog.needs.hunger = 90.0
-	_teleport(Vector3(4.0, 0.1, 27.0))   # a ~13 m, atrás de pedra/fora do cone
+	_teleport(Galerias.W(Vector3(4.0, 0.1, 27.0)))   # a ~13 m, atrás de pedra/fora do cone
 	player.rune_on = false
 	var d0 := frog.flat_dist_to(player)
 	await _seconds(1.0)
@@ -70,21 +70,26 @@ func _run() -> void:
 
 	# Irmã faminta também segue o cheiro (sem cérebro, lógica própria)
 	var sis := Sister.new(true)
-	sis.position = Vector3(8.0, 0.3, 30.0)
+	sis.position = layer._snap_floor(player.global_position + Vector3(4.0, 0.3, 0.0), 1.0)
 	layer.ecosystem.add_child(sis)
-	_teleport(Vector3(0.0, 0.1, 36.0))
-	await _seconds(1.0)
-	_check(sis.hunting_player(), "irmã faminta segue o cheiro da Filhote")
+	sis.needs.hunger = 85.0
+	var hunted := false
+	for i in 10:
+		await _seconds(0.5)
+		if sis.hunting_player():
+			hunted = true
+			break
+	_check(hunted, "irmã faminta segue o cheiro da Filhote")
 	sis.queue_free()
 
 	# Evolução: no nível 8, descansar no casulo faz a muda
 	frog.needs.hunger = 0.0
 	frog.player_memory = 0.0
-	_teleport(Vector3(44.0, 0.1, 38.0))
+	_teleport(Galerias.W(Vector3(44.0, 0.1, 38.0)))
 	player.add_bonus(10.0, 15.0)   # um cristal de vida e um de energia, como no jogo
 	player.level = Player.EVOLVE_LEVEL
 	player.recompute_stats(true)
-	var cocoon := WebNetwork.create_cocoon(Vector3(44, 0, 36))
+	var cocoon := WebNetwork.create_cocoon(Galerias.W(Vector3(44, 0, 36)))
 	player._rest(cocoon)
 	_check(player.form == Player.Form.CAVALEIRA and player.level == 1, "no nível %d o casulo faz a muda: Cavaleira de Seda, nível 1" % Player.EVOLVE_LEVEL)
 	_check(is_equal_approx(player.max_hp, 120.0) and is_equal_approx(player.max_energy, 125.0), "Cavaleira: 110 PV de base + os bônus de cristal guardados (%.0f PV, %.0f energia)" % [player.max_hp, player.max_energy])
@@ -100,7 +105,7 @@ func _run() -> void:
 	_check(frog.sees_player_as_prey(player), "mas faminto, arrisca")
 
 	# Patas: pisando no chão, sem perna esticada para longe
-	_teleport(Vector3(40.0, 0.1, 36.0))
+	_teleport(Galerias.W(Vector3(128.0, 0.1, 40.0)))   # Galeria do eco: chão largo e plano
 	Input.action_press("move_right")
 	var worst_y := 0.0
 	var worst_reach := 0.0
@@ -127,6 +132,7 @@ func _check(ok: bool, label: String) -> void:
 func _teleport(pos: Vector3) -> void:
 	if player.dead:
 		player._respawn()
+	pos = layer._snap_floor(pos, 1.0)   # caverna gerada: garante chão firme
 	player.global_position = pos
 	player.velocity = Vector3.ZERO
 	player.external_velocity = Vector3.ZERO

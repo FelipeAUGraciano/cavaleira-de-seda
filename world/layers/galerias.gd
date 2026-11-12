@@ -1,3 +1,4 @@
+class_name Galerias
 extends LayerBase
 ## G — Galerias Úmidas (Ato 1): G1 a G15, mais a vista da G16 (abre no Ato 4).
 ## A Grande Gruta (G4) é o centro: dois caminhos levam até ela (a poça do sapo ou o túnel
@@ -51,6 +52,16 @@ static func W(v: Vector3) -> Vector3:
 	return W3(v.x, v.y, v.z)
 
 
+static func WL(x: float, z: float) -> Vector2:
+	## O Lago escondido não encolhe (a corrente de fios até a ilha depende das distâncias).
+	return W2(0, 74) + Vector2(x, z - 74.0)
+
+
+static func WL3(x: float, y: float, z: float) -> Vector3:
+	var q := WL(x, z)
+	return Vector3(q.x, y, q.y)
+
+
 static func S(r: float) -> float:
 	return r * KS
 
@@ -100,7 +111,7 @@ func _configure() -> void:
 			"hint": "Três fendas seguidas. Em cada uma, teça um fio entre os pilares (R) ou lance fio na parede do outro lado (Q).",
 			"line_id": "g6_ponte", "line": "Quem quebrou essa ponte? ...Eu nem sei se isso era uma ponte."},
 		{"id": "G7", "name": "Lago escondido",
-			"shapes": [CaveBuilder.ellipse(W2(2, 74), S(14.0), S(11.0), 0.0, 1.0)],
+			"shapes": [CaveBuilder.ellipse(WL(2, 74), 14.0, 11.0, 0.0, 1.0)],
 			"hint": "Aranhas não nadam. Só uma corrente de fios leva até a ilha: primeiro a pedrinha no meio do caminho.",
 			"line_id": "g7_lago", "line": "Tem algo brilhando na ilha. E eu odeio água."},
 		{"id": "G8", "name": "Galeria do eco", "checkpoint": true,
@@ -136,7 +147,7 @@ func _configure() -> void:
 		{"id": "G16", "name": "Subida antiga",
 			"shapes": [CaveBuilder.ellipse(W2(76, 4), S(9.0), S(8.0), 0.4, 1.0)]},
 		# --- v0.8b: nomes das partes geradas (só nome; o chão vem da caverna orgânica) ---
-		{"id": "G17", "name": "Beco dos ossos", "label_only": true, "shapes": [CaveBuilder.blob(W2(-8, -16), 5.0, 0.0)],
+		{"id": "G17", "name": "Beco dos ossos", "label_only": true, "shapes": [CaveBuilder.blob(W2(-12, 18), 5.0, 0.0)],
 			"line_id": "g17_ossos", "line": "Ossos. Muitos ossos. Alguém come aqui... e não limpa."},
 		{"id": "G18", "name": "Galerias tortas", "label_only": true, "shapes": [CaveBuilder.blob(W2(20, 14), 5.0, 0.0)],
 			"line_id": "g18_torta", "line": "Pra que lado eu vim mesmo? ...Todos os lados parecem iguais."},
@@ -254,14 +265,14 @@ func _build_level() -> void:
 		CaveBuilder.path([W2(70, 29), W2(71, 49)], S(4.5), 0.3),        # 1ª fenda da Ponte quebrada
 		CaveBuilder.path([W2(85, 26), W2(86, 46)], S(4.5), 0.3),        # 2ª
 		CaveBuilder.path([W2(99, 28), W2(100, 48)], S(5.0), 0.3),       # 3ª
-		CaveBuilder.ellipse(W2(0, 74), S(10.0), S(7.5), 0.0, 0.4),      # lago
+		CaveBuilder.ellipse(WL(0, 74), 10.0, 7.5, 0.0, 0.4),           # lago (sem encolher)
 		CaveBuilder.ellipse(W2(77, 2), S(6.0), S(5.0), 0.4, 0.4),       # abismo longo da G16
 		CaveBuilder.path([W2(116, 26.5), W2(160, 26)], S(6.0), 0.4),    # abismo da Galeria do eco
 		CaveBuilder.path([W2(178, 99), W2(181, 121)], S(5.5), 0.6),     # a Fenda, na borda leste da G15
 	]
 	cave.bridges = [
-		CaveBuilder.blob(W2(-3, 74), S(2.6), 0.3),    # ilha do lago
-		CaveBuilder.blob(W2(5, 70.5), S(1.4), 0.15),  # pedrinha no meio do caminho
+		CaveBuilder.blob(WL(-3, 74), 2.6, 0.3),      # ilha do lago
+		CaveBuilder.blob(WL(5, 70.5), 1.4, 0.15),    # pedrinha no meio do caminho
 	]
 	_generate_organic()
 	map_grid = cave.build(self)
@@ -271,7 +282,7 @@ func _build_level() -> void:
 	var down := Vector3(0, 0, DEEP)
 	var deep_mid := _deep_floor(Vector3(75, 0, DEEP + 55))
 	chasms = [
-		{"rect": WR(-10, 66.5, 20, 15), "mode": "volta", "name": "o lago"},
+		{"rect": Rect2(WL(-10, 66.5), Vector2(20, 15)), "mode": "volta", "name": "o lago"},
 		{"rect": WR(70, -5, 14, 14), "name": "o abismo"},                    # G16: sem fundo
 		{"rect": WR(174, 95, 12, 30), "name": "a Fenda"},                    # G15: sem fundo
 		{"rect": Rect2(-10, DEEP - 10, 180, 140), "name": "o fundo"},        # Profundezas: sem fundo
@@ -290,7 +301,7 @@ func _build_level() -> void:
 		"G6_a": W3(66, 0, 36.5), "G6_b": W3(65.5, 0, 41), "G6_c": W3(75.5, 0, 37), "G6_d": W3(75.5, 0, 41.5),
 		"G6_e": W3(81, 0, 35.5), "G6_f": W3(81, 0, 39.5), "G6_g": W3(90, 0, 34.8), "G6_h": W3(90, 0, 38.8),
 		"G6_i": W3(95, 0, 35.5), "G6_j": W3(95, 0, 39.5), "G6_k": W3(104.5, 0, 35.5), "G6_l": W3(104.5, 0, 39.5),
-		"G7_a": W3(13, 0, 72), "G7_b": W3(5, 0, 70.5), "G7_c": W3(-3, 0, 74),
+		"G7_a": WL3(13, 0, 72), "G7_b": WL3(5, 0, 70.5), "G7_c": WL3(-3, 0, 74),
 		"G8_a": W3(129, 0, 36), "G8_b": W3(138, 0, 44), "G8_c": W3(146, 0, 35),
 		"G9_a": W3(175, 0, 40), "G9_b": W3(189, 0, 40), "G9_c": W3(184, 0, 51), "G9_d": W3(178, 0, 48),
 		"G11_a": W3(84, 0, 83.4), "G11_b": W3(100, 0, 78.2), "G11_c": W3(122, 0, 82.2),
@@ -370,20 +381,20 @@ func _build_level() -> void:
 func _build_pond(pos: Vector3, radius: float) -> void:
 	var water := Fx.cylinder(radius, 0.02, Fx.mat(Color(0.12, 0.25, 0.32), 0.25, false, 0.75))
 	water.position = pos
-	water.scale = W3(1.0, 1.0, 0.75)
+	water.scale = Vector3(1.0, 1.0, 0.75)
 	add_child(water)
 
 
 func _build_lake() -> void:
 	var water := Fx.cylinder(1.0, 0.04, Fx.mat(Color(0.08, 0.2, 0.3), 0.35, false, 0.82))
-	water.position = W3(0, -0.8, 74)
-	water.scale = W3(11.0, 1.0, 8.5)
+	water.position = WL3(0, -0.8, 74)
+	water.scale = Vector3(11.0, 1.0, 8.5)
 	add_child(water)
 	var glow := OmniLight3D.new()
 	glow.light_color = Color(0.3, 0.6, 0.9)
 	glow.omni_range = 10.0
 	glow.light_energy = 0.5
-	glow.position = W3(0, 0.5, 74)
+	glow.position = WL3(0, 0.5, 74)
 	add_child(glow)
 
 
@@ -427,12 +438,12 @@ func _build_acid() -> void:
 func _build_camp() -> void:
 	# G9: acampamento abandonado dos aventureiros. Tochas queimam fios.
 	var canvas := Color(0.55, 0.47, 0.35)
-	var tent := add_static_box(W3(3.2, 1.8, 2.6), W3(176.5, 0.9, 47.5), canvas)
+	var tent := add_static_box(Vector3(3.2, 1.8, 2.6), W3(176.5, 0.9, 47.5), canvas)
 	tent.rotation.y = 0.3
-	add_static_box(W3(1.0, 0.9, 1.0), W3(188.5, 0.45, 48.0), Color(0.42, 0.3, 0.2))
-	add_static_box(W3(0.8, 0.7, 0.8), W3(189.3, 0.35, 46.9), Color(0.42, 0.3, 0.2))
+	add_static_box(Vector3(1.0, 0.9, 1.0), W3(188.5, 0.45, 48.0), Color(0.42, 0.3, 0.2))
+	add_static_box(Vector3(0.8, 0.7, 0.8), W3(189.3, 0.35, 46.9), Color(0.42, 0.3, 0.2))
 	for b in [W3(181, 0.03, 40.5), W3(185, 0.03, 42), W3(179, 0.03, 43)]:
-		var roll := Fx.box(W3(0.9, 0.06, 2.0), Fx.mat(Color(0.35, 0.3, 0.42)))
+		var roll := Fx.box(Vector3(0.9, 0.06, 2.0), Fx.mat(Color(0.35, 0.3, 0.42)))
 		roll.position = b
 		roll.rotation.y = b.x * 0.4
 		add_child(roll)
@@ -480,7 +491,7 @@ func _populate() -> void:
 		W3(-4, 0, 2), W3(4, 0, -3), W3(-2, 0, 30), W3(3, 0, 38),
 		W3(40, 0, 70), W3(48, 0, 74), W3(41, 0, 77), W3(47, 0, 66), W3(38, 0, 73),
 		W3(50, 0, 40), W3(10, 0, 74), W3(40, 0, 102), W3(46, 0, 106), W3(133, 0, 40), W3(180, 0, 56),
-		W3(20, 0, 14), W3(-8, 0, -16), W3(18, 0, 100), W3(160, 0, 70),
+		W3(20, 0, 14), W3(-12, 0, 18), W3(18, 0, 100), W3(160, 0, 70),
 	]
 	ecosystem.larva_spawns = []
 	for sp in up_spawns:
@@ -512,25 +523,29 @@ func _populate() -> void:
 			dlz.territory_radius = 6.5
 			dlz.set_meta("flag", flag)
 			ecosystem.add_child(dlz)
-	var sis_spots: Array = [_snap_floor(W3(-8, 0, -16)), _snap_floor(W3(186, 0, 12))]
+	var sis_spots: Array = [_snap_floor(W3(-12, 0, 18)), _snap_floor(W3(186, 0, 12))]
 	sis_spots.append_array(_deep_spots(3, 105))
 	for sp in sis_spots:
 		var sis := Sister.new(true)
 		sis.position = sp + Vector3(0, 0.3, 0)
 		sis.display_name = "Irmã caçadora"
 		ecosystem.add_child(sis)
+	if not GameState.flags.has("g5_lagarto"):
+		var lz := Lizard.new()
+		lz.position = _snap_floor(W3(44, 0.3, 73), 1.0)
+		ecosystem.add_child(lz)
 	for i in 3:
 		if GameState.flags.has("g12_lagarto_%d" % i):
 			continue
 		var nest := Lizard.new()
-		nest.position = [W3(37, 0.3, 101), W3(49, 0.3, 101), W3(43, 0.3, 109)][i] as Vector3
+		nest.position = _snap_floor([W3(37, 0.3, 101), W3(49, 0.3, 101), W3(43, 0.3, 109)][i] as Vector3, 0.8)
 		nest.territory_radius = 6.0
 		nest.food_energy = 5.0
 		nest.set_meta("nest_id", i)
 		ecosystem.add_child(nest)
 	var deep_cr := _deep_spots(2, 106)
-	for pk in [["cristal_en", "g7_cristal", W3(-4.2, 0, 75.2)], ["cristal_en", "g12_cristal", W3(43, 0, 104)], ["cristal_pv", "g10_cristal", W3(169.5, 0, 14.5)],
-			["cristal_pv", "g17_cristal", _snap_floor(W3(-8, 0, -16))], ["cristal_pv", "p6_cristal", deep_cr[0]], ["cristal_en", "p5_cristal", deep_cr[1]]]:
+	for pk in [["cristal_en", "g7_cristal", WL3(-4.2, 0, 75.2)], ["cristal_en", "g12_cristal", W3(43, 0, 104)], ["cristal_pv", "g10_cristal", W3(169.5, 0, 14.5)],
+			["cristal_pv", "g17_cristal", _snap_floor(W3(-12, 0, 18))], ["cristal_pv", "p6_cristal", deep_cr[0]], ["cristal_en", "p5_cristal", deep_cr[1]]]:
 		if not GameState.flags.has(pk[1]):
 			var crystal := Pickup.new(pk[0], pk[1])
 			crystal.position = pk[2]

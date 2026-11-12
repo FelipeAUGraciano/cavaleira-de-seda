@@ -34,7 +34,7 @@ func _ready() -> void:
 			# os outros andares: põe a jogadora numa câmara de cada andar
 			for f in range(1, (layer.FLOOR_NAMES as Array).size()):
 				GameState.player.set_physics_process(false)
-				GameState.player.global_position = Vector3(86, 0.1, 208) if layer.layer_id == "G" else GameState.player.global_position
+				GameState.player.global_position = layer._deep_floor(Vector3(75, 0, layer.DEEP + 50)) if layer.layer_id == "G" else GameState.player.global_position
 				await _frames(20)
 				await _shot("mapa_%s_andar%d" % [layer.layer_id, f])
 		layer.queue_free()

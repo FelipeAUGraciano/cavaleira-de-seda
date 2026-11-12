@@ -30,7 +30,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	# Estrutura
-	_check(layer.rooms.size() == 31, "G1–G20 em cima + P1–P11 nas Profundezas (%d)" % layer.rooms.size())
+	_check(layer.rooms.size() == 28, "G1–G22 em cima + P1–P6 nas Profundezas (%d)" % layer.rooms.size())
 	_check(layer.map_system.current_room == "G1", "começa na Entrada (G1)")
 	var bats := _alive("bat")
 	var g3 := bats.filter(func(b): return String(b.flock).begins_with("g3_"))
@@ -41,18 +41,15 @@ func _run() -> void:
 	_check(frogs.size() == 8, "oito Sapos-de-rocha nos dois andares (%d)" % frogs.size())
 	_check(World.creatures.size() >= 50, "mapa cheio: %d criaturas" % World.creatures.size())
 
-	# Caminhos: chão contínuo nas duas rotas até a Grande Gruta e dela para G5, G6 e G7
-	var routes := {
-		"G1→G2→G4": [Vector2(1, -17), Vector2(3, -14), Vector2(0, -7), Vector2(0, 0), Vector2(-4, 15), Vector2(-2, 34), Vector2(17, 39), Vector2(44, 36)],
-		"G1→G3→G4": [Vector2(0, 0), Vector2(18, -8), Vector2(30, -6), Vector2(40, 0), Vector2(44, 10), Vector2(44, 36)],
-		"G4→G5": [Vector2(44, 36), Vector2(47, 55), Vector2(44, 72)],
-		"G4→G7": [Vector2(44, 36), Vector2(33, 44), Vector2(22, 54), Vector2(13, 67), Vector2(13, 72)],
-		"G4→G6": [Vector2(44, 36), Vector2(59, 37), Vector2(66, 39)],
-	}
+	# Caminhos: a caverna gerada liga as câmaras com nome (rota a pé, sem cair em buraco)
+	var routes := [["G1", "G2"], ["G1", "G3"], ["G2", "G4"], ["G3", "G4"], ["G4", "G5"], ["G4", "G7"], ["G5", "G12"], ["G4", "G6"], ["G8", "G9"], ["G9", "G13"]]
 	for r in routes:
-		_check(_walkable(routes[r]), "caminho %s sem buracos" % r)
-	_check(not layer.cave.is_floor(Vector2(70.5, 39.0)) and not layer.cave.is_floor(Vector2(85.5, 37.0)) and not layer.cave.is_floor(Vector2(99.5, 38.0)), "três fendas cortam a Ponte quebrada")
-	var q := PhysicsRayQueryParameters3D.create(Vector3(58.5, 1.0, 25.0), Vector3(65.0, 1.0, 18.0), 1)
+		var a := _room_center(r[0])
+		var b := _room_center(r[1])
+		var path := World.nav.path(a, b, NavGrid.Kind.SMALL)
+		_check(not path.is_empty(), "dá para ir a pé de %s até %s" % [r[0], r[1]])
+	_check(not layer.cave.is_floor(Galerias.W2(70.5, 39.0)) and not layer.cave.is_floor(Galerias.W2(85.5, 37.0)) and not layer.cave.is_floor(Galerias.W2(99.5, 38.0)), "três fendas cortam a Ponte quebrada")
+	var q := PhysicsRayQueryParameters3D.create(Galerias.W(Vector3(58.5, 1.0, 25.0)), Galerias.W(Vector3(65.0, 1.0, 18.0)), 1)
 	_check(not layer.get_world_3d().direct_space_state.intersect_ray(q).is_empty(), "parede de cristal fecha a Subida antiga")
 
 	# Morcegos: ouvem quem se mexe, não quem fica parada
@@ -65,7 +62,7 @@ func _run() -> void:
 	_check(bat.hears(player), "andando a 5 m: o morcego ouve")
 
 	# Mergulho machuca quem fica andando no túnel
-	_teleport(Vector3(26.0, 0.1, -6.0))
+	_teleport(Galerias.W(Vector3(26.0, 0.1, -6.0)))
 	var hp0 := player.hp
 	for i in 10:
 		Input.action_press("move_right" if i % 2 == 0 else "move_left")
@@ -107,7 +104,7 @@ func _run() -> void:
 	_check(not is_instance_valid(target) or target.global_position.y < 0.8, "morcego enredado cai no chão")
 
 	# Fio esticado no caminho do bando prende morcegos
-	_teleport(Vector3(1.0, 0.1, -17.0))   # longe do bando (G1): eles voltam a passear
+	_teleport(Galerias.W(Vector3(1.0, 0.1, -17.0)))   # longe do bando (G1): eles voltam a passear
 	player.rune_on = false
 	for b in _alive("bat"):
 		b.player_memory = 0.0
@@ -128,7 +125,7 @@ func _run() -> void:
 
 	# Lagarto-lanterna: isca atrai larvas e ele as come
 	var lz: Lizard = lizards[0]
-	_teleport(Vector3(30.0, 0.1, 36.0))
+	_teleport(Galerias.W(Vector3(30.0, 0.1, 36.0)))
 	lz.hunger = 100.0
 	var lv: Larva = layer.ecosystem.spawn_larva(lz.lure_position() + Vector3(5.0, 0.0, 0.0))
 	var start_d := Fx.flat_dist(lv.global_position, lz.lure_position())
@@ -157,7 +154,7 @@ func _run() -> void:
 	_check(player.hp < hp0, "lagarto ataca quem fica no território (PV %d)" % int(player.hp))
 	player.rune_on = true
 	player.hp = player.max_hp
-	_teleport(Vector3(44.0, 0.1, 50.0))
+	_teleport(Galerias.W(Vector3(44.0, 0.1, 50.0)))
 	await _seconds(1.5)
 	_check(lz.mode == Lizard.Mode.RETURN or lz.mode == Lizard.Mode.IDLE, "fora do território ele desiste e volta")
 
@@ -182,9 +179,9 @@ func _run() -> void:
 	player.silk = player.max_silk
 	_check(player._strand_error(a7, c7) != "", "margem → ilha direto é longe demais")
 	_check(player._strand_error(a7, b7) == "" and player._strand_error(b7, c7) == "", "margem → pedrinha → ilha funciona")
-	_check(not layer.cave.is_floor(Vector2(3.0, 78.0)), "o lago não tem chão")
+	_check(not layer.cave.is_floor(Galerias.W2(3.0, 78.0)), "o lago não tem chão")
 	e0 = player.max_energy
-	_teleport(Vector3(-4.2, 0.1, 75.2))
+	_teleport(Galerias.W(Vector3(-4.2, 0.1, 75.2)))
 	await _seconds(0.3)
 	_check(player.max_energy >= e0 + 15.0, "cristal da ilha dá +15 Energia máx.")
 
@@ -193,28 +190,43 @@ func _run() -> void:
 		_check(player._strand_error(WebNetwork.anchors[pair[0]], WebNetwork.anchors[pair[1]]) == "", "fenda %s ↔ %s alcançável" % pair)
 
 	# Grande Gruta: casulo + 3 fios = território
-	_teleport(Vector3(44.0, 0.1, 38.0))
+	_teleport(Galerias.W(Vector3(44.0, 0.1, 38.0)))
 	await _seconds(0.3)
 	_check(layer.map_system.revealed.has("G4"), "entrar na gruta revela G4 no mapa")
-	WebNetwork.create_cocoon(Vector3(44, 0, 36))
+	WebNetwork.create_cocoon(Galerias.W(Vector3(44, 0, 36)))
 	for pair in [["G4_a", "G4_e"], ["G4_b", "G4_f"], ["G4_c", "G4_h"]]:
 		WebNetwork.create_strand(WebNetwork.anchors[pair[0]], WebNetwork.anchors[pair[1]])
 	await _frames(3)
 	_check(GameState.flags.has("g4_territorio"), "três fios ligados ao casulo = território tecido")
 
 	# Ácido machuca
-	_teleport(Vector3(65.0, 0.1, 76.0))
+	_teleport(Galerias.W(Vector3(65.0, 0.1, 76.0)))
 	hp0 = player.hp
 	await _seconds(1.0)
 	_check(player.hp < hp0 - 10.0, "poça ácida machuca (PV %d)" % int(player.hp))
 	player.hp = player.max_hp
 
 	# A Ponte quebrada continua para a Galeria do eco
-	_check(_walkable([Vector2(104, 37), Vector2(114, 36), Vector2(127, 38), Vector2(138, 40)]), "Ponte quebrada → Galeria do eco")
+	_check(_walkable([Galerias.W2(104, 37), Galerias.W2(114, 36), Galerias.W2(127, 38), Galerias.W2(138, 40)]), "Ponte quebrada → Galeria do eco")
 
 
 func _alive(group: String) -> Array:
 	return get_tree().get_nodes_in_group(group).filter(func(c): return is_instance_valid(c) and not c.dead)
+
+
+func _room_center(id: String) -> Vector3:
+	for r in layer.rooms:
+		if r["id"] == id:
+			var sh: Dictionary = r["shapes"][0]
+			var c: Vector2 = sh["c"] if sh.has("c") else (sh["pts"][sh["pts"].size() - 1] if sh.has("pts") else Vector2.ZERO)
+			var p: Vector3 = layer._snap_floor(Vector3(c.x, 0, c.y), 0.6)
+			for rr in range(0, 12):
+				for k in 12:
+					var q := p + Vector3(cos(k * TAU / 12.0), 0, sin(k * TAU / 12.0)) * float(rr)
+					if World.nav.walkable(q, NavGrid.Kind.SMALL):
+						return q
+			return p
+	return Vector3.ZERO
 
 
 func _walkable(pts: Array) -> bool:

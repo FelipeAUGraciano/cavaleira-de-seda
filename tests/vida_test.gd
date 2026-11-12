@@ -28,7 +28,7 @@ func _run() -> void:
 	_check(World.nav != null and World.nav.room_cells.size() == layer.rooms.size(), "grade de navegação montada para todas as câmaras")
 	_check(World.graze_spots.size() > 10, "pastos de musgo perto dos fungos (%d)" % World.graze_spots.size())
 	_check(World.creatures.size() >= 20, "criaturas registradas no mundo (%d)" % World.creatures.size())
-	var near := World.near(Vector3(28, 0, -6), 8.0)
+	var near := World.near(Galerias.W(Vector3(28, 0, -6)), 8.0)
 	_check(near.any(func(c): return c is Bat), "busca espacial acha o bando de morcegos")
 
 	# Relógio: fungos acendem e apagam
@@ -39,7 +39,7 @@ func _run() -> void:
 	_check(bright > 0.9 and dark < 0.4, "fungos acesos no Brilho (%.2f) e apagados na Caça (%.2f)" % [bright, dark])
 
 	# Longe da jogadora, as criaturas pensam menos vezes (LOD)
-	_teleport(Vector3(0.0, 0.1, -17.0))
+	_teleport(Galerias.W(Vector3(0.0, 0.1, -17.0)))
 	await _seconds(1.0)
 	var boss: Centipede = layer.centipede
 	_check(not boss.near_player and boss.decide_interval() >= 1.0, "longe da jogadora, a Centopeia decide 1x por segundo")
@@ -48,7 +48,7 @@ func _run() -> void:
 	World.clock.set_phase(CaveClock.Phase.CACA)
 	var larva: Larva = null
 	for c in World.creatures:
-		if c is Larva and Fx.flat_dist(c.global_position, Vector3(44, 0, 72)) > 14.0:
+		if c is Larva and Fx.flat_dist(c.global_position, Galerias.W(Vector3(44, 0, 72))) > 14.0:
 			larva = c
 			break
 	larva.needs.fatigue = 90.0
@@ -95,12 +95,12 @@ func _run() -> void:
 			break
 	boss.needs.restless = 0.0
 	boss.needs.hunger = 0.0
-	boss.global_position = Vector3(135.0, 0.05, 77.0)
+	boss.global_position = Galerias.W(Vector3(135.0, 0.05, 77.0))
 	boss._reset_trail()
-	frog.global_position = Vector3(139.0, 0.3, 77.0)
+	frog.global_position = Galerias.W(Vector3(139.0, 0.3, 77.0))
 	frog.needs.fear = 0.0
 	frog.player_memory = 0.0
-	_teleport(Vector3(132.0, 0.1, 60.0))
+	_teleport(Galerias.W(Vector3(132.0, 0.1, 60.0)))
 	await _seconds(1.0)
 	_check(frog.needs.fear > 25.0 and frog.brain.is_doing("flee"), "sapo foge da Centopeia (%s)" % frog.activity)
 
@@ -112,7 +112,7 @@ func _run() -> void:
 	var intruder := Frog.new()
 	intruder.position = lz.home + Vector3(3.0, 0.3, 0.0)
 	layer.ecosystem.add_child(intruder)
-	_teleport(Vector3(44.0, 0.1, 50.0))
+	_teleport(Galerias.W(Vector3(44.0, 0.1, 50.0)))
 	await _seconds(1.5)
 	_check(lz.brain.is_doing("fight"), "lagarto briga com o sapo que invadiu o jardim (%s)" % lz.activity)
 	await _seconds(6.0)

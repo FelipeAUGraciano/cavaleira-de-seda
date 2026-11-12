@@ -23,11 +23,11 @@ func _run() -> void:
 	layer.hud._show_help = false
 	var p: Player = GameState.player
 	var sheet := Image.create(1600, 900, false, Image.FORMAT_RGBA8)
-	var cases := [[CaveClock.Phase.BRILHO, true], [CaveClock.Phase.BRILHO, false], [CaveClock.Phase.CACA, true], [CaveClock.Phase.CACA, false]]
+	var cases := [[CaveClock.Phase.BRILHO, true], [CaveClock.Phase.BRILHO, true], [CaveClock.Phase.CACA, true], [CaveClock.Phase.CACA, false]]
 	for i in cases.size():
 		World.clock.paused = true
 		World.clock.set_phase(cases[i][0])
-		p.global_position = Vector3(-2.0, 0.1, 32.0)
+		p.global_position = layer._snap_floor(Galerias.W(Vector3(40.0, 0.1, 36.0)), 1.5)
 		p.invuln = 99.0
 		p.rune_on = cases[i][1]
 		p.snap_camera()

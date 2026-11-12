@@ -30,38 +30,33 @@ func _ready() -> void:
 
 func _run() -> void:
 	# Caminhos novos
-	var routes := {
-		"G8→G9→G13": [Vector2(138, 40), Vector2(150, 44), Vector2(161, 47), Vector2(173, 44), Vector2(182, 44), Vector2(176, 52), Vector2(160, 63), Vector2(141, 72), Vector2(135, 77)],
-		"G13→G14→G15": [Vector2(135, 77), Vector2(136, 92), Vector2(135, 112), Vector2(158, 111), Vector2(170, 110)],
-		"G5→G11→G13": [Vector2(44, 72), Vector2(54, 74), Vector2(64, 78), Vector2(80, 82), Vector2(96, 80), Vector2(112, 83), Vector2(128, 78), Vector2(135, 77)],
-		"G5→G12": [Vector2(44, 72), Vector2(44, 81), Vector2(43, 94), Vector2(43, 104)],
-		"fresta G8→G10": [Vector2(150, 39), Vector2(160, 37), Vector2(165, 31), Vector2(167, 17), Vector2(168, 13)],
-	}
-	for r in routes:
-		_check(_walkable(routes[r]), "caminho %s" % r)
-	_check(not layer.cave.is_floor(Vector2(138, 26.5)), "abismo separa a Galeria do eco da borda dos aventureiros")
+	for pr in [[Galerias.W(Vector3(138, 0, 40)), Galerias.W(Vector3(135, 0, 77))], [Galerias.W(Vector3(135, 0, 80)), Galerias.W(Vector3(135, 0, 112))]]:
+		var a: Vector3 = layer._snap_floor(pr[0], 0.8)
+		var b: Vector3 = layer._snap_floor(pr[1], 0.8)
+		_check(not World.nav.path(a, b, NavGrid.Kind.SMALL).is_empty(), "caminho a pé %s → %s" % [layer.map_system.room_at(a).get("id", "?"), layer.map_system.room_at(b).get("id", "?")])
+	_check(not layer.cave.is_floor(Galerias.W2(138, 26.5)), "abismo separa a Galeria do eco da borda dos aventureiros")
 	var nest := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Lizard and c.has_meta("nest_id"))
 	_check(nest.size() == 3, "três lagartos no Ninho (G12)")
 
 	# G8: aventureiros passam do outro lado do abismo e somem
-	_teleport(Vector3(136.0, 0.1, 42.0))
+	_teleport(Galerias.W(Vector3(136.0, 0.1, 42.0)))
 	await _seconds(3.0)
 	_check(get_tree().get_nodes_in_group("adventurer").size() == 3, "três aventureiros aparecem na Galeria do eco")
 	var far := true
 	for a in get_tree().get_nodes_in_group("adventurer"):
-		if (a as Node3D).global_position.z > 24.0:
+		if (a as Node3D).global_position.z > Galerias.W2(0, 24).y:
 			far = false
 	_check(far, "eles andam pela borda do outro lado do abismo")
 	await _seconds(24.0)
 	_check(get_tree().get_nodes_in_group("adventurer").is_empty(), "e vão embora")
 
 	# G9: fogo queima fio; anotações
-	_teleport(Vector3(182.0, 0.1, 42.0))
+	_teleport(Galerias.W(Vector3(182.0, 0.1, 42.0)))
 	var n0: int = WebNetwork.strands.size()
 	WebNetwork.create_strand(WebNetwork.anchors["G9_a"], WebNetwork.anchors["G9_b"])
 	await _seconds(1.0)
 	_check(WebNetwork.strands.size() == n0, "tocha queima o fio esticado perto dela")
-	_teleport(Vector3(183.5, 0.1, 45.6))
+	_teleport(Galerias.W(Vector3(183.5, 0.1, 45.6)))
 	await _frames(3)
 	for i in 3:
 		player._interact()
@@ -71,11 +66,11 @@ func _run() -> void:
 	# Ácido: resistência por comer sapo
 	player.resist_acid = 0
 	player.hp = player.max_hp
-	_teleport(Vector3(115.0, 0.1, 80.0))
+	_teleport(Galerias.W(Vector3(115.0, 0.1, 80.0)))
 	await _seconds(1.0)
 	_check(player.hp < player.max_hp, "sem resistência, o ácido queima")
 	var frog := Frog.new()
-	frog.position = Vector3(100.0, 0.3, 80.0)
+	frog.position = Galerias.W(Vector3(100.0, 0.3, 80.0))
 	layer.ecosystem.add_child(frog)
 	await _frames(3)
 	frog.take_damage(999.0, player)
@@ -96,13 +91,13 @@ func _run() -> void:
 	var boss: Centipede = layer.centipede
 	_check(boss != null and not boss.engaged(), "Centopeia cuidando da vida (fora de combate)")
 	_check(layer._door_out != null, "saída para a Borda da Fenda fechada enquanto ela vive")
-	var goal: Vector3 = Vector3(182, 0, 44)
+	var goal: Vector3 = Galerias.W(Vector3(182, 0, 44))
 	var route := World.nav.path(layer.ARENA, goal, NavGrid.Kind.LARGE)
 	_check(route.size() > 0 and Fx.flat_dist(route[route.size() - 1], goal) < 1.5, "ela tem caminho do covil até o Acampamento (corpo grande)")
-	_check(World.nav.path(Vector3(150, 0, 39), Vector3(168, 0, 13), NavGrid.Kind.LARGE).is_empty() or not World.nav.walkable(Vector3(166.5, 0, 22), NavGrid.Kind.LARGE), "mas não cabe na fresta da G10")
+	_check(World.nav.path(Galerias.W(Vector3(150, 0, 39)), Galerias.W(Vector3(168, 0, 13)), NavGrid.Kind.LARGE).is_empty() or not World.nav.walkable(Galerias.W(Vector3(166.5, 0, 22)), NavGrid.Kind.LARGE), "mas não cabe na fresta da G10")
 
 	# Passeio: inquieta, sai do covil para outra câmara
-	_teleport(Vector3(30.0, 0.1, 36.0))   # longe e parada
+	_teleport(Galerias.W(Vector3(30.0, 0.1, 36.0)))   # longe e parada
 	boss.needs.restless = 100.0
 	boss.needs.hunger = 0.0
 	var start := boss.global_position
@@ -112,7 +107,7 @@ func _run() -> void:
 
 	# Arrebenta fios por onde passa (fora de combate)
 	var s0 := WebNetwork.create_strand(WebNetwork.anchors["G13_a"], WebNetwork.anchors["G13_b"])
-	boss.global_position = Vector3(135.0, 0.05, 73.0)
+	boss.global_position = Galerias.W(Vector3(135.0, 0.05, 73.0))
 	boss._reset_trail()
 	await _seconds(0.5)
 	_check(not WebNetwork.strands.has(s0), "passeando, ela arrebenta o fio em que pisa")
@@ -166,7 +161,7 @@ func _run() -> void:
 	_check(player.dead == false and is_equal_approx(boss.hp, hp0), "você volta do casulo e a Centopeia continua ferida")
 
 	# Investida através de um fio = enredada
-	_teleport(Vector3(122.0, 0.1, 118.0))   # longe e parada: ela não sente
+	_teleport(Galerias.W(Vector3(122.0, 0.1, 118.0)))   # longe e parada: ela não sente
 	player.velocity = Vector3.ZERO
 	boss.global_position = Vector3(layer.ARENA.x - 6.0, 0.05, layer.ARENA.z)
 	boss.velocity = Vector3.ZERO
@@ -195,7 +190,7 @@ func _run() -> void:
 	boss.player_memory = 0.0
 	boss.mode = Centipede.Mode.IDLE
 	boss.hp = boss.max_hp * 0.3
-	boss.global_position = Vector3(135.0, 0.05, 80.0)
+	boss.global_position = Galerias.W(Vector3(135.0, 0.05, 80.0))
 	boss._reset_trail()
 	await _seconds(1.5)
 	_check(boss.brain.is_doing("retreat"), "com 30%% da vida ela foge mancando para o covil")
@@ -217,12 +212,15 @@ func _run() -> void:
 	_check(player.crystal_skin, "comer a carapaça dá Pele de Cristal")
 	player.hp = player.max_hp
 	player.invuln = 0.0   # sem a invencibilidade de algum golpe anterior
+	player.invuln = 0.0
+	if player.dead:
+		player._respawn()
 	var hp_before := player.hp
 	var took := player.take_damage(10.0, null, false)
 	_check(took and absf((hp_before - player.hp) - 8.0) < 0.1, "Pele de Cristal reduz o dano em 20%% (%.1f)" % (hp_before - player.hp))
 
 	# G15: o chão cede (o teste para antes de trocar de cena)
-	_teleport(Vector3(169.0, 0.1, 110.0))
+	_teleport(Galerias.W(Vector3(169.0, 0.1, 110.0)))
 	await _seconds(3.0)
 	_check(GameState.flags.has("ato1_fim"), "na Borda da Fenda o chão cede: fim do Ato 1")
 

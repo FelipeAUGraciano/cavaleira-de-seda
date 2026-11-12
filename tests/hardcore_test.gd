@@ -52,12 +52,12 @@ func _combat() -> void:
 	_check(bite.damage * 2.0 >= player.max_hp, "dois botes matam a Filhote (%.0f x2 vs %.0f PV)" % [bite.damage, player.max_hp])
 
 	# O golpe não cancela quando você sai do alcance
-	_teleport(Vector3(-2.0, 0.1, 30.0))
-	frog.global_position = Vector3(-2.0, 0.0, 32.0)
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
+	frog.global_position = Galerias.W(Vector3(-2.0, 0.0, 32.0))
 	frog.facing = Vector3(0, 0, -1)
 	frog.start_attack(bite, player)
 	await _frames(6)
-	_teleport(Vector3(-2.0, 0.1, 24.0))
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 24.0)))
 	var phases := {}
 	for i in 90:
 		await get_tree().physics_frame
@@ -80,9 +80,9 @@ func _combat() -> void:
 	player.velocity = Vector3.ZERO
 
 	# Quem fica rodando do lado leva o giro
-	frog.global_position = Vector3(-2.0, 0.0, 30.0)
+	frog.global_position = Galerias.W(Vector3(-2.0, 0.0, 30.0))
 	frog.facing = Vector3(0, 0, 1)
-	_teleport(Vector3(0.2, 0.1, 30.0))   # do lado (90°), a 2,2 m
+	_teleport(Galerias.W(Vector3(0.2, 0.1, 30.0)))   # do lado (90°), a 2,2 m
 	for a in frog.attacks:
 		a.cd_left = 0.0
 	var spins := 0
@@ -96,8 +96,8 @@ func _combat() -> void:
 	frog.hp = frog.max_hp
 	frog.take_damage(frog.max_hp * 0.55, player)
 	_check(frog.enraged, "abaixo da metade da vida o sapo fica furioso")
-	frog.global_position = Vector3(-2.0, 0.0, 36.0)
-	_teleport(Vector3(-2.0, 0.1, 30.0))
+	frog.global_position = Galerias.W(Vector3(-2.0, 0.0, 36.0))
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
 	for a in frog.attacks:
 		a.cd_left = 99.0
 	frog.find_attack("cuspe").cd_left = 0.0
@@ -119,8 +119,8 @@ func _pursuit() -> void:
 	var frog := _frog()
 	frog.hp = frog.max_hp
 	frog.enraged = false
-	frog.global_position = Vector3(-2.0, 0.0, 34.0)
-	_teleport(Vector3(-2.0, 0.1, 30.0))
+	frog.global_position = Galerias.W(Vector3(-2.0, 0.0, 34.0))
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
 	player.rune_on = true
 	frog.player_memory = frog.memory_time
 	frog.last_player_pos = player.global_position
@@ -191,26 +191,27 @@ func _falls() -> void:
 	# Visão curta
 	_check(layer.dark_vision and player.sight_radius() < 4.0, "visão curta: a Filhote enxerga %.1f m no escuro" % player.sight_radius())
 	# Queda com andar de baixo
-	_teleport(Vector3(71.0, -3.0, 38.0))   # 1ª fenda da Ponte quebrada
-	player.last_safe_pos = Vector3(67.0, 0.0, 38.0)
+	_teleport(Galerias.W(Vector3(71.0, -3.0, 38.0)))   # 1ª fenda da Ponte quebrada
+	player.last_safe_pos = Galerias.W(Vector3(67.0, 0.0, 38.0))
 	player.hp = player.max_hp
 	await _frames(80)
-	_check(not player.dead and layer.map_system.room_at(player.global_position).get("id", "") == "P1", "caiu na fenda da Ponte e acordou nas Profundezas (%s)" % layer.map_system.room_at(player.global_position).get("id", "?"))
+	_check(not player.dead and int(layer.map_system.room_at(player.global_position).get("floor", 0)) == 1, "caiu na fenda da Ponte e acordou nas Profundezas (%s)" % layer.map_system.room_at(player.global_position).get("id", "?"))
 	_check(absf(player.hp - player.max_hp * 0.65) < 1.5, "a queda tira 35%% da vida (%.0f/%.0f)" % [player.hp, player.max_hp])
 	layer.hud.fade_alpha = 0.0
 	# Sem fundo
-	_teleport(Vector3(77.0, -3.0, 2.0))   # abismo longo da G16: sem fundo
-	player.last_safe_pos = Vector3(70.0, 0.0, 10.0)
+	_teleport(Galerias.W(Vector3(77.0, -3.0, 2.0)))   # abismo longo da G16: sem fundo
+	player.last_safe_pos = Galerias.W(Vector3(70.0, 0.0, 10.0))
 	await _frames(10)
 	_check(player.dead, "abismo sem fundo mata")
 	player._respawn()
 	# Rampa leva de volta para cima
-	_teleport(Vector3(22.0, 0.1, 214.0))
+	var ramp: Rect2 = layer.passages[1]["rect"]   # a rampa de baixo que sobe para a Poça rasa
+	_teleport(Vector3(ramp.get_center().x, 0.1, ramp.get_center().y))
 	await _frames(70)
 	_check(layer.map_system.room_at(player.global_position).get("id", "") == "G2", "rampa das Profundezas leva à Poça rasa (%s)" % layer.map_system.room_at(player.global_position).get("id", "?"))
 	layer.hud.fade_alpha = 0.0
 	await _frames(60)
-	_teleport(Vector3(-2.0, 0.1, 30.0))
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
 
 
 func _permadeath() -> void:
