@@ -327,6 +327,9 @@ func _build_environment() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = fog_color
 	env.fog_density = 0.006
+	env.adjustment_enabled = true
+	env.adjustment_brightness = Settings.brightness
+	Settings.changed.connect(func(): env.adjustment_brightness = Settings.brightness)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)

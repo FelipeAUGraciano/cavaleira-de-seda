@@ -10,6 +10,7 @@ var _player := AudioStreamPlayer.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_player.bus = "Voz"
 	add_child(_player)
 	EventBus.monologue.connect(_on_monologue)
 

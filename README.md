@@ -2,6 +2,15 @@
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
 
+## Novidades da v0.8 — Opções e 3 espaços de save
+
+- **Opções** (menu inicial e pausa), em três abas:
+  - **Som:** volume geral, música, efeitos e dublagem.
+  - **Tela:** tela cheia, brilho (para telas escuras; a caverna continua escura de propósito) e mostrar ou esconder a lista de controles.
+  - **Controles:** troque qualquer tecla do teclado/mouse e qualquer botão do controle. Se a tecla já era de outra ação, as duas trocam de lugar. Esc cancela; há "Restaurar controles padrão". A lista de controles do jogo mostra as teclas novas.
+- **3 espaços de save:** Novo jogo pergunta em qual espaço começar (e confirma antes de apagar um cheio); Carregar escolhe qual continuar. O save antigo vira o Espaço 1.
+- As opções ficam em `user://opcoes.cfg` e valem para todos os espaços.
+
 ## Novidades da v0.8 — a Cavaleira ganhou corpo
 
 - **Modelos da protagonista:** corpo, segmento de pata e lâmina de cristal. As 8 patas saem dos encaixes que vieram no modelo e usam a peça do segmento (com IK, como antes).

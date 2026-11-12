@@ -9,20 +9,23 @@ const TEXT := Color(0.92, 0.93, 0.97)
 const QUIET := Color(0.7, 0.72, 0.8)
 const THREAT_COLORS := [Color(0.45, 0.9, 0.45), Color(1.0, 0.85, 0.3), Color(1.0, 0.35, 0.3), Color(0.85, 0.4, 1.0)]
 const THREAT_NAMES := ["Baixa", "Média", "Alta", "Mortal"]
-const HELP_LINES := [
-	"CONTROLES (H esconde)",
-	"WASD mover · Mouse mirar · Shift correr",
-	"Botão esq. ataque (combo x3) · Botão dir. mordida (veneno)",
-	"Espaço esquiva (parada = backstep)",
-	"Q lançar fio: puxa presa pequena ou te puxa até a parede",
-	"Segurar R: Modo Tecelagem (câmera lenta)",
-	"   clique em 2 pilares = fio-guia (5 seda)",
-	"   botão dir. = teia de captura (15 seda, nível 3)",
-	"C tecer casulo (30 seda) · E comer / descansar",
-	"F apagar/acender runa (furtividade)",
-	"Segurar Alt ou Tab: Leitura da criatura sob o cursor",
-	"M mapa · Esc pausa / menu · F1 +1 nível (teste) · F8 novo jogo",
-]
+static func help_lines() -> Array:
+	## Lista de controles com as teclas atuais (o jogador pode trocar nas Opções).
+	var k := func(a: String) -> String: return Settings.text(a)
+	return [
+		"CONTROLES (%s esconde)" % k.call("help"),
+		"%s mover · Mouse mirar · %s correr" % [Settings.move_text(), k.call("run")],
+		"%s ataque (combo x3) · %s mordida (veneno)" % [k.call("attack"), k.call("bite")],
+		"%s esquiva (parada = backstep)" % k.call("dodge"),
+		"%s lançar fio: puxa presa pequena ou te puxa até a parede" % k.call("throw_silk"),
+		"Segurar %s: Modo Tecelagem (câmera lenta)" % k.call("weave"),
+		"   %s em 2 pilares = fio-guia (5 seda)" % k.call("attack"),
+		"   %s = teia de captura (15 seda, nível 3)" % k.call("bite"),
+		"%s tecer casulo (30 seda) · %s comer / descansar" % [k.call("cocoon"), k.call("interact")],
+		"%s apagar/acender runa (furtividade)" % k.call("rune"),
+		"Segurar %s: Leitura da criatura sob o cursor" % k.call("read"),
+		"%s mapa · %s pausa / opções · F1 +1 nível (teste) · F8 novo jogo" % [k.call("map"), k.call("pause")],
+	]
 const LOCK_NAMES := {"fresta": "fresta", "cristal": "parede de cristal", "acido": "poça ácida", "abismo_longo": "abismo longo", "brasa": "brasa", "cortina": "cortina viva", "desabamento": "desabamento"}
 
 var player: Player = null
@@ -44,6 +47,7 @@ var _subtitle := ""
 var _title_time := 0.0
 const TITLE_SECS := 5.0   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
 var _pause_box: MenuBox
+var _options: OptionsMenu
 var _hint_text := ""
 var _hint_time := 0.0
 var _last_us := 0
@@ -75,6 +79,12 @@ func _ready() -> void:
 	_pause_box = MenuBox.new()
 	_pause_box.visible = false
 	center.add_child(_pause_box)
+	_options = OptionsMenu.new()
+	_options.visible = false
+	_options.closed.connect(_on_options_closed)
+	center.add_child(_options)
+	_show_help = Settings.show_help
+	Settings.changed.connect(func(): _show_help = Settings.show_help)
 	_cv = _root
 	_font = ThemeDB.fallback_font
 	EventBus.message.connect(_on_message)
@@ -96,16 +106,18 @@ func _process(_delta: float) -> void:
 	_big_time = maxf(0.0, _big_time - dt)
 	_hint_time = maxf(0.0, _hint_time - dt)
 	_title_time = maxf(0.0, _title_time - dt)
-	if Input.is_action_just_pressed("map"):
-		_show_map = not _show_map
-
-	if Input.is_action_just_pressed("help"):
-		_show_help = not _show_help
-	if Input.is_action_just_pressed("pause"):
-		if get_tree().paused:
-			close_pause()
-		else:
-			open_pause()
+	if Settings.input_blocked() or _options.visible:
+		pass   # Opções abertas ou trocando tecla: as teclas do jogo esperam
+	else:
+		if Input.is_action_just_pressed("map"):
+			_show_map = not _show_map
+		if Input.is_action_just_pressed("help"):
+			Settings.set_value("mostrar_controles", not _show_help)
+		if Input.is_action_just_pressed("pause"):
+			if get_tree().paused:
+				close_pause()
+			else:
+				open_pause()
 	if Input.is_action_just_pressed("debug_reset"):
 		GameState.reset_run()
 		return
@@ -123,6 +135,7 @@ func open_pause() -> void:
 	get_tree().paused = true
 	_pause_box.clear()
 	_pause_box.add_button("Voltar ao jogo", close_pause)
+	_pause_box.add_button("Opções", open_options)
 	_pause_box.add_button("Esconder controles" if _show_help else "Mostrar controles", _toggle_help_from_pause)
 	_pause_box.add_button("Menu inicial", GameState.to_title)
 	_pause_box.add_label("O jogo salva quando você descansa num casulo.\nO que fez depois disso se perde ao sair.", 15, QUIET)
@@ -133,13 +146,24 @@ func open_pause() -> void:
 
 func close_pause() -> void:
 	_pause_box.visible = false
+	_options.visible = false
 	get_tree().paused = false
 
 
-func _toggle_help_from_pause() -> void:
-	_show_help = not _show_help
+func open_options() -> void:
+	_pause_box.visible = false
+	_options.open()
+
+
+func _on_options_closed() -> void:
 	open_pause()
 	MenuBox.focus_later(_pause_box.buttons()[1])
+
+
+func _toggle_help_from_pause() -> void:
+	Settings.set_value("mostrar_controles", not _show_help)
+	open_pause()
+	MenuBox.focus_later(_pause_box.buttons()[2])
 
 
 # ---------------------------------------------------------------- eventos
@@ -337,8 +361,8 @@ func _draw_status(vp: Vector2) -> void:
 func _draw_weave_hint(vp: Vector2) -> void:
 	var lines := [
 		"MODO TECELAGEM — tempo a 25%, gasta Energia",
-		"Clique em 2 pilares para esticar um fio-guia (5 seda, até 12 m)",
-		"Botão direito: teia de captura no cursor (15 seda, nível 3) · C: casulo (30 seda)",
+		"%s em 2 pilares para esticar um fio-guia (5 seda, até 12 m)" % Settings.text("attack"),
+		"%s: teia de captura no cursor (15 seda, nível 3) · %s: casulo (30 seda)" % [Settings.text("bite"), Settings.text("cocoon")],
 	]
 	var y := vp.y - 110.0
 	_cv.draw_rect(Rect2(vp.x * 0.5 - 380.0, y - 26.0, 760.0, 84.0), Color(0, 0, 0, 0.5))
@@ -349,9 +373,10 @@ func _draw_weave_hint(vp: Vector2) -> void:
 func _draw_help(vp: Vector2) -> void:
 	var x := vp.x - 440.0
 	var y := 240.0
-	_cv.draw_rect(Rect2(x - 12.0, y - 6.0, 436.0, HELP_LINES.size() * 20.0 + 16.0), Color(0, 0, 0, 0.45))
-	for i in HELP_LINES.size():
-		_text(x, y + 14.0 + i * 20.0, HELP_LINES[i], 14 if i == 0 else 13, TEXT if i == 0 else QUIET)
+	var lines := help_lines()
+	_cv.draw_rect(Rect2(x - 12.0, y - 6.0, 436.0, lines.size() * 20.0 + 16.0), Color(0, 0, 0, 0.45))
+	for i in lines.size():
+		_text(x, y + 14.0 + i * 20.0, lines[i], 14 if i == 0 else 13, TEXT if i == 0 else QUIET)
 
 
 func _draw_reading(vp: Vector2) -> void:

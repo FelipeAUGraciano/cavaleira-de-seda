@@ -1,7 +1,11 @@
 extends Node
 ## Estado global: mapa de controles, falas já ditas e save/load.
 
-const SAVE_PATH := "user://save.json"
+const OLD_SAVE_PATH := "user://save.json"   ## save de antes dos espaços: vira o espaço 1
+const SLOTS := 3
+
+## Espaço de save em uso (1 a 3). O menu inicial escolhe; Settings lembra o último.
+var slot := 1
 
 ## Referência para a jogadora ativa (definida pela própria jogadora no _ready).
 var player = null
@@ -23,6 +27,16 @@ var knowledge: Dictionary = {"maps": {}}
 
 func _ready() -> void:
 	_setup_input()
+	if FileAccess.file_exists(OLD_SAVE_PATH) and not FileAccess.file_exists(save_path(1)):
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(OLD_SAVE_PATH), ProjectSettings.globalize_path(save_path(1)))
+
+
+func save_path(s: int = -1) -> String:
+	return "user://save_%d.json" % (slot if s < 1 else s)
+
+
+func has_save(s: int = -1) -> bool:
+	return not load_game(s).is_empty()
 
 
 # ---------------------------------------------------------------- falas
@@ -105,23 +119,25 @@ func restart_act() -> void:
 
 
 func _write(data: Dictionary) -> void:
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var f := FileAccess.open(save_path(), FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(data, "\t"))
 
 
-func load_game() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
+func load_game(s: int = -1) -> Dictionary:
+	var path := save_path(s)
+	if not FileAccess.file_exists(path):
 		return {}
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if parsed is Dictionary:
 		return parsed
 	return {}
 
 
-func delete_save() -> void:
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+func delete_save(s: int = -1) -> void:
+	var path := save_path(s)
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 const TITLE_SCENE := "res://world/title.tscn"

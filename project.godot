@@ -14,6 +14,7 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
+Settings="*res://autoload/settings.gd"
 WebNetwork="*res://autoload/web_network.gd"
 Voice="*res://autoload/voice.gd"
 World="*res://autoload/world.gd"

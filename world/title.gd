@@ -1,8 +1,8 @@
 extends Control
-## Menu inicial: Continuar (se houver save), Novo jogo, Controles e Sair.
+## Menu inicial: Continuar (se houver save), Novo jogo e Carregar (3 espaços), Opções e Sair.
 ## Funciona com mouse, teclado (setas + Enter, Esc volta) e controle.
 
-const VERSION := "protótipo v0.7"
+const VERSION := "protótipo v0.8"
 const LAYER_NAMES := {
 	"res://world/layers/bercario.tscn": "Berçário",
 	"res://world/layers/galerias.tscn": "Galerias Úmidas",
@@ -11,6 +11,7 @@ const LAYER_NAMES := {
 const FORM_NAMES := ["Filhote de Seda", "Cavaleira de Seda"]
 
 var box: MenuBox
+var options: OptionsMenu
 var _screen := "main"
 var _t := 0.0
 var _web: Array = []      ## fios da teia de fundo: [de, até]
@@ -28,70 +29,137 @@ func _ready() -> void:
 	add_child(center)
 	box = MenuBox.new()
 	center.add_child(box)
+	var oc := CenterContainer.new()
+	oc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	oc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(oc)
+	options = OptionsMenu.new()
+	options.visible = false
+	options.closed.connect(func():
+		show_main()
+		for b in box.buttons():
+			if b.text == "Opções":
+				MenuBox.focus_later(b))
+	oc.add_child(options)
 	show_main()
 
 
 func has_save() -> bool:
-	return not GameState.load_game().is_empty()
+	return GameState.has_save()
 
 
-func save_summary() -> String:
+func any_save() -> bool:
+	for k in range(1, GameState.SLOTS + 1):
+		if GameState.has_save(k):
+			return true
+	return false
+
+
+func save_summary(slot: int = -1) -> String:
 	## "Galerias Úmidas · Filhote de Seda, nível 3"
-	var data := GameState.load_game()
+	var data := GameState.load_game(slot)
+	if data.is_empty():
+		return "vazio"
 	var where := String(LAYER_NAMES.get(String(data.get("scene", "")), "?"))
 	var p: Dictionary = data.get("player", {})
+	if p.is_empty():
+		p = (data.get("act", {}) as Dictionary).get("player", {})
 	var lvl := int(p.get("level", 1))
 	if p.has("form"):
 		var f := clampi(int(p["form"]), 0, FORM_NAMES.size() - 1)
 		return "%s · %s, nível %d" % [where, FORM_NAMES[f], lvl]
-	return "%s · nível %d (save antigo)" % [where, lvl]
+	return "%s · nível %d" % [where, lvl]
 
 
 # ---------------------------------------------------------------- telas
 
 func show_main() -> void:
 	_screen = "main"
+	options.visible = false
+	box.visible = true
 	box.clear()
 	if has_save():
 		box.add_button("Continuar", continue_game)
-		box.add_label(save_summary(), 16, Color(0.6, 0.66, 0.8))
-		box.add_button("Novo jogo", show_confirm_new)
-	else:
-		box.add_button("Novo jogo", new_game)
-	box.add_button("Controles", show_controls)
+		box.add_label("Espaço %d · %s" % [GameState.slot, save_summary()], 16, Color(0.6, 0.66, 0.8))
+	box.add_button("Novo jogo", show_slots.bind("new"))
+	if any_save():
+		box.add_button("Carregar", show_slots.bind("load"))
+	box.add_button("Opções", show_options)
 	box.add_button("Sair", func(): get_tree().quit())
 	box.focus_first()
 
 
-func show_confirm_new() -> void:
+func show_slots(mode: String) -> void:
+	## Os 3 espaços de save. "new": escolher onde começar; "load": escolher qual continuar.
+	_screen = "slots_" + mode
+	box.clear()
+	box.add_label("Novo jogo: escolha um espaço" if mode == "new" else "Carregar", 26, Color(0.92, 0.93, 0.97))
+	for k in range(1, GameState.SLOTS + 1):
+		var full := GameState.has_save(k)
+		var b := box.add_button("Espaço %d — %s" % [k, save_summary(k)], func(): _pick_slot(mode, k))
+		b.custom_minimum_size = Vector2(620, 52)
+		if mode == "load" and not full:
+			b.disabled = true
+	box.add_button("Voltar", show_main)
+	box.focus_first()
+	if mode == "load":
+		for b in box.buttons():
+			if not b.disabled:
+				MenuBox.focus_later(b)
+				break
+
+
+func _pick_slot(mode: String, k: int) -> void:
+	if mode == "load":
+		_use_slot(k)
+		continue_game()
+	elif GameState.has_save(k):
+		show_confirm_new(k)
+	else:
+		_use_slot(k)
+		new_game()
+
+
+func show_confirm_new(k: int = -1) -> void:
+	if k < 1:
+		k = GameState.slot
 	_screen = "confirm"
 	box.clear()
-	box.add_label("Começar do zero apaga o save atual\n(%s)." % save_summary(), 20, Color(0.92, 0.93, 0.97))
-	box.add_button("Sim, começar do zero", new_game, true)
-	box.add_button("Voltar", show_main)
+	box.add_label("Começar do zero no espaço %d apaga o save dele\n(%s)." % [k, save_summary(k)], 20, Color(0.92, 0.93, 0.97))
+	box.add_button("Sim, começar do zero", func():
+		_use_slot(k)
+		new_game(), true)
+	box.add_button("Voltar", show_slots.bind("new"))
 	box.focus_first()
 	# foco no "Voltar" para ninguém apagar o save sem querer
 	var b := box.buttons()
 	MenuBox.focus_later(b[b.size() - 1])
 
 
+func show_options() -> void:
+	_screen = "options"
+	box.visible = false
+	options.open()
+
+
 func show_controls() -> void:
-	_screen = "controls"
-	box.clear()
-	box.add_label("Controles", 26, Color(0.92, 0.93, 0.97))
-	var lines := PackedStringArray()
-	for i in range(1, Hud.HELP_LINES.size()):
-		lines.append(String(Hud.HELP_LINES[i]).strip_edges())
-	var l := box.add_label("\n".join(lines), 16)
-	l.custom_minimum_size = Vector2(720, 0)
-	box.add_label("No jogo, H mostra ou esconde esta lista. Controle também funciona.", 15, Color(0.6, 0.66, 0.8))
-	box.add_button("Voltar", show_main)
-	box.focus_first()
+	show_options()
+	options.show_page("controles")
+
+
+func _use_slot(k: int) -> void:
+	GameState.slot = k
+	Settings.set_value("espaco", k)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _screen == "options":
+		return   # as Opções cuidam do Esc
 	if _screen != "main" and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
-		show_main()
+		if _screen == "confirm":
+			show_slots("new")
+		else:
+			show_main()
 		get_viewport().set_input_as_handled()
 
 
