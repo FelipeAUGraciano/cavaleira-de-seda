@@ -75,6 +75,15 @@ var bonus_silk := 0.0
 var resist_rot := 0
 var resist_acid := 0            ## sobe comendo Sapo-de-rocha; 3 = atravessa as Poças ácidas
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
+var skills := {"fiandeira": true}   ## habilidades aprendidas no casulo (systems/skills.gd)
+var skill_points := 0               ## 1 por nível; a muda não tira
+var pantry: Array = []              ## despensa: presas embrulhadas [{"name", "sat", "silk"}]
+const PANTRY_MAX := 8
+const SILK_WRAP := 10.0
+const WRAP_RANGE := 8.0
+var _dash_hit: Array = []
+var _spin := 0.0                    ## Corte em Espiral: o corpo dá uma volta inteira
+const SPIN_TIME := 0.25
 var rune_on := true
 var dead := false
 var in_territory := false
@@ -523,7 +532,7 @@ func _state_normal() -> Vector3:
 	if _slow_time > 0.0:
 		spd *= _slow_mult
 	if on_strand:
-		spd *= STRAND_SPEED_MULT
+		spd *= 1.8 if has_skill("passos") else STRAND_SPEED_MULT
 	if satiety <= 0.0:
 		spd *= 0.8
 	if move_dir.length() > 0.1:
@@ -561,6 +570,9 @@ func _try_dodge() -> void:
 		energy_delay = 1.0
 		action_dir = move_dir.normalized()
 		invuln = DODGE_INVULN
+		_dash_hit.clear()
+		if has_skill("investida"):
+			collision_mask = 1 | 8   # atravessa os bichos durante a esquiva
 		_start_state(State.DODGE)
 	else:
 		if energy < BACKSTEP_COST:
@@ -574,7 +586,16 @@ func _try_dodge() -> void:
 
 func _state_dodge() -> Vector3:
 	noise = 3.0
+	if has_skill("investida"):
+		for n in get_tree().get_nodes_in_group("creature"):
+			var c := n as Creature
+			if c == null or c.dead or _dash_hit.has(c):
+				continue
+			if Fx.flat_dist(c.global_position, global_position) <= 1.0 + c.body_radius and absf(c.global_position.y - global_position.y) < 1.3:
+				_dash_hit.append(c)
+				c.take_damage(8.0, self)
 	if state_time >= DODGE_TIME:
+		collision_mask = 1 | 4 | 8
 		_start_state(State.NORMAL)
 	return action_dir * DODGE_SPEED
 
@@ -602,7 +623,13 @@ func _state_attack() -> Vector3:
 		return Vector3.ZERO
 	if not hit_done and state_time >= 0.1:
 		hit_done = true
-		_melee(float((form_data()["combo"] as Array)[combo_index]), ATTACK_RANGE * float(form_data()["scale"]) + 0.3, ATTACK_ARC, false)
+		var dmg := float((form_data()["combo"] as Array)[combo_index]) * (1.25 if has_skill("afiadas") else 1.0)
+		var reach := ATTACK_RANGE * float(form_data()["scale"]) + 0.3
+		if combo_index == 2 and _spiral_ready():
+			_spiral_fx(reach + 0.5)
+			_melee(dmg, reach + 0.5, 360.0, false)
+		else:
+			_melee(dmg, reach, ATTACK_ARC, false)
 	if state_time >= ATTACK_TIME:
 		if combo_queued and combo_index < 2:
 			_start_attack(combo_index + 1)
@@ -610,6 +637,21 @@ func _state_attack() -> Vector3:
 			_start_state(State.NORMAL)
 	var lunge := 3.0 if state_time < 0.12 else 0.0
 	return aim_dir * lunge + move_dir * 1.5
+
+
+func _spiral_ready() -> bool:
+	return has_skill("espiral") and form == Form.CAVALEIRA
+
+
+func _spiral_fx(r: float) -> void:
+	## Corte em Espiral: anel de luz em volta e as duas lâminas giram.
+	var root := get_parent()
+	var c := global_position + Vector3.UP * 0.45
+	for k in 12:
+		var a0 := k * TAU / 12.0
+		var a1 := (k + 1) * TAU / 12.0
+		Fx.beam(root, c + Vector3(cos(a0), 0, sin(a0)) * r, c + Vector3(cos(a1), 0, sin(a1)) * r, Color(0.7, 0.95, 1.0), 0.18, 0.06)
+	_spin = SPIN_TIME
 
 
 func _state_bite() -> Vector3:
@@ -682,7 +724,7 @@ func _throw_silk() -> void:
 		return
 	silk -= SILK_THROW
 	var from := global_position + Vector3.UP * 0.5
-	var to := from + aim_dir * THROW_RANGE
+	var to := from + aim_dir * throw_range()
 	var flyer := _flyer_in_aim()
 	if flyer != null:
 		Fx.beam(get_parent(), from, flyer.global_position, Color(0.9, 0.95, 1.0), 0.3, 0.05)
@@ -700,8 +742,8 @@ func _throw_silk() -> void:
 	Fx.beam(get_parent(), from, hit_pos, Color(0.9, 0.95, 1.0), 0.3, 0.05)
 	var c := hit["collider"] as Creature
 	if c != null:
-		if c.size == Creature.Size.P:
-			c.pull_toward(global_position, 10.0)
+		if c.size == Creature.Size.P or (c.size == Creature.Size.M and has_skill("puxao")):
+			c.pull_toward(global_position, 10.0 if c.size == Creature.Size.P else 6.0)
 			GameState.say_once("primeiro_puxao", "Vem cá, lanchinho!")
 		else:
 			_msg("%s é grande demais para puxar." % c.display_name)
@@ -715,7 +757,7 @@ func _throw_silk() -> void:
 func _flyer_in_aim() -> Creature:
 	## Criatura voando na direção da mira (fio lançado sobe até ela).
 	var best: Creature = null
-	var best_d := THROW_RANGE
+	var best_d := throw_range()
 	for n in get_tree().get_nodes_in_group("flyer"):
 		var c := n as Creature
 		if c == null or c.dead or c.is_entangled():
@@ -739,7 +781,11 @@ func _interact() -> void:
 		return
 	var c := _nearest_cocoon(2.4)
 	if c != null:
-		_rest(c)
+		var hud = GameState.current_layer.hud if GameState.current_layer != null else null
+		if hud != null and hud.has_method("open_cocoon"):
+			hud.open_cocoon(c)   # o menu do casulo: habilidades, evolução, despensa e descansar
+		else:
+			_rest(c)
 		return
 	var corpse := _nearest_corpse(1.9)
 	if corpse != null:
@@ -754,7 +800,7 @@ func _eat(c: Corpse) -> void:
 	satiety = minf(max_satiety, satiety + c.satiety * (0.6 if rotten else 1.0))
 	silk = minf(max_silk, silk + c.silk)
 	if rotten:
-		var dmg := maxf(2.0, 12.0 - resist_rot * 2.0)
+		var dmg := maxf(2.0, 12.0 - resist_rot * 2.0) * (0.5 if has_skill("estomago") else 1.0)
 		resist_rot += 1
 		_hurt(dmg)
 		_msg("Carne podre! -%d PV · Resistência à Podridão %d" % [int(dmg), resist_rot])
@@ -775,7 +821,7 @@ func _eat(c: Corpse) -> void:
 		add_bonus(0.0, c.energy_bonus)
 		_msg("A luz do lagarto agora é sua: +%d Energia máxima." % int(c.energy_bonus))
 		GameState.say_once("comeu_lagarto", "Comi uma lanterna. Agora EU sou a lanterna.")
-	gain_xp(c.xp)
+	gain_xp(int(round(c.xp * (1.25 if has_skill("paladar") else 1.0))))
 	c.consume()
 
 
@@ -791,6 +837,90 @@ func _rest(c: Cocoon) -> void:
 	GameState.save_now()
 	_msg("Você descansou no casulo. Jogo salvo. O tempo passou (-15 saciedade).")
 	GameState.say_once("primeiro_descanso", "Casulo quentinho... Isso aqui é meu agora. Meu território.")
+
+
+# ================================================================= habilidades e despensa
+
+func has_skill(id: String) -> bool:
+	return skills.has(id)
+
+
+func strand_cost() -> float:
+	return 3.0 if has_skill("fio_leve") else SILK_STRAND
+
+
+func throw_range() -> float:
+	return THROW_RANGE * (1.5 if has_skill("puxao") else 1.0)
+
+
+func skill_block(id: String) -> String:
+	## "" = dá para aprender agora; senão o motivo.
+	if has_skill(id):
+		return "Aprendida"
+	var s := Skills.info(id)
+	if s.is_empty():
+		return "?"
+	if s.has("form") and int(form) < int(s["form"]):
+		return "Precisa ser %s" % Skills.FORM_NAMES[int(s["form"])]
+	var linked := false
+	for n in Skills.neighbors(id):
+		if has_skill(n):
+			linked = true
+	if not linked:
+		return "Bloqueada"
+	if skill_points < int(s["cost"]):
+		return "Pontos insuficientes"
+	return ""
+
+
+func learn(id: String) -> bool:
+	if skill_block(id) != "":
+		return false
+	skill_points -= int(Skills.info(id)["cost"])
+	skills[id] = true
+	match id:
+		"carapaca":
+			add_bonus(15.0, 0.0)
+		"reserva":
+			add_bonus(0.0, 0.0, 20.0)
+	return true
+
+
+func wrappable_corpses() -> Array:
+	## Presas mortas por perto que dá para embrulhar (frescas e sem efeito especial).
+	var out: Array = []
+	for n in get_tree().get_nodes_in_group("corpse"):
+		var c := n as Corpse
+		if c == null or c.is_rotten() or c.reserved_by != null:
+			continue
+		if c.energy_bonus > 0.0 or c.acid_bonus > 0 or c.skin_bonus:
+			continue
+		if Fx.flat_dist(c.global_position, global_position) <= WRAP_RANGE:
+			out.append(c)
+	return out
+
+
+func wrap_nearby() -> int:
+	## Embrulha em seda as presas por perto e guarda na despensa (10 de Seda cada).
+	var n := 0
+	for c in wrappable_corpses():
+		if pantry.size() >= PANTRY_MAX or silk < SILK_WRAP:
+			break
+		silk -= SILK_WRAP
+		pantry.append({"name": c.display_name, "sat": c.satiety, "silk": c.silk})
+		c.consume()
+		n += 1
+	return n
+
+
+func eat_from_pantry(i: int) -> bool:
+	if i < 0 or i >= pantry.size():
+		return false
+	var p: Dictionary = pantry[i]
+	satiety = minf(max_satiety, satiety + float(p.get("sat", 0.0)))
+	silk = minf(max_silk, silk + float(p.get("silk", 0.0)))
+	pantry.remove_at(i)
+	return true
 
 
 func _weave_cocoon() -> void:
@@ -817,11 +947,36 @@ func _weave_cocoon() -> void:
 
 func _toggle_rune() -> void:
 	rune_on = not rune_on
-	if rune_on:
+	if rune_on and has_skill("pulso") and energy >= 20.0:
+		energy -= 20.0
+		_rune_pulse()
+		_msg("Pulso Espiral!")
+	elif rune_on:
 		_msg("Runa acesa.")
 	else:
 		_msg("Runa apagada: furtiva, mas a energia não regenera.")
 		GameState.say_once("runa_apagada", "Shhh... Apagada, sou só mais uma sombra na caverna.")
+
+
+func _rune_pulse() -> void:
+	## Onda de luz: atordoa os bichos perto (a Centopeia é grande demais para ligar).
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.9
+	tm.outer_radius = 1.0
+	ring.mesh = tm
+	ring.material_override = Fx.mat(Color(0.4, 0.9, 1.0), 3.0, true, 0.8)
+	get_parent().add_child(ring)
+	ring.global_position = global_position + Vector3.UP * 0.3
+	var tw := ring.create_tween()
+	tw.tween_property(ring, "scale", Vector3.ONE * 4.5, 0.35)
+	tw.tween_callback(ring.queue_free)
+	for n in get_tree().get_nodes_in_group("creature"):
+		var c := n as Creature
+		if c == null or c.dead or c is Centipede:
+			continue
+		if Fx.flat_dist(c.global_position, global_position) <= 4.5:
+			c.entangle_raw(1.5)
 
 
 # ================================================================= Modo Tecelagem
@@ -837,7 +992,7 @@ func _handle_weave(real_dt: float) -> void:
 		_exit_weave()
 	if not weaving:
 		return
-	energy = maxf(0.0, energy - WEAVE_ENERGY_PER_SEC * real_dt)
+	energy = maxf(0.0, energy - WEAVE_ENERGY_PER_SEC * (0.6 if has_skill("tecela") else 1.0) * real_dt)
 	energy_delay = 1.0
 	var new_hover := _anchor_near(aim_point, 2.5)
 	if new_hover != hovered_anchor:
@@ -899,9 +1054,9 @@ func _weave_click() -> void:
 	if err != "":
 		_msg(err)
 		return
-	silk -= SILK_STRAND
+	silk -= strand_cost()
 	WebNetwork.create_strand(weave_first, hovered_anchor)
-	_msg("Fio-guia tecido (-%d seda)." % int(SILK_STRAND))
+	_msg("Fio-guia tecido (-%d seda)." % int(strand_cost()))
 	GameState.say_once("primeiro_fio", "Um fio! Andar nele é rápido e silencioso. Isso muda tudo.")
 	weave_first = hovered_anchor
 	_refresh_anchor_highlights()
@@ -913,8 +1068,8 @@ func _strand_error(a: WebAnchor, b: WebAnchor) -> String:
 		return "Longe demais: %.1f m (máximo %d m)." % [d, int(STRAND_RANGE)]
 	if WebNetwork.has_strand(String(a.name), String(b.name)):
 		return "Esses pilares já estão ligados."
-	if silk < SILK_STRAND:
-		return "Seda insuficiente (precisa de %d)." % int(SILK_STRAND)
+	if silk < strand_cost():
+		return "Seda insuficiente (precisa de %d)." % int(strand_cost())
 	var q := PhysicsRayQueryParameters3D.create(a.global_position + Vector3.UP * 0.5, b.global_position + Vector3.UP * 0.5, 1)
 	q.exclude = [a.get_rid(), b.get_rid()]
 	if not get_world_3d().direct_space_state.intersect_ray(q).is_empty():
@@ -975,7 +1130,7 @@ func _update_resources(delta: float) -> void:
 		in_territory = WebNetwork.is_in_territory(global_position)
 		if in_territory and not was:
 			GameState.say_once("territorio", "Sinto cada fio vibrando. Aqui é seguro... mais ou menos.")
-	satiety = maxf(0.0, satiety - SATIETY_DECAY * delta)
+	satiety = maxf(0.0, satiety - SATIETY_DECAY * (0.75 if has_skill("estomago") else 1.0) * delta)
 	if satiety <= 0.0:
 		_starve_msg_timer -= delta
 		if _starve_msg_timer <= 0.0:
@@ -984,12 +1139,12 @@ func _update_resources(delta: float) -> void:
 			GameState.say_once("fome", "Minha barriga está roncando tão alto que vai me denunciar.")
 		_hurt(STARVE_DPS * delta)
 	energy_delay = maxf(0.0, energy_delay - delta)
-	if energy_delay <= 0.0 and rune_on and not weaving:
-		energy = minf(max_energy, energy + ENERGY_REGEN * delta * (1.5 if in_territory else 1.0))
+	if energy_delay <= 0.0 and (rune_on or has_skill("runa_oculta")) and not weaving:
+		energy = minf(max_energy, energy + ENERGY_REGEN * delta * (1.5 if in_territory else 1.0) * (1.0 if rune_on else 0.5))
 	if satiety > 30.0:
 		silk = minf(max_silk, silk + delta)
 	if satiety > 60.0:
-		hp = minf(max_hp, hp + (0.15 if form == Form.FILHOTE else 0.4) * delta)
+		hp = minf(max_hp, hp + (0.15 if form == Form.FILHOTE else 0.4) * (2.0 if has_skill("sangue_frio") else 1.0) * delta)
 
 
 func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -> bool:
@@ -1150,11 +1305,12 @@ func gain_xp(amount: int) -> void:
 	while xp >= xp_to_next():
 		xp -= xp_to_next()
 		level += 1
+		skill_points += 1
 		var old_hp := hp
 		recompute_stats(false)
 		hp = minf(max_hp, old_hp + max_hp * 0.3)
 		EventBus.player_leveled.emit(level)
-		_msg("Nível %d! PV, Energia e Seda máximos aumentaram." % level)
+		_msg("Nível %d! PV, Energia e Seda máximos aumentaram. +1 Ponto de Habilidade (gaste no casulo)." % level)
 		if can_evolve():
 			EventBus.big_message.emit("Pronta para evoluir!")
 			_msg("Descanse num casulo (E) para fazer a muda e virar a Cavaleira de Seda.")
@@ -1175,7 +1331,7 @@ func noise_radius() -> float:
 
 func sight_radius() -> float:
 	## Até onde ela enxerga no escuro (cresce com a evolução; runa acesa ajuda).
-	return float(form_data().get("sight", 4.0))
+	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0)
 
 
 func visibility_mult() -> float:
@@ -1230,6 +1386,9 @@ func _update_visual(delta: float) -> void:
 	if dead:
 		return
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-aim_dir.x, -aim_dir.z), clampf(delta * 14.0, 0.0, 1.0))
+	if _spin > 0.0:
+		_spin = maxf(0.0, _spin - delta)
+		_visual.rotation.y = atan2(-aim_dir.x, -aim_dir.z) + TAU * (1.0 - _spin / SPIN_TIME)
 	_leg_rig.velocity_hint = Vector3(velocity.x, 0.0, velocity.z)
 	# o corpo sobe um pouquinho a cada grupo de patas que pousa
 	var spd := Vector2(velocity.x, velocity.z).length()
@@ -1344,6 +1503,7 @@ func to_dict() -> Dictionary:
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z],
+		"skills": skills.keys(), "sp": skill_points, "pantry": pantry,
 	}
 
 
@@ -1371,6 +1531,20 @@ func from_dict(d: Dictionary) -> void:
 	resist_acid = int(d.get("resist_acid", resist_acid))
 	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
 	form = int(d.get("form", form)) as Form
+	if d.has("skills"):
+		skills = {}
+		for k in d["skills"]:
+			if Skills.ALL.has(String(k)):
+				skills[String(k)] = true
+		skills["fiandeira"] = true
+	if d.has("sp"):
+		skill_points = int(d["sp"])
+	elif d.has("level"):
+		# save de antes das habilidades: devolve os pontos dos níveis já ganhos
+		skill_points = (level - 1) + (EVOLVE_LEVEL - 1 if form == Form.CAVALEIRA else 0)
+	var pa = d.get("pantry", [])
+	if pa is Array:
+		pantry = (pa as Array).duplicate(true)
 	var b: Array = d.get("bonus", [])
 	if b.size() == 3:
 		bonus_hp = float(b[0])

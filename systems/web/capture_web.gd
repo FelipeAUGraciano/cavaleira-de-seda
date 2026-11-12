@@ -42,6 +42,9 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	# Teia por tamanho (Creature.entangle): P fica presa; M rasga e se solta logo; G arrebenta.
 	c.entangle(ENTANGLE_TIME)
+	var pl = GameState.player
+	if pl != null and is_instance_valid(pl) and pl.has_skill("teia_veneno"):
+		c.add_poison()   # Teia Venenosa
 	if c.size >= Creature.Size.M:
 		charges = 1   # quem rasga a teia acaba com ela
 		if c.size >= Creature.Size.G:

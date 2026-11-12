@@ -109,6 +109,12 @@ func _run() -> void:
 	player.hp = 30.0
 	player._interact()
 	await _frames(3)
+	var menu: CocoonMenu = GameState.current_layer.hud.cocoon_menu
+	_check(menu != null and menu.visible and get_tree().paused, "E no casulo abre o menu do casulo e pausa")
+	_check(player.hp < 31.0, "só abrir o menu não cura")
+	menu.rest()
+	await _frames(3)
+	_check(not menu.visible and not get_tree().paused, "Descansar fecha o menu e despausa")
 	_check(is_equal_approx(player.hp, player.max_hp), "descansar cura tudo")
 	var data := GameState.load_game()
 	_check(not data.is_empty() and data["web"]["cocoons"].size() == 1 and data["web"]["strands"].size() == 1, "save gravado com casulo e fio")

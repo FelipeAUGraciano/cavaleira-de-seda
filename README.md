@@ -2,6 +2,24 @@
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
 
+## Novidades da v0.8 — menu do casulo
+
+Feito a partir do design escolhido pelo criador. **E perto de um casulo** abre o menu (o jogo pausa):
+
+- **Retrato ao vivo** da aranha à esquerda (é a própria jogadora, com a forma e as lâminas atuais).
+- **Habilidades:** uma teia com 17 nós. O centro (Fiandeira) já vem aprendido; dá para aprender um nó ligado a outro que você já tem. Cada nível dá **1 Ponto de Habilidade** (saves antigos recebem os pontos dos níveis que já tinham). Ramos:
+  - Lâmina (para cima): Garras Afiadas, Corte em Espiral (Cavaleira), Investida.
+  - Teia (direita): Fio Leve, Puxão, Teia Venenosa.
+  - Runa (esquerda): Runa Oculta, Pulso Espiral, Olhos de Cristal.
+  - Corpo (para baixo): Carapaça, Glândula Cheia, Estômago de Ferro.
+  - Diagonais: Sangue Frio, Tecelã Veloz, Paladar Caçador, Passos de Seda.
+  Todas mudam ações que já existem; nenhuma precisa de tecla nova.
+- **Evolução:** a árvore de formas, o progresso até a muda e o que ela muda. Os ramos ficam trancados até o Ato 2.
+- **Despensa:** embrulhe as presas mortas por perto (10 de Seda cada, até 8) e coma depois. Embrulhadas não apodrecem.
+- **Barra de baixo:** PV, Energia, Seda, Saciedade, nível, XP, pontos e **Descansar (salvar)**. Quando dá para evoluir, o botão vira "Muda e descanso". **Esc** sai sem descansar.
+- Mouse, teclado (setas, Enter, 1-2-3 ou Tab troca a aba) e controle (LB/RB trocam a aba).
+- Fontes: Cinzel e Alegreya Sans (SIL Open Font License, em `assets/fonts`).
+
 ## Novidades da v0.8 — Opções e 3 espaços de save
 
 - **Opções** (menu inicial e pausa), em três abas:

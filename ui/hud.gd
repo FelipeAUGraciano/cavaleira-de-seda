@@ -48,6 +48,7 @@ var _title_time := 0.0
 const TITLE_SECS := 5.0   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
 var _pause_box: MenuBox
 var _options: OptionsMenu
+var cocoon_menu: CocoonMenu
 var _hint_text := ""
 var _hint_time := 0.0
 var _last_us := 0
@@ -106,7 +107,7 @@ func _process(_delta: float) -> void:
 	_big_time = maxf(0.0, _big_time - dt)
 	_hint_time = maxf(0.0, _hint_time - dt)
 	_title_time = maxf(0.0, _title_time - dt)
-	if Settings.input_blocked() or _options.visible:
+	if Settings.input_blocked() or _options.visible or (cocoon_menu != null and cocoon_menu.visible):
 		pass   # Opções abertas ou trocando tecla: as teclas do jogo esperam
 	else:
 		if Input.is_action_just_pressed("map"):
@@ -148,6 +149,20 @@ func close_pause() -> void:
 	_pause_box.visible = false
 	_options.visible = false
 	get_tree().paused = false
+
+
+func open_cocoon(c: Node3D) -> void:
+	## Menu do casulo (E perto de um casulo): o jogo pausa enquanto ele está aberto.
+	if player == null:
+		return
+	if cocoon_menu == null:
+		cocoon_menu = CocoonMenu.new()
+		cocoon_menu.closed.connect(func():
+			if not _pause_box.visible and not _options.visible:
+				get_tree().paused = false)
+		add_child(cocoon_menu)
+	get_tree().paused = true
+	cocoon_menu.open(player, c)
 
 
 func open_options() -> void:
