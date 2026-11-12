@@ -97,7 +97,7 @@ func _build_visual() -> void:
 	lure.light_energy = 1.6
 	lure.position = bulb.position + Vector3(0.0, 0.3, 0.0)
 	_visual.add_child(lure)
-	_body_parts = [body, head, tail]   # a isca continua por código (é a luz que importa)
+	_body_parts = [body, head, tail, stalk, bulb]   # o modelo já tem a isca; a luz continua por código
 
 
 func lure_position() -> Vector3:

@@ -17,6 +17,9 @@ const DEFAULT_ROT_Y := 180.0
 ##   legs: true = o modelo já veio com patas (as patas por código ficam escondidas)
 const TUNING := {
 	"irma_corpo": {"legs": true},
+	"lagarto": {"rot_y": 0.0, "legs": true},       # veio olhando para -Z
+	"morcego": {"legs": true},
+
 }
 
 static var root := DEFAULT_ROOT
@@ -50,7 +53,7 @@ static func has(model_name: String) -> bool:
 
 static func instance(model_name: String, size: float, fit: String = "max") -> Node3D:
 	## Devolve o modelo pronto para pendurar no lugar da forma cinza, ou null.
-	## fit: "max" (maior lado), "height" (altura) ou "length" (maior lado no chão).
+	## fit: "max" (maior lado), "height" (altura), "length" (maior lado no chão) ou "depth" (frente-trás).
 	if not has(model_name):
 		return null
 	var scene := load(path_for(model_name)) as PackedScene
@@ -69,6 +72,8 @@ static func instance(model_name: String, size: float, fit: String = "max") -> No
 		dim = box.size.y
 	elif fit == "length":
 		dim = maxf(box.size.x, box.size.z)
+	elif fit == "depth":
+		dim = box.size.z   # comprimento de frente para trás (segmentos que encaixam em fila)
 	var tune: Dictionary = TUNING.get(model_name, {})
 	var s := size / maxf(dim, 0.001) * float(tune.get("scale", 1.0))
 	var center := box.get_center()

@@ -122,7 +122,7 @@ func _build_segments() -> void:
 		seg.top_level = true
 		var k := 1.0 - float(i) / SEGMENTS * 0.45
 		var model_name_seg := "centopeia_cauda" if i == SEGMENTS - 1 else "centopeia_segmento"
-		var m := Models.instance(model_name_seg, 1.6 * k, "max")
+		var m := Models.instance(model_name_seg, (1.6 if i == SEGMENTS - 1 else 2.0) * k, "max")
 		if m != null:
 			seg.add_child(m)
 		else:

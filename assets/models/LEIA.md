@@ -10,3 +10,8 @@ A lista de nomes e os pedidos para a IA estão na aba "Modelos 3D" do GDD.
 | Sapo-de-rocha | sapo/sapo_v01.glb | Hunyuan 3D, 1,5 M → 20 mil triângulos |
 | Ovo de aranha | ovo/ovo_v01.glb | Hunyuan 3D, 1,5 M → 2 mil triângulos (brilho leve no ninho) |
 | Larva-de-musgo | larva/larva_v01.glb | Hunyuan 3D, 1,5 M → 5 mil triângulos |
+| Morcego-eco | morcego/morcego_v01.glb | 8 mil triângulos (asas abertas) |
+| Lagarto-lanterna | lagarto/lagarto_v01.glb | 12 mil triângulos; a isca do modelo substitui a de código (a luz continua) |
+| Centopeia: cabeça | centopeia_cabeca/centopeia_cabeca_v01.glb | 8 mil triângulos |
+| Centopeia: segmento | centopeia_segmento/centopeia_segmento_v01.glb | 3 mil triângulos, repetido 11 vezes |
+| Centopeia: cauda | centopeia_cauda/centopeia_cauda_v01.glb | 4 mil triângulos |
