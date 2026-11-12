@@ -37,6 +37,10 @@ var _arrive_cd := 0.0
 var _track_from := Vector3.ZERO
 var _trail: Array[Vector3] = []
 var _segs: Array[Node3D] = []
+var _seg_depth: Array[float] = []     ## comprimento (frente-trás) de cada placa
+var _joints: Array[MeshInstance3D] = []   ## "coluna" escura entre as placas: o corpo nunca parece solto
+const HEAD_BACK := 0.85                ## da posição da cabeça até a nuca
+const OVERLAP := 0.78                  ## placas se sobrepõem um pouco, como armadura
 var _armor_msg_cd := 0.0
 
 
@@ -123,8 +127,12 @@ func _build_segments() -> void:
 		var k := 1.0 - float(i) / SEGMENTS * 0.45
 		var model_name_seg := "centopeia_cauda" if i == SEGMENTS - 1 else "centopeia_segmento"
 		var m := Models.instance(model_name_seg, (1.6 if i == SEGMENTS - 1 else 2.0) * k, "max")
+		var depth := 0.9 * k
 		if m != null:
 			seg.add_child(m)
+			var box := Models.bounds(m, Transform3D.IDENTITY)
+			if box.size.z > 0.05:
+				depth = box.size.z
 		else:
 			var shell := Fx.sphere(0.8 * k, _mat)
 			shell.scale = Vector3(1.15, 0.55, 0.8)
@@ -137,6 +145,21 @@ func _build_segments() -> void:
 				seg.add_child(leg)
 		add_child(seg)
 		_segs.append(seg)
+		_seg_depth.append(depth)
+		# junta: cilindro escuro ligando esta placa à anterior (ou à cabeça)
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 0.2 * k
+		cyl.bottom_radius = 0.24 * k
+		cyl.height = 1.0
+		cyl.radial_segments = 10
+		cyl.rings = 1
+		var joint := MeshInstance3D.new()
+		joint.mesh = cyl
+		joint.material_override = leg_mat
+		joint.top_level = true
+		joint.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(joint)
+		_joints.append(joint)
 
 
 func _reset_trail() -> void:
@@ -378,33 +401,68 @@ func _update_trail() -> void:
 
 
 func _place_segments() -> void:
+	## Cada placa vai para o ponto do rastro da cabeça à distância certa e olha para a
+	## placa da frente (corrente: nada fica torto ou solto). Juntas escuras ligam as placas,
+	## e uma onda suave sobe e desce pelo corpo enquanto ela anda.
 	if _trail.size() < 2:
 		return
-	var wiggle := 0.0 if is_entangled() else _anim_t * 10.0
+	var wave := 0.0 if is_entangled() else _anim_t * 6.0
+	var prev := global_position - facing * HEAD_BACK * 0.7   # a junta começa na nuca, não no meio da cabeça
+	prev.y = maxf(global_position.y, 0.0)
+	var prev_half := HEAD_BACK
+	var want := 0.0
+	var j := 0
+	var acc := 0.0
 	for i in _segs.size():
-		var want := (i + 1) * SPACING
-		var acc := 0.0
+		var half := _seg_depth[i] * 0.5 if i < _seg_depth.size() else 0.45
+		want += (prev_half + half) * OVERLAP if i > 0 else prev_half + half * OVERLAP
+		# anda pelo rastro até a distância `want` (continua de onde a placa anterior parou)
 		var pos := _trail[_trail.size() - 1]
-		var dir := Vector3.FORWARD
-		for j in _trail.size() - 1:
+		while j < _trail.size() - 1:
 			var a := _trail[j]
 			var b := _trail[j + 1]
 			var seg_len := a.distance_to(b)
 			if acc + seg_len >= want:
 				pos = a.lerp(b, (want - acc) / maxf(seg_len, 0.001))
-				dir = a - b
 				break
 			acc += seg_len
+			j += 1
+		pos.y = maxf(pos.y, 0.0) + sin(wave - i * 0.8) * 0.05
 		var seg := _segs[i]
-		seg.global_position = Vector3(pos.x, maxf(pos.y, 0.0), pos.z)
-		if Vector2(dir.x, dir.z).length() > 0.01:
-			seg.rotation = Vector3(0.0, atan2(-dir.x, -dir.z), sin(wiggle - i * 0.7) * 0.12)
+		seg.global_position = pos
+		var dir := prev - pos
+		dir.y = 0.0
+		if dir.length() > 0.01:
+			seg.rotation = Vector3(0.0, atan2(-dir.x, -dir.z), 0.0)
+		if i < _joints.size():
+			_place_joint(_joints[i], prev, pos, 0.28 * (1.0 - float(i) / SEGMENTS * 0.45))
+		prev = pos
+		prev_half = half
+
+
+func _place_joint(joint: MeshInstance3D, a: Vector3, b: Vector3, h: float) -> void:
+	var d := a - b
+	var len := d.length()
+	if len < 0.01:
+		joint.visible = false
+		return
+	joint.visible = true
+	var y := d / len
+	var x := y.cross(Vector3.UP)
+	if x.length() < 0.01:
+		x = Vector3.RIGHT
+	x = x.normalized()
+	var z := x.cross(y).normalized()
+	joint.global_transform = Transform3D(Basis(x, y * len, z), (a + b) * 0.5 + Vector3.UP * h)
 
 
 func die(fell: bool = false) -> void:
 	for s in _segs:
 		if is_instance_valid(s):
 			s.queue_free()
+	for jn in _joints:
+		if is_instance_valid(jn):
+			jn.queue_free()
 	super.die(fell)
 
 

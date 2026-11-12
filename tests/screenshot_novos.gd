@@ -39,9 +39,18 @@ func _run() -> void:
 		c.set_physics_process(false)
 	lz.facing = Vector3(1, 0, 0)
 	lz.look_at(lz.global_position + Vector3(1, 0, 0.3), Vector3.UP)
-	cen.facing = Vector3(-1, 0, -0.2).normalized()
+	cen.facing = Vector3(0, 0, -1)
 	cen.look_at(cen.global_position + cen.facing, Vector3.UP)
 	cen._reset_trail()
+	# rastro em curva (como se ela viesse virando) para ver as juntas
+	var arc: Array[Vector3] = []
+	var c0 := cen.global_position + Vector3(4.5, 0, 0)
+	for k in 160:
+		var ang := PI - k * 0.03
+		arc.append(c0 + Vector3(cos(ang) * 4.5, 0.0, sin(ang) * 4.5))
+	arc[0] = cen.global_position
+	cen._trail = arc
+	cen._place_segments()
 	await _frames(5)
 	var cam := Camera3D.new()
 	add_child(cam)
@@ -49,7 +58,7 @@ func _run() -> void:
 	cam.make_current()
 	layer.dark_vision = false
 	var shots := [[base + Vector3(0, 9, 9), base + Vector3(0.5, 0, 1)], [lz.global_position + Vector3(2.0, 1.6, 2.6), lz.global_position],
-		[bat.global_position + Vector3(0.6, 1.4, 1.2), bat.global_position], [cen.global_position + Vector3(4, 3.5, 5), cen.global_position + Vector3(-2, 0, -1)]]
+		[bat.global_position + Vector3(0.6, 1.4, 1.2), bat.global_position], [cen.global_position + Vector3(2, 12, 2.01), cen.global_position + Vector3(2, 0, 2)]]
 	var sheet := Image.create(1600, 900, false, Image.FORMAT_RGBA8)
 	for i in shots.size():
 		cam.global_position = shots[i][0]
