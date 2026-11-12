@@ -31,6 +31,7 @@ func _run() -> void:
 	await _combat()
 	await _pursuit()
 	await _webs()
+	await _falls()
 	await _permadeath()
 	print("\n==== %s (%d falha(s)) ====" % ["OK" if failures == 0 else "FALHOU", failures])
 	GameState.delete_save()
@@ -187,6 +188,29 @@ func _webs() -> void:
 	frog.global_position = Vector3(mid.x, mid.y - frog.body_radius, mid.z)
 	frog._walk_into_strands()
 	_check(frog.is_entangled() and not WebNetwork.strands.has(s), "sapo enrosca no fio e arrebenta")
+
+
+func _falls() -> void:
+	# Visão curta
+	_check(layer.dark_vision and player.sight_radius() < 4.0, "visão curta: a Filhote enxerga %.1f m no escuro" % player.sight_radius())
+	# Queda com andar de baixo
+	var landing := Vector3(-2.0, 0.0, 30.0)
+	layer.chasms.append({"rect": Rect2(70, 29, 3, 20), "to": landing, "name": "as Galerias de baixo"})
+	_teleport(Vector3(71.0, -3.0, 38.0))
+	player.last_safe_pos = Vector3(67.0, 0.0, 38.0)
+	player.hp = player.max_hp
+	await _frames(80)
+	_check(Fx.flat_dist(player.global_position, landing) < 1.0 and not player.dead, "caiu na fenda e acordou no andar de baixo")
+	_check(absf(player.hp - player.max_hp * 0.65) < 1.5, "a queda tira 35%% da vida (%.0f/%.0f)" % [player.hp, player.max_hp])
+	layer.hud.fade_alpha = 0.0
+	# Sem fundo
+	layer.chasms.pop_back()
+	_teleport(Vector3(86.0, -3.0, 36.0))
+	player.last_safe_pos = Vector3(83.0, 0.0, 36.0)
+	await _frames(10)
+	_check(player.dead, "abismo sem fundo mata")
+	player._respawn()
+	_teleport(Vector3(-2.0, 0.1, 30.0))
 
 
 func _permadeath() -> void:

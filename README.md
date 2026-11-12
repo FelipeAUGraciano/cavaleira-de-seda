@@ -1,6 +1,11 @@
-# Cavaleira de Seda — protótipo (v0.8-etapa1)
+# Cavaleira de Seda — protótipo (v0.8-etapa2)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.8 (etapa 2) — escuro e quedas
+
+- **Visão curta:** a caverna ficou quase preta. Você enxerga só um círculo pequeno em volta da aranha (3,5 m na Filhote, 5,5 m na Cavaleira) e o que tem luz: fungos, a isca do lagarto, fogo, olhos e os avisos de golpe. Na fase da Caça os fungos apagam e sobra quase só a sua luz. A runa acesa ilumina mais, mas denuncia você.
+- **Quedas:** cair num abismo agora tem consequência. Abismo com andar de baixo: tira 35% da vida e você acorda lá embaixo, tendo que achar o caminho de volta. Abismo sem fundo: morte (e o ato recomeça). O lago continua só te devolvendo para a margem. Os andares de baixo chegam com o mapa novo (etapa 3); até lá, as fendas atuais são sem fundo.
 
 ## Novidades da v0.8 (etapa 1) — hardcore: combate e IA
 
@@ -206,7 +211,7 @@ godot --headless --path . res://tests/models_test.tscn     # troca de modelos (1
 godot --headless --path . res://tests/vida_test.tscn       # mundo vivo: relógio, sono, pasto, bando, medo, brigas e desempenho
 godot --headless --path . res://tests/dificuldade_test.tscn  # Filhote, evolução, predadores que te caçam, transição e patas (18 verificações)
 godot --headless --path . res://tests/menu_test.tscn       # menu inicial, pausa, continuar e novo jogo (15 verificações)
-godot --headless --path . res://tests/hardcore_test.tscn   # golpes, fúria, perseguição, teia por tamanho e morte permanente (21 verificações)
+godot --headless --path . res://tests/hardcore_test.tscn   # golpes, fúria, perseguição, teia por tamanho, visão, quedas e morte permanente (25 verificações)
 ```
 
 Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, sapo, teia de captura, paredes, mapa, irmãs, fresta, cristal, pata da Mãe e a fuga.

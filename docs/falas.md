@@ -78,5 +78,6 @@ Cada fala toca uma vez por save. Para dublar, grave o áudio e salve em `audio/v
 | `evolucao_1` | A muda: vira Cavaleira de Seda | Eu... cresci? Lâminas! Eu tenho LÂMINAS! Ok, caverna. Agora a conversa é outra. |
 | `b_epilogo` | Saindo do Berçário (fim do prólogo) | Irmãs, Mãe, ninho... tudo pra trás. Agora é só eu. E eu tô com FOME. |
 | `morcego_grito` | Primeira vez que um morcego grita perto de você | AAH, meus ouvidos! ...E agora a caverna inteira sabe onde eu tô. |
+| `queda_fatal` | Caindo num abismo sem fundo | Não tem chão... não tem chão...! |
 
 Dica de gravação: mono, 44,1 kHz, com uns 0,2 s de silêncio no começo e no fim. O Godot importa `.ogg` e `.wav` direto.

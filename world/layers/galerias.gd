@@ -144,6 +144,10 @@ func _build_level() -> void:
 	]
 	map_grid = cave.build(self)
 	cave.scatter_decor(self, 23)
+	# Quedas (v0.8): o lago devolve você para a margem; o resto é sem fundo até o mapa novo.
+	chasms = [
+		{"rect": Rect2(-10, 66.5, 20, 15), "mode": "volta", "name": "o lago"},
+	]
 
 	var pillars := {
 		"G1_a": Vector3(-5, 0, -3), "G1_b": Vector3(5, 0, 3), "G1_c": Vector3(-3, 0, 5),

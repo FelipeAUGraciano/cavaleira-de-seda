@@ -40,6 +40,8 @@ const FUNGI := [
 
 func _configure() -> void:
 	layer_id = "T"
+	fall_default = "volta"
+	dark_vision = false
 	layer_name = "Galerias (câmara de teste)"
 	spawn_point = Vector3(-26.0, 0.1, 12.0)
 	rooms = [

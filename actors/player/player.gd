@@ -49,9 +49,9 @@ enum Form { FILHOTE, CAVALEIRA }
 const EVOLVE_LEVEL := 8
 const FORMS := {
 	Form.FILHOTE: {"name": "Filhote de Seda", "scale": 0.7, "size": 0, "hp": 50.0, "energy": 80.0, "silk": 80.0,
-		"per_level": [5.0, 4.0, 4.0], "combo": [4.0, 4.0, 7.0], "bite": 3.0, "speed": 1.06, "hide": 0.8},
+		"per_level": [5.0, 4.0, 4.0], "combo": [4.0, 4.0, 7.0], "bite": 3.0, "speed": 1.06, "hide": 0.8, "sight": 3.5},
 	Form.CAVALEIRA: {"name": "Cavaleira de Seda", "scale": 1.0, "size": 1, "hp": 110.0, "energy": 110.0, "silk": 110.0,
-		"per_level": [10.0, 5.0, 5.0], "combo": [8.0, 8.0, 14.0], "bite": 5.0, "speed": 1.0, "hide": 1.0},
+		"per_level": [10.0, 5.0, 5.0], "combo": [8.0, 8.0, 14.0], "bite": 5.0, "speed": 1.0, "hide": 1.0, "sight": 5.5},
 }
 
 enum State { NORMAL, DODGE, BACKSTEP, ATTACK, BITE, ZIP, EAT, DEAD }
@@ -116,6 +116,8 @@ var _death_timer := 0.0
 var _starve_msg_timer := 0.0
 var _hurt_flash := 0.0
 var _slow_mult := 1.0
+var falling := false            ## caindo num abismo (a camada decide para onde)
+var _sight_light: OmniLight3D   ## visão no escuro: não denuncia, só deixa ver em volta
 var _slow_time := 0.0
 
 # visual (formas cinza; troque por um modelo depois)
@@ -183,6 +185,14 @@ func _build_visual() -> void:
 	_rune_light.shadow_enabled = true
 	_rune_light.position = Vector3(0.0, 1.3, 0.2)
 	add_child(_rune_light)
+	_sight_light = OmniLight3D.new()
+	_sight_light.light_color = Color(0.62, 0.66, 0.85)
+	_sight_light.light_energy = 0.9
+	_sight_light.omni_range = 3.5
+	_sight_light.omni_attenuation = 0.9
+	_sight_light.shadow_enabled = false
+	_sight_light.position = Vector3(0.0, 1.4, 0.0)
+	add_child(_sight_light)
 
 	var eye_mat := Fx.mat(Color(1.0, 0.65, 0.15), 1.5)
 	for x in [-0.12, 0.12]:
@@ -279,6 +289,7 @@ func _apply_form_visual() -> void:
 	if _leg_rig == null or not is_equal_approx(_leg_rig.size, k):
 		_build_legs(k)
 	_rune_light.omni_range = 4.5 * k
+	_sight_light.omni_range = sight_radius()
 
 
 func evolve() -> void:
@@ -291,6 +302,7 @@ func evolve() -> void:
 	tw.tween_property(self, "vis_scale", float(form_data()["scale"]), 1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_build_legs(float(form_data()["scale"]))
 	_rune_light.omni_range = 4.5
+	_sight_light.omni_range = sight_radius()
 	EventBus.big_message.emit("Evolução: Cavaleira de Seda!")
 	_msg("A muda terminou. Lâminas de cristal, placas novas e muito mais vida. O nível voltou a 1.")
 	GameState.say_once("evolucao_1", "Eu... cresci? Lâminas! Eu tenho LÂMINAS! Ok, caverna. Agora a conversa é outra.")
@@ -953,6 +965,7 @@ func _die() -> void:
 
 func _respawn() -> void:
 	dead = false
+	falling = false
 	state = State.NORMAL
 	hp = max_hp
 	energy = max_energy
@@ -970,6 +983,15 @@ func _respawn() -> void:
 
 
 func _check_fall_and_safe(delta: float) -> void:
+	if global_position.y < -2.5 and not falling:
+		var layer = GameState.current_layer
+		if layer != null and layer.has_method("on_player_fell"):
+			falling = true
+			velocity = Vector3.ZERO
+			layer.on_player_fell(self)
+			return
+	if falling:
+		return
 	if global_position.y < -4.0:
 		global_position = last_safe_pos + Vector3.UP * 0.3
 		velocity = Vector3.ZERO
@@ -987,6 +1009,45 @@ func _check_fall_and_safe(delta: float) -> void:
 		var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.3, global_position + Vector3.DOWN * 0.6, 1)
 		if not get_world_3d().direct_space_state.intersect_ray(q).is_empty():
 			last_safe_pos = global_position
+
+
+func legacy_fall() -> void:
+	## Queda antiga (câmara de teste): volta para a beirada com dano fixo.
+	falling = false
+	global_position = last_safe_pos + Vector3.UP * 0.3
+	velocity = Vector3.ZERO
+	external_velocity = Vector3.ZERO
+	_start_state(State.NORMAL)
+	_hurt_flash = 0.25
+	_msg("Você caiu no abismo! -%d PV" % int(FALL_DAMAGE))
+	GameState.say_once("primeira_queda", "Não olha pra baixo. Não olha pra baixo. ...Olhei.")
+	_hurt(FALL_DAMAGE)
+	snap_camera()
+
+
+func fall_to_death() -> void:
+	velocity = Vector3.ZERO
+	GameState.say_once("queda_fatal", "Não tem chão... não tem chão...!")
+	_hurt(hp + 1.0)
+	falling = false
+
+
+func land_after_fall(pos: Vector3, damage: float, where: String) -> void:
+	## Caiu para o andar de baixo: acorda lá, machucada. O caminho de volta é por sua conta.
+	falling = false
+	global_position = pos + Vector3.UP * 0.2
+	last_safe_pos = pos
+	velocity = Vector3.ZERO
+	external_velocity = Vector3.ZERO
+	if weaving:
+		_exit_weave()
+	_start_state(State.NORMAL)
+	_hurt_flash = 0.4
+	snap_camera()
+	_msg("Você caiu em %s! -%d PV" % [where, int(damage)])
+	EventBus.big_message.emit("Queda!")
+	GameState.say_once("primeira_queda", "Não olha pra baixo. Não olha pra baixo. ...Olhei. E CAÍ.")
+	_hurt(damage)
 
 
 func gain_xp(amount: int) -> void:
@@ -1015,6 +1076,11 @@ func xp_to_next() -> int:
 
 func noise_radius() -> float:
 	return noise
+
+
+func sight_radius() -> float:
+	## Até onde ela enxerga no escuro (cresce com a evolução; runa acesa ajuda).
+	return float(form_data().get("sight", 4.0))
 
 
 func visibility_mult() -> float:

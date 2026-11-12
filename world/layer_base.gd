@@ -17,6 +17,13 @@ var locks: Array = []        ## [{type, pos: Vector3}]
 var map_grid: Dictionary = {}  ## preenchido por camadas orgânicas (CaveBuilder.build)
 var nav_blockers: Array = []   ## [Vector3 centro, Vector3 tamanho] de caixas sólidas (porta, tenda...)
 
+## Quedas: cada abismo diz para onde você cai. {"rect": Rect2 (x, z), "to": Vector3 = pouso no
+## andar de baixo, ou ausente = sem fundo (morte)}. Fora de qualquer rect vale fall_default.
+var chasms: Array = []
+var fall_default := "fundo"     ## "fundo" = sem fundo (morre); "volta" = antigo (volta pra beirada, -25 PV)
+const FALL_DAMAGE_FRAC := 0.35  ## cair para o andar de baixo tira 35% da vida máxima
+## Visão curta: o ambiente fica quase preto; só o que tem luz aparece (fungos, isca, fogo, runa).
+var dark_vision := true
 var ambient_color := Color(0.45, 0.5, 0.6)
 var ambient_energy := 0.35
 var fog_color := Color(0.05, 0.06, 0.08)
@@ -85,6 +92,10 @@ func _ready() -> void:
 
 	hud = Hud.new()
 	add_child(hud)
+	if dark_vision:
+		var vo := VisionOverlay.new()
+		vo.player = player
+		add_child(vo)
 	hud.player = player
 
 	_populate()
@@ -158,6 +169,45 @@ func _on_player_died() -> void:
 	pass
 
 
+func on_player_fell(p: Player) -> void:
+	## A jogadora caiu num abismo. Com andar de baixo: dano grande e ela acorda lá embaixo.
+	## Sem fundo: morte (e o ato recomeça).
+	var c := chasm_at(p.last_safe_pos, p.global_position)
+	var to = c.get("to", null) if not c.is_empty() else null
+	if (c.is_empty() and fall_default == "volta") or String(c.get("mode", "")) == "volta":
+		p.legacy_fall()
+		return
+	if to == null:
+		EventBus.big_message.emit("Abismo sem fundo...")
+		p.fall_to_death()
+		return
+	p.falling = true
+	if hud != null:
+		await hud.fade(1.0, 0.35)
+	p.land_after_fall(to, p.max_hp * FALL_DAMAGE_FRAC, String(c.get("name", "o andar de baixo")))
+	if hud != null:
+		hud.fade(0.0, 0.7)
+
+
+func chasm_at(safe: Vector3, now: Vector3) -> Dictionary:
+	## Qual abismo: o que contém o ponto de queda (ou o mais perto da última beirada).
+	var q := Vector2(now.x, now.z)
+	for c in chasms:
+		if (c["rect"] as Rect2).grow(0.8).has_point(q):
+			return c
+	var best := {}
+	var best_d := 6.0
+	var s2 := Vector2(safe.x, safe.z)
+	for c in chasms:
+		var r: Rect2 = c["rect"]
+		var cl := Vector2(clampf(s2.x, r.position.x, r.end.x), clampf(s2.y, r.position.y, r.end.y))
+		var d := cl.distance_to(s2)
+		if d < best_d:
+			best_d = d
+			best = c
+	return best
+
+
 func restart_act() -> void:
 	## Chamado pela jogadora morta (permadeath): escurece e recomeça o ato.
 	if hud != null:
@@ -212,7 +262,7 @@ func _build_environment() -> void:
 	env.background_color = Color(0.015, 0.015, 0.025)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = ambient_color
-	env.ambient_light_energy = ambient_energy
+	env.ambient_light_energy = ambient_energy * (0.12 if dark_vision else 1.0)
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = true
 	env.glow_intensity = 0.6
@@ -223,7 +273,7 @@ func _build_environment() -> void:
 	we.environment = env
 	add_child(we)
 	var fill := DirectionalLight3D.new()
-	fill.light_energy = 0.25
+	fill.light_energy = 0.03 if dark_vision else 0.25
 	fill.light_color = Color(0.6, 0.65, 0.8)
 	fill.rotation_degrees = Vector3(-65.0, 30.0, 0.0)
 	fill.shadow_enabled = true
@@ -266,10 +316,10 @@ func add_fungus(pos: Vector3, color: Color = Color(0.45, 1.0, 0.6)) -> void:
 		m.rotation.y = fposmod(pos.x * 1.7 + pos.z * 2.3, TAU)
 	var light := OmniLight3D.new()
 	light.light_color = color
-	light.omni_range = 5.0
-	light.light_energy = 1.2
+	light.omni_range = 7.0 if dark_vision else 5.0
+	light.light_energy = 1.6 if dark_vision else 1.2
 	light.position = pos + Vector3(0.0, 1.0, 0.0)
-	light.set_meta("base", 1.2)
+	light.set_meta("base", light.light_energy)
 	light.add_to_group("fungus_light")   # o relógio da caverna acende e apaga
 	add_child(light)
 	World.graze_spots.append(pos)          # larvas pastam o musgo perto dos fungos
