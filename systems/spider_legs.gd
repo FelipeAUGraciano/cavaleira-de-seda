@@ -24,6 +24,8 @@ var leg_color := Color(0.12, 0.11, 0.26)
 var joint_color := Color(0.78, 0.6, 0.25)
 var curled := false              ## morte: patas encolhidas para cima
 var velocity_hint := Vector3.ZERO
+var hip_points: Array = []      ## encaixes vindos do modelo (8, no espaço do corpo, tamanho 1); vazio = padrão
+var segment_model := ""         ## "cavaleira_pata": peça repetida no fêmur e na tíbia
 var phase := 0.0                 ## relógio da passada (0..1); dá para o corpo balançar junto
 
 var _hips: Array[Vector3] = []
@@ -31,8 +33,8 @@ var _rests: Array[Vector3] = []
 var _feet: Array[Vector3] = []
 var _from: Array[Vector3] = []
 var _swinging: Array[bool] = []
-var _femurs: Array[MeshInstance3D] = []
-var _tibias: Array[MeshInstance3D] = []
+var _femurs: Array[Node3D] = []
+var _tibias: Array[Node3D] = []
 var _knees: Array[MeshInstance3D] = []
 var _tips: Array[MeshInstance3D] = []
 var _femur_len := 0.5
@@ -60,6 +62,8 @@ func _ready() -> void:
 		var side := -1.0 if i < 4 else 1.0
 		var idx := i % 4
 		var hip := Vector3(0.18 * side, 0.42, -0.26 + idx * 0.15) * size
+		if hip_points.size() == 8:
+			hip = (hip_points[i] as Vector3) * size
 		var dir := Vector3(side, 0.0, 0.0).rotated(Vector3.UP, side * float(SPREAD[idx]))
 		var rest := Vector3(hip.x, 0.0, hip.z) + dir * REST_RADIUS * size
 		_hips.append(hip)
@@ -67,18 +71,39 @@ func _ready() -> void:
 		_feet.append(Vector3.ZERO)
 		_from.append(Vector3.ZERO)
 		_swinging.append(false)
-		var femur := Fx.box(Vector3(0.075 * size, 0.075 * size, _femur_len), leg_mat)
-		var tibia := Fx.box(Vector3(0.05 * size, 0.05 * size, _tibia_len), leg_mat)
-		var knee := Fx.sphere(0.055 * size, joint_mat)
+		var femur := _segment(_femur_len, 0.075 * size, leg_mat)
+		var tibia := _segment(_tibia_len, 0.05 * size, leg_mat)
+		var knee := Fx.sphere((0.04 if Models.has(segment_model) else 0.055) * size, joint_mat)
 		var tip := Fx.sphere(0.035 * size, joint_mat)
 		add_child(femur)
 		add_child(tibia)
 		add_child(knee)
 		add_child(tip)
+		if Models.has(segment_model):
+			knee.visible = false   # o segmento já tem o anel dourado nas pontas
+			tip.visible = false
 		_femurs.append(femur)
 		_tibias.append(tibia)
 		_knees.append(knee)
 		_tips.append(tip)
+
+
+func _segment(length: float, thick: float, mat: Material) -> Node3D:
+	## Um pedaço de pata: caixa cinza ou o modelo do segmento esticado no comprimento.
+	## O eixo Z do nó vai do começo ao fim do pedaço (orient_between cuida disso).
+	var m := Models.raw(segment_model) if segment_model != "" else null
+	if m == null:
+		return Fx.box(Vector3(thick, thick, length), mat)
+	var holder := Node3D.new()
+	var box := Models.bounds(m, Transform3D.IDENTITY)
+	var turn := Node3D.new()
+	turn.rotation.y = -PI * 0.5   # o segmento vem deitado em X (joint_start em -X): vira para Z
+	holder.add_child(turn)
+	turn.add_child(m)
+	var th := thick * 1.25
+	m.scale = Vector3(length / maxf(box.size.x, 0.01), th / maxf(box.size.y, 0.01), th / maxf(box.size.z, 0.01))
+	m.position = -box.get_center() * m.scale
+	return holder
 
 
 func _ground_y() -> float:

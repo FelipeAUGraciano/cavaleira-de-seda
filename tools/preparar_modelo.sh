@@ -20,7 +20,7 @@ PY
 ratio=$(python3 -c "print(min(1.0, $tris / max($total, 1)))")
 echo "$total triângulos -> ~$tris (fator $ratio)"
 tmp="$(mktemp --suffix .glb)"
-gltfpack -i "$in" -o "$tmp" -si "$ratio" -noq
+gltfpack -i "$in" -o "$tmp" -si "$ratio" -noq -kn   # -kn: mantém nós com nome (encaixes de patas, ponto da lâmina)
 python3 "$here/tools/glb_textures.py" "$tmp" "$out" 1024
 rm -f "$tmp"
 echo "Pronto: $out"

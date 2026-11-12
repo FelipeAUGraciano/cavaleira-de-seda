@@ -101,6 +101,30 @@ static func swap(parent: Node3D, model_name: String, size: float, placeholders: 
 	return m
 
 
+static func node_xform(root_node: Node, node_name: String) -> Variant:
+	## Transform de um nó do modelo (encaixe de pata, ponto da lâmina) relativo a root_node,
+	## ou null se o modelo não tiver esse nó. Funciona fora da árvore de cena.
+	var n := root_node.find_child(node_name, true, false) as Node3D
+	if n == null:
+		return null
+	var t := Transform3D.IDENTITY
+	var cur: Node = n
+	while cur != null and cur != root_node:
+		if cur is Node3D:
+			t = (cur as Node3D).transform * t
+		cur = cur.get_parent()
+	return t
+
+
+static func raw(model_name: String) -> Node3D:
+	## O modelo como veio (sem ajustar tamanho nem posição): para peças que o código
+	## estica e encaixa sozinho (segmento de pata, lâmina).
+	if not has(model_name):
+		return null
+	var scene := load(path_for(model_name)) as PackedScene
+	return scene.instantiate() as Node3D if scene != null else null
+
+
 static func set_overlay(node: Node, mat: Material) -> void:
 	## Camada de brilho por cima do modelo (piscar ao levar dano, aviso de ataque, tinta).
 	if node is GeometryInstance3D:

@@ -15,3 +15,8 @@ A lista de nomes e os pedidos para a IA estão na aba "Modelos 3D" do GDD.
 | Centopeia: cabeça | centopeia_cabeca/centopeia_cabeca_v01.glb | 8 mil triângulos |
 | Centopeia: segmento | centopeia_segmento/centopeia_segmento_v01.glb | 3 mil triângulos, repetido 11 vezes |
 | Centopeia: cauda | centopeia_cauda/centopeia_cauda_v01.glb | 4 mil triângulos |
+| Cavaleira: corpo | cavaleira_corpo/cavaleira_corpo_v01.glb | 32 mil → 16 mil triângulos; os nós `leg_socket_L1..R4` dizem de onde saem as patas |
+| Cavaleira: segmento de pata | cavaleira_pata/cavaleira_pata_v01.glb | 1,5 mil triângulos; esticado no fêmur e na tíbia das 8 patas (16 peças) |
+| Cavaleira: lâmina de cristal | cavaleira_lamina/cavaleira_lamina_v01.glb | 68 triângulos, cristal transparente; `attach_point` é onde ela prende. Só na forma Cavaleira |
+
+Os nós vazios com nome (encaixes, pontos de encaixe) só sobrevivem porque `preparar_modelo.sh` usa `gltfpack -kn`.

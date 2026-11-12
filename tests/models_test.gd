@@ -67,10 +67,27 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var pm := p._visual.get_node_or_null("Modelo_cavaleira_corpo") as Node3D
 	_check(pm != null, "Cavaleira usa o modelo do corpo")
-	_check(p._scarf_tail.visible, "cachecol continua por código")
+	_check(not p._scarf_tail.visible, "cachecol de caixas some com o modelo do corpo")
 
 	Models.root = Models.DEFAULT_ROOT
 	Models.clear_cache()
+	# modelos reais da protagonista: encaixes das patas, segmento de pata e lâminas
+	var q := Player.new()
+	q.position = Vector3(4, 0.3, 5)
+	add_child(q)
+	await get_tree().process_frame
+	_check(q._hip_points.size() == 8, "8 encaixes de pata lidos do modelo do corpo")
+	_check(q._hip_points.size() == 8 and (q._hip_points[0] as Vector3).x < 0.0 and (q._hip_points[0] as Vector3).z < (q._hip_points[3] as Vector3).z, "encaixes em ordem: lado esquerdo, da frente para trás")
+	_check(not (q._leg_rig._femurs[0] is MeshInstance3D), "patas usam o modelo do segmento")
+	_check(q._blades.size() == 2, "duas lâminas de cristal")
+	q.form = Player.Form.FILHOTE
+	q._update_blades_visible()
+	_check(not q._blades[0].visible, "Filhote não tem lâminas")
+	q.evolve()
+	_check(q._blades[0].visible and q._blades[1].visible, "Cavaleira mostra as lâminas")
+	q._start_attack(0)
+	await get_tree().create_timer(0.1).timeout
+	_check(not q._blades[1].rotation.is_equal_approx(q._blade_rest[1]), "golpe mexe a lâmina")
 	print("\n==== %s (%d falha(s)) ====" % ["OK" if failures == 0 else "FALHOU", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 

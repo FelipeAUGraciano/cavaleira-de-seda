@@ -129,6 +129,10 @@ var _rune_light: OmniLight3D
 var _scarf_tail: MeshInstance3D
 var _abdomen: MeshInstance3D
 var _plates: Array[MeshInstance3D] = []
+var _hip_points: Array = []          ## encaixes das patas lidos do modelo do corpo
+var _blades: Array[Node3D] = []      ## pivôs das 2 lâminas de cristal (só na forma Cavaleira)
+var _blade_rest: Array[Vector3] = []
+var _blade_tw: Array[Tween] = []
 var _model_overlay: StandardMaterial3D
 
 
@@ -221,6 +225,9 @@ func _build_visual() -> void:
 	_scarf_tail = Fx.box(Vector3(0.12, 0.04, 1.0), scarf_mat)
 	_scarf_tail.position = Vector3(0.12, 0.66, 0.5)
 	_visual.add_child(_scarf_tail)
+	if Models.has("cavaleira_corpo"):
+		scarf.visible = false   # o cachecol de caixas atravessava o modelo
+		_scarf_tail.visible = false
 
 	# 8 patas com IK procedural (systems/spider_legs.gd); refeitas na muda (tamanho novo)
 	_build_legs(1.0)
@@ -232,6 +239,8 @@ func _build_legs(sz: float) -> void:
 	_leg_rig = SpiderLegs.new()
 	_leg_rig.setup(_visual, sz, 1 | 8)
 	_leg_rig.root = self
+	_leg_rig.hip_points = _hip_points
+	_leg_rig.segment_model = "cavaleira_pata"
 	add_child(_leg_rig)
 
 
@@ -290,6 +299,7 @@ func _apply_form_visual() -> void:
 		_build_legs(k)
 	_rune_light.omni_range = 4.5 * k
 	_sight_light.omni_range = sight_radius()
+	_update_blades_visible()
 
 
 func evolve() -> void:
@@ -301,6 +311,7 @@ func evolve() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "vis_scale", float(form_data()["scale"]), 1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_build_legs(float(form_data()["scale"]))
+	_update_blades_visible()
 	_rune_light.omni_range = 4.5
 	_sight_light.omni_range = sight_radius()
 	EventBus.big_message.emit("Evolução: Cavaleira de Seda!")
@@ -319,12 +330,95 @@ func _apply_model(base_parts: Array) -> void:
 	if m == null:
 		return
 	m.position.y = 0.15
+	# encaixes das patas (leg_socket_L1..R4) vêm do modelo: as patas saem do lugar certo
+	_hip_points.clear()
+	for side in ["L", "R"]:
+		for k in range(1, 5):
+			var t = Models.node_xform(m, "leg_socket_%s%d" % [side, k])
+			if t == null:
+				_hip_points.clear()
+				break
+			_hip_points.append(m.transform * (t as Transform3D).origin)
+		if _hip_points.is_empty():
+			break
+	if _hip_points.size() == 8:
+		_hip_points = _hip_points.slice(0, 4) + _hip_points.slice(4, 8)
+		# o rig conta "lado -1" primeiro: garante que os 4 primeiros são os de X negativo
+		if (_hip_points[0] as Vector3).x > 0.0:
+			_hip_points = _hip_points.slice(4, 8) + _hip_points.slice(0, 4)
+	_build_blades()
 	_plates.clear()
 	_model_overlay = StandardMaterial3D.new()
 	_model_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_model_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_model_overlay.albedo_color = Color(1.0, 0.2, 0.2, 0.0)
 	Models.set_overlay(m, _model_overlay)
+
+
+func _build_blades() -> void:
+	## As duas lâminas de cristal (assets/models/cavaleira_lamina): presas na frente do
+	## corpo, acima do primeiro par de patas, apontadas para a frente como foices.
+	## Só aparecem na Cavaleira (o Filhote ainda não tem lâminas).
+	for b in _blades:
+		b.queue_free()
+	_blades.clear()
+	_blade_rest.clear()
+	if not Models.has("cavaleira_lamina"):
+		return
+	for side in [-1.0, 1.0]:
+		var m := Models.raw("cavaleira_lamina")
+		var attach = Models.node_xform(m, "attach_point")
+		var at := Vector3(0.0, 0.17, 0.0) if attach == null else (attach as Transform3D).origin
+		var pivot := Node3D.new()
+		pivot.name = "Lamina_" + ("E" if side < 0.0 else "D")
+		var spin := Node3D.new()
+		spin.rotation.y = PI * 0.5            # fio da lâmina na vertical (corta de lado)
+		pivot.add_child(spin)
+		var sc := 1.7
+		m.scale = Vector3.ONE * sc
+		m.position = -at * sc                 # o ponto de encaixe fica no pivô; a lâmina desce dele
+		spin.add_child(m)
+		var hip := Vector3(0.2 * side, 0.3, -0.5)
+		if _hip_points.size() == 8:
+			hip = _hip_points[0 if side < 0.0 else 4]
+		pivot.position = Vector3(hip.x * 0.8, hip.y + 0.22, hip.z - 0.05)
+		var rest := Vector3(deg_to_rad(62.0), -side * 0.32, side * 0.12)
+		pivot.rotation = rest
+		_visual.add_child(pivot)
+		_blades.append(pivot)
+		_blade_rest.append(rest)
+	_update_blades_visible()
+
+
+func _update_blades_visible() -> void:
+	for b in _blades:
+		b.visible = form == Form.CAVALEIRA
+
+
+func _swing_blades(index: int) -> void:
+	## Golpe do combo: 1º lâmina direita varre, 2º a esquerda, 3º as duas descem juntas.
+	if _blades.size() < 2 or form != Form.CAVALEIRA:
+		return
+	for tw in _blade_tw:
+		if tw.is_valid():
+			tw.kill()
+	_blade_tw.clear()
+	for i in 2:
+		_blades[i].rotation = _blade_rest[i]
+	var who: Array = [1] if index == 0 else ([0] if index == 1 else [0, 1])
+	for i in who:
+		var side := -1.0 if i == 0 else 1.0
+		var r: Vector3 = _blade_rest[i]
+		var wind := r + Vector3(-0.5, -side * 0.5, 0.0)
+		var cut := r + Vector3(0.35, side * 1.1, -side * 0.3)
+		if index == 2:
+			wind = r + Vector3(-0.9, -side * 0.15, 0.0)
+			cut = r + Vector3(0.55, side * 0.25, 0.0)
+		var tw := create_tween()
+		tw.tween_property(_blades[i], "rotation", wind, 0.07)
+		tw.tween_property(_blades[i], "rotation", cut, 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_blades[i], "rotation", r, 0.22).set_delay(0.05)
+		_blade_tw.append(tw)
 
 
 func _build_camera() -> void:
@@ -496,6 +590,7 @@ func _start_attack(index: int) -> void:
 	combo_index = index
 	combo_queued = false
 	_start_state(State.ATTACK)
+	_swing_blades(index)
 
 
 func _state_attack() -> Vector3:
