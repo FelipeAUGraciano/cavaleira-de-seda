@@ -70,6 +70,7 @@ func _run() -> void:
 		b.needs.fatigue = 90.0
 		b.needs.hunger = 0.0
 	await _seconds(6.0)
+	bats = bats.filter(func(b): return is_instance_valid(b) and not b.dead)   # algum pode ter sido comido
 	var sleeping := bats.filter(func(b): return b.asleep).size()
 	_check(sleeping >= 3, "no Brilho, os morcegos dormem no poleiro (%d de %d)" % [sleeping, bats.size()])
 
