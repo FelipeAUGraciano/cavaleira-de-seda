@@ -92,7 +92,6 @@ Documento de design (GDD): https://claude.ai/artifact/1GWcAejdRMa5iN3mmC9C1K
 | Apagar / acender runa | F | Clique no analógico direito |
 | Mapa | M | Direcional para cima |
 | Ajuda na tela | H | Back |
-| Pausa | Esc | Start |
 | Pausa e menu | Esc | Start |
 | Testes: +1 nível / novo jogo direto | F1 / F8 | — |
 
