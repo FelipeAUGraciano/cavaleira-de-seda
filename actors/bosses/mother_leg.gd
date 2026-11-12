@@ -40,7 +40,7 @@ func _ready() -> void:
 	upper.position = Vector3(0.0, 10.0, -2.6)
 	upper.rotation.x = 0.6
 	_leg.add_child(upper)
-	Models.swap(_leg, "mae_pata", 11.0, [tip, lower, joint, upper], "height")
+	_build_model(tip, lower, joint, upper)
 	_marker = Fx.cylinder(1.6, 0.03, Fx.mat(Color(1.0, 0.2, 0.2), 1.5, true, 0.5))
 	_marker.visible = false
 	add_child(_marker)
@@ -50,6 +50,23 @@ func _ready() -> void:
 	_to = points[0]
 	_leg.position = _from
 	_t = 1.0
+
+
+func _build_model(tip: Node3D, lower: Node3D, joint: Node3D, upper: Node3D) -> void:
+	## Pata do modelo (mae_pata): sobe do chão, dobra no joelho lá no alto e some para trás
+	## (o corpo da Mãe fica fora da tela). A ponta fica exatamente na origem de _leg.
+	var d := MaeLegs.make(2.4)
+	if d.is_empty():
+		return
+	for p in [tip, lower, joint, upper]:
+		p.visible = false
+	var wrap := Node3D.new()
+	wrap.rotation.y = -0.35   # a pata se arqueia de lado: a câmera vê o joelho dobrado
+	_leg.add_child(wrap)
+	wrap.add_child(d["root"])
+	MaeLegs.pose(d, 1.05, -2.15, -0.45, -0.25)
+	var tip_p := MaeLegs.tip_in(d, wrap)
+	(d["root"] as Node3D).position -= tip_p
 
 
 func _process(delta: float) -> void:

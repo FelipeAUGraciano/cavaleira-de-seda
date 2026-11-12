@@ -18,6 +18,7 @@ var _hit_cd := 0.0
 var _roar := 0.0
 var _t := 0.0
 var _legs: Array[Node3D] = []
+var _mae_legs: Array = []           ## patas do modelo: [{root, hip, j1, j2, j3, tip, phase, sign}]
 
 
 func _ready() -> void:
@@ -44,28 +45,21 @@ func _ready() -> void:
 		parts.append(eye)
 	var body_model := Models.swap(self, "mae_corpo", 12.0, parts, "length")
 	if body_model != null:
-		body_model.position = Vector3(-3.0, 1.2, 0.0)
+		body_model.position = Vector3(-3.0, 0.0, 0.0)
 		body_model.rotation_degrees.y = -90.0   # o modelo olha para -Z; a Mãe corre para +X
-	var leg_mat := Fx.mat(Color(0.12, 0.1, 0.18))
-	for i in 8:
-		var side := -1.0 if i < 4 else 1.0
-		var pivot := Node3D.new()
-		pivot.position = Vector3(1.0 - (i % 4) * 1.4, 3.0, side * 1.6)
-		var leg := Fx.box(Vector3(0.45, 0.45, 7.0), leg_mat)
-		leg.position = Vector3(0.0, -1.4, side * 3.4)
-		leg.rotation.x = side * 0.45
-		pivot.add_child(leg)
-		add_child(pivot)
-		var leg_model := Models.instance("mae_pata", 7.5, "max")
-		if leg_model != null:
-			var wrap := Node3D.new()
-			wrap.transform = leg.transform
-			pivot.add_child(wrap)
-			leg_model.rotation.x = PI * 0.5   # comprimento do modelo (Y) ao longo da pata (Z)
-			leg_model.position.z = -3.6
-			wrap.add_child(leg_model)
-			leg.visible = false
-		_legs.append(pivot)
+		_build_model_legs(body_model)
+	if _mae_legs.is_empty():
+		var leg_mat := Fx.mat(Color(0.12, 0.1, 0.18))
+		for i in 8:
+			var side := -1.0 if i < 4 else 1.0
+			var pivot := Node3D.new()
+			pivot.position = Vector3(1.0 - (i % 4) * 1.4, 3.0, side * 1.6)
+			var leg := Fx.box(Vector3(0.45, 0.45, 7.0), leg_mat)
+			leg.position = Vector3(0.0, -1.4, side * 3.4)
+			leg.rotation.x = side * 0.45
+			pivot.add_child(leg)
+			add_child(pivot)
+			_legs.append(pivot)
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.3, 0.25)
 	light.omni_range = 9.0
@@ -73,6 +67,52 @@ func _ready() -> void:
 	light.position = Vector3(3.0, 4.0, 0.0)
 	add_child(light)
 	_place(0.0)
+
+
+func _build_model_legs(body: Node3D) -> void:
+	## 8 patas do modelo, presas nos encaixes leg_socket_* do corpo e dobradas pelas juntas.
+	var k := 1.0
+	var inner := body.get_child(0).get_child(0) as Node3D   # holder → pivô → modelo
+	if inner != null:
+		k = inner.scale.x
+	var wraps: Array[Node3D] = []
+	for side in ["L", "R"]:
+		for n in range(1, 5):
+			var t = Models.node_xform(body, "leg_socket_%s%d" % [side, n])
+			if t == null:
+				continue
+			var xf: Transform3D = body.transform * (t as Transform3D)
+			var dx := xf.basis.x
+			var out := Vector3(dx.x, 0.0, dx.z).normalized()
+			var d := MaeLegs.make(k)
+			if d.is_empty():
+				return
+			var wrap := Node3D.new()
+			wrap.position = xf.origin
+			wrap.basis = Basis(out, Vector3.UP, out.cross(Vector3.UP).normalized())
+			wrap.add_child(d["root"])
+			add_child(wrap)
+			wraps.append(wrap)
+			d["phase"] = (0.0 if n % 2 == 0 else PI) + (0.0 if side == "L" else PI)
+			d["sign"] = 1.0 if side == "L" else -1.0
+			MaeLegs.pose(d, MaeLegs.REST["hip"], MaeLegs.REST["j1"], MaeLegs.REST["j2"], MaeLegs.REST["j3"])
+			_mae_legs.append(d)
+	# as pontas no chão: sobe o corpo e as patas juntos
+	var min_y := INF
+	for d in _mae_legs:
+		min_y = minf(min_y, MaeLegs.tip_in(d, self).y)
+	if min_y < INF:
+		body.position.y -= min_y
+		for w in wraps:
+			w.position.y -= min_y
+
+
+func _animate_legs(t: float, walking: bool) -> void:
+	for d in _mae_legs:
+		var ph: float = t * 6.0 + float(d["phase"])
+		var lift := maxf(0.0, sin(ph)) if walking else 0.0
+		MaeLegs.pose(d, MaeLegs.REST["hip"] + 0.22 * lift, MaeLegs.REST["j1"] - 0.25 * lift, MaeLegs.REST["j2"],
+			MaeLegs.REST["j3"] + 0.1 * lift, (0.22 * cos(ph) * float(d["sign"])) if walking else 0.0)
 
 
 func begin() -> void:
@@ -141,6 +181,7 @@ func _physics_process(delta: float) -> void:
 		_place(progress)
 	for i in _legs.size():
 		_legs[i].rotation.y = sin(_t * 9.0 + (i % 2) * PI) * 0.35
+	_animate_legs(_t, _roar <= 0.0)
 	var p := GameState.player as Player
 	if p != null and not p.dead and _hit_cd <= 0.0:
 		var pr := progress_of(Vector2(p.global_position.x, p.global_position.z))

@@ -19,4 +19,16 @@ A lista de nomes e os pedidos para a IA estão na aba "Modelos 3D" do GDD.
 | Cavaleira: segmento de pata | cavaleira_pata/cavaleira_pata_v01.glb | 1,5 mil triângulos; esticado no fêmur e na tíbia das 8 patas (16 peças) |
 | Cavaleira: lâmina de cristal | cavaleira_lamina/cavaleira_lamina_v01.glb | 68 triângulos, cristal transparente; `attach_point` é onde ela prende. Só na forma Cavaleira |
 
+| Mãe: corpo | mae_corpo/mae_corpo_v01.glb | 43 mil → 16 mil triângulos; patas nos `leg_socket_L1..R4` |
+| Mãe: pata | mae_pata/mae_pata_v01.glb | 4 mil triângulos; juntas hip → joint_1..3 → tip (dobradas em código, actors/bosses/mae_legs.gd) |
+| Ovo (novo) | ovo/ovo_v02.glb | 2,8 mil triângulos; brilho reduzido em systems/models.gd (TUNING) |
+| Casulo | casulo/casulo_v01.glb | 15,6 mil → 6 mil |
+| Presa embrulhada | presa/presa_v01.glb | 11,7 mil → 3 mil (cadáveres) |
+| Cristal | cristal/cristal_v01.glb | 108 triângulos (cristais de PV/Energia) |
+| Pilar de teia | pilar_teia/pilar_teia_v01.glb | 14,6 mil → 6 mil (Berçário) |
+| Estalagmites A, B, C | estalagmite_*/..._v01.glb | ~2,5 mil cada; pilares das Galerias e enfeite das cavernas (clareadas no TUNING) |
+| Rochas A, B, C | rocha_*/..._v01.glb | 2 mil cada (clareadas no TUNING) |
+| Fungos roxo e verde | fungo_*/..._v01.glb | 8,5 mil → 1,5 mil cada |
+| Teia de canto | teia_canto/teia_canto_v01.glb | 1,6 mil; deitada no chão como teia decorativa |
+
 Os nós vazios com nome (encaixes, pontos de encaixe) só sobrevivem porque `preparar_modelo.sh` usa `gltfpack -kn`.

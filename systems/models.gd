@@ -19,6 +19,13 @@ const TUNING := {
 	"irma_corpo": {"legs": true},
 	"lagarto": {"rot_y": 0.0, "legs": true},       # veio olhando para -Z
 	"morcego": {"legs": true},
+	"ovo": {"emission": 0.2},          # o ovo novo brilha inteiro; no escuro virava bola branca
+	"estalagmite_a": {"albedo": 1.9},  # pedra escura demais: some no escuro da caverna
+	"estalagmite_b": {"albedo": 1.9},
+	"estalagmite_c": {"albedo": 1.9},
+	"rocha_a": {"albedo": 1.7},
+	"rocha_b": {"albedo": 1.7},
+	"rocha_c": {"albedo": 1.7},
 
 }
 
@@ -86,7 +93,25 @@ static func instance(model_name: String, size: float, fit: String = "max") -> No
 	model.scale = Vector3.ONE * s
 	model.position = Vector3(-center.x * s, -box.position.y * s + float(tune.get("y", 0.0)), -center.z * s)
 	pivot.add_child(model)
+	if tune.has("emission"):
+		_scale_emission(model, float(tune["emission"]))
+	if tune.has("albedo"):
+		var f := float(tune["albedo"])
+		tint(model, Color(f, f, f))
 	return holder
+
+
+static func _scale_emission(node: Node, f: float) -> void:
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		var mi := node as MeshInstance3D
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i) as BaseMaterial3D
+			if m != null and m.emission_enabled:
+				var copy := m.duplicate() as BaseMaterial3D
+				copy.emission_energy_multiplier *= f
+				mi.set_surface_override_material(i, copy)
+	for c in node.get_children():
+		_scale_emission(c, f)
 
 
 static func swap(parent: Node3D, model_name: String, size: float, placeholders: Array, fit: String = "max") -> Node3D:

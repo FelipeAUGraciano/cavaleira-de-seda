@@ -407,8 +407,11 @@ func add_web_decal(pos: Vector3, radius: float = 2.5) -> void:
 	add_child(root)
 	var m := Models.instance("teia_canto", radius * 2.0, "length")
 	if m != null:
+		# o modelo é uma teia de parede (plano em pé): deita no chão e centraliza
+		root.rotation.y = fposmod(pos.x + pos.z, TAU)
+		m.rotation.x = -PI * 0.5
+		m.position.z = radius
 		root.add_child(m)
-		m.rotation.y = fposmod(pos.x + pos.z, TAU)
 		return
 	for i in 6:
 		var spoke := Fx.box(Vector3(radius * 2.0, 0.01, 0.03), mat)

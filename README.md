@@ -2,6 +2,11 @@
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
 
+## Novidades da v0.8 — props e a Mãe em 3D
+
+- **A Mãe:** corpo e pata novos. Na Fuga (B6) ela corre com as 8 patas presas nos encaixes do corpo, dobrando as juntas a cada passo; na Despensa (B5) a pata gigante se arqueia do alto até o chão.
+- **Props:** ovo, casulo, presa embrulhada, cristal, pilar de teia, 3 estalagmites, 3 rochas, 2 fungos e a teia de canto. As estalagmites viram os pilares das Galerias (a altura continua variando) e enfeitam as cavernas junto com as rochas.
+
 ## Novidades da v0.8 — menu do casulo
 
 Feito a partir do design escolhido pelo criador. **E perto de um casulo** abre o menu (o jogo pausa):

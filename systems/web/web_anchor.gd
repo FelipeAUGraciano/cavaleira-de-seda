@@ -44,6 +44,10 @@ func _ready() -> void:
 	var shown := Models.swap(self, model_name, height, [rock], "height") if kind == "pilar" else null
 	if shown != null:
 		shown.rotation.y = _rng.randf() * TAU
+		# o nó de seda abraça o modelo: raio pela largura dele perto da base
+		var box := Models.bounds(shown, Transform3D.IDENTITY)
+		_trunk_r = minf(box.size.x, box.size.z) * 0.22
+		_trunk_off = Vector3(box.get_center().x, 0.0, box.get_center().z)
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = radius
