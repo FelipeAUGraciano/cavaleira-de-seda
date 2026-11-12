@@ -64,6 +64,26 @@ func connects(a_name: String, b_name: String) -> bool:
 	return (anchor_a == a_name and anchor_b == b_name) or (anchor_a == b_name and anchor_b == a_name)
 
 
+func crossing_distance(p: Vector3, height: float, end_margin: float = 1.0) -> float:
+	## Para bichos andando: distância até o trecho do meio do fio (perto das âncoras não conta:
+	## andar rente ao pilar não enrosca) e só se o fio estiver baixo o bastante para bater no corpo.
+	var a := Vector2(a_pos.x, a_pos.z)
+	var b := Vector2(b_pos.x, b_pos.z)
+	var q := Vector2(p.x, p.z)
+	var ab := b - a
+	var L := ab.length()
+	if L < end_margin * 2.0 + 0.2:
+		return INF
+	var t := (q - a).dot(ab) / (L * L)
+	var m := end_margin / L
+	if t < m or t > 1.0 - m:
+		return INF
+	var y := lerpf(a_pos.y, b_pos.y, t)
+	if y > p.y + height or y < p.y - 0.3:
+		return INF
+	return q.distance_to(a + ab * t)
+
+
 func distance_to(p: Vector3) -> float:
 	## Distância no plano XZ entre um ponto e o segmento do fio.
 	var a := Vector2(a_pos.x, a_pos.z)

@@ -5,18 +5,13 @@ extends Creature
 ## Vida: come larvas e cadáveres, passeia entre câmaras, foge de bichos grandes e,
 ## ferido, volta para a poça para se curar. Comer o sapo dá Resistência a Ácido.
 
-enum Mode { IDLE, CHASE, SEARCH, BITE, TONGUE }
-
 const SIGHT := 10.0
 const FOV := 140.0
-const BITE_DAMAGE := 14.0
-const TONGUE_DAMAGE := 8.0
+const BITE_DAMAGE := 26.0      ## dois botes matam uma Filhote
 
+var mode_time := 0.0          ## (compatibilidade com testes antigos)
+enum Mode { IDLE, CHASE }
 var mode: Mode = Mode.IDLE
-var mode_time := 0.0
-var attack_done := false
-var bite_cd := 0.0
-var tongue_cd := 2.0
 
 
 func _init() -> void:
@@ -24,7 +19,7 @@ func _init() -> void:
 	size = Size.M
 	level = 4
 	max_hp = 80.0
-	speed = 3.6
+	speed = 4.2
 	body_radius = 0.75
 	body_color = Color(0.45, 0.42, 0.36)
 	food_satiety = 60.0
@@ -47,6 +42,22 @@ func _init() -> void:
 	track_range = 16.0
 	memory_time = 7.0
 	needs.hunger_rate = 0.5
+	combat_label = "Caçando você"
+	# Golpes (aviso no chão → golpe que vai até o fim → recuperação)
+	add_attack(Attack.make("bote", "Bote", {"max_range": 2.4, "windup": 0.45, "active": 0.18, "recover": 0.55,
+		"cooldown": 1.3, "damage": BITE_DAMAGE, "reach": 2.0, "arc": 80.0, "lunge": 5.5, "track": 7.0, "lead": 0.15, "weight": 3.0}))
+	add_attack(Attack.make("lingua", "Língua", {"min_range": 2.5, "max_range": 7.0, "windup": 0.6, "active": 0.2,
+		"recover": 0.7, "cooldown": 4.0, "damage": 8.0, "shape": Attack.Shape.LINE, "reach": 7.5, "width": 0.9,
+		"track": 4.0, "lead": 0.3, "needs_sight": true, "knockback": false, "effect": "pull", "effect_power": 14.0,
+		"combo_next": "bote", "weight": 2.0}))
+	add_attack(Attack.make("salto", "Salto esmagador", {"min_range": 3.5, "max_range": 8.0, "windup": 0.7, "active": 0.45,
+		"recover": 0.9, "cooldown": 6.0, "damage": 30.0, "shape": Attack.Shape.CIRCLE, "reach": 1.6, "leap": true,
+		"track": 3.0, "lead": 0.45, "weight": 1.5}))
+	add_attack(Attack.make("giro", "Giro de língua", {"max_range": 3.0, "windup": 0.5, "active": 0.25, "recover": 0.6,
+		"cooldown": 3.5, "damage": 18.0, "shape": Attack.Shape.RING, "reach": 3.0, "track": 0.0, "flank": true, "weight": 2.0}))
+	add_attack(Attack.make("cuspe", "Cuspe ácido", {"min_range": 3.0, "max_range": 9.0, "windup": 0.7, "active": 0.2,
+		"recover": 0.5, "cooldown": 5.0, "damage": 12.0, "shape": Attack.Shape.CIRCLE, "reach": 1.4, "at_point": true,
+		"track": 5.0, "lead": 0.5, "needs_sight": true, "only_enraged": true, "effect": "acid", "weight": 2.0}))
 
 
 func _ready() -> void:
@@ -104,102 +115,40 @@ func _release_prey() -> void:
 
 # ---------------------------------------------------------------- combate com a jogadora
 
-func combat_wants() -> bool:
-	return player_memory > 0.0 or mode == Mode.BITE or mode == Mode.TONGUE
-
-
-func combat_locked() -> bool:
-	return mode == Mode.BITE or mode == Mode.TONGUE
-
-
 func combat_start() -> void:
-	if mode == Mode.IDLE:
+	if mode == Mode.IDLE and noticed_player:
 		EventBus.message.emit("O %s te viu!" % display_name)
 	mode = Mode.CHASE
-	mode_time = 0.0
 
 
 func combat_stop() -> void:
 	mode = Mode.IDLE
-	telegraph = false
+	cancel_attack()
 
 
-func combat_tick(delta: float) -> Vector3:
-	bite_cd -= delta
-	tongue_cd -= delta
-	mode_time += delta
-	var p := GameState.player as Player
-	if mode == Mode.BITE:
-		return _do_bite(p)
-	if mode == Mode.TONGUE:
-		return _do_tongue(p)
-	if p != null and not p.dead and noticed_player:
-		mode = Mode.CHASE
-		return _chase(p)
-	mode = Mode.SEARCH
-	return nav_to(last_player_pos, 0.7)
-
-
-func _begin(m: Mode) -> void:
-	mode = m
-	mode_time = 0.0
-	attack_done = false
-	telegraph = true
-
-
-func _chase(p: Player) -> Vector3:
-	var d := flat_dist_to(p)
-	face_toward(p.global_position)
-	if d <= 1.9 and bite_cd <= 0.0:
-		_begin(Mode.BITE)
-		return Vector3.ZERO
-	if d >= 3.0 and d <= 6.5 and tongue_cd <= 0.0 and has_line_of_sight(p):
-		_begin(Mode.TONGUE)
-		return Vector3.ZERO
-	if d <= 1.6:
-		return Vector3.ZERO
-	return nav_to(p.global_position, 1.0)
-
-
-func _do_bite(p: Player) -> Vector3:
-	if p != null:
-		face_toward(p.global_position)
-	if not attack_done and mode_time >= 0.5:
-		attack_done = true
-		telegraph = false
-		if p != null and not p.dead and flat_dist_to(p) <= 2.4:
-			p.take_damage(BITE_DAMAGE, self)
-	if mode_time >= 0.85:
-		bite_cd = 1.3
-		mode = Mode.CHASE
-	return Vector3.ZERO
-
-
-func _do_tongue(p: Player) -> Vector3:
-	if p != null:
-		face_toward(p.global_position)
-	if not attack_done and mode_time >= 0.7:
-		attack_done = true
-		telegraph = false
-		var mouth := global_position + Vector3.UP * 0.6
-		if p != null and not p.dead and flat_dist_to(p) <= 7.5 and has_line_of_sight(p):
-			Fx.beam(get_parent(), mouth, p.global_position + Vector3.UP * 0.4, Color(0.95, 0.45, 0.55), 0.2, 0.12)
-			if p.pull_toward(global_position, 12.0):
-				p.take_damage(TONGUE_DAMAGE, self, false)
-		else:
-			Fx.beam(get_parent(), mouth, mouth + facing * 6.0, Color(0.95, 0.45, 0.55), 0.2, 0.12)
-	if mode_time >= 1.1:
-		tongue_cd = 4.0
-		mode = Mode.CHASE
-	return Vector3.ZERO
+func on_attack_active(a: Attack) -> void:
+	var mouth := global_position + Vector3.UP * 0.6
+	match a.id:
+		"lingua":
+			Fx.beam(get_parent(), mouth, mouth + facing * a.reach, Color(0.95, 0.45, 0.55), 0.22, 0.12)
+		"giro":
+			for i in 8:
+				var d := facing.rotated(Vector3.UP, i * TAU / 8.0)
+				Fx.beam(get_parent(), mouth, mouth + d * a.reach, Color(0.95, 0.45, 0.55), 0.18, 0.08)
+		"cuspe":
+			Fx.beam(get_parent(), mouth, atk_point + Vector3.UP * 0.1, Color(0.6, 0.95, 0.3), 0.2, 0.1)
+			AcidPuddle.spawn(get_parent(), atk_point, 1.4, 5.0)
 
 
 func _on_hurt(source: Node3D) -> void:
-	if source != null and source.is_in_group("player") and mode == Mode.IDLE:
+	if source != null and source.is_in_group("player"):
 		mode = Mode.CHASE
-		mode_time = 0.0
 
 
 func _animate(_delta: float, speed_now: float) -> void:
 	var hop := absf(sin(_anim_t * 7.0)) * 0.25 * clampf(speed_now / speed, 0.0, 1.0)
+	if cur_attack != null and cur_attack.leap and atk_phase == 1:
+		hop = sin(clampf(atk_t / cur_attack.active, 0.0, 1.0) * PI) * 1.6   # no ar
+	elif cur_attack != null and atk_phase == 0:
+		hop = -0.08 * clampf(atk_t / cur_attack.windup, 0.0, 1.0)          # se agacha antes
 	_visual.position.y = hop - (0.15 if asleep else 0.0)

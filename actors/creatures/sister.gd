@@ -4,22 +4,16 @@ extends Creature
 ##   Irmã menor (P): foge pela vibração e vira comida.
 ##   Irmã faminta (P, maior): caça a jogadora pela visão e devora as irmãs menores.
 
-const TRACK_RANGE := 13.0         ## faminta sente o cheiro da filhote a esta distância
-const BITE_DAMAGE := 10.0
+const TRACK_RANGE := 16.0         ## faminta sente o cheiro da filhote a esta distância
+const BITE_DAMAGE := 18.0         ## três mordidas matam uma Filhote
 const SIGHT := 9.0
 const FOV := 160.0
 
 var hunter := false
-var stalking := false          ## faminta seguindo o cheiro da jogadora
-var _was_stalking := false
-var _guess := Vector3.ZERO
-var _guess_t := 0.0
 var legs: SpiderLegs
-var mode_time := 0.0
-var bite_cd := 0.0
-var biting := false
-var bite_done := false
-var target: Node3D = null
+var stalking: bool:               ## (compatibilidade) seguindo o cheiro da jogadora
+	get:
+		return brain != null and brain.is_doing("stalk")
 
 
 func _init(is_hunter: bool = false) -> void:
@@ -36,6 +30,28 @@ func _init(is_hunter: bool = false) -> void:
 		food_silk = 20.0
 		food_xp = 25
 		senses_text = "visão (9 m, cone de 160°) e vibração"
+		sight_range = SIGHT
+		sight_fov = FOV
+		aggression = 1.0
+		track_range = TRACK_RANGE
+		stalk_speed = 0.9
+		memory_time = 6.0
+		attack_damage = 30.0       # contra irmãs menores (presa)
+		attack_reach = 0.9
+		hunger_threshold = 30.0
+		needs.hunger_rate = 1.0
+		combat_label = "Caçando você"
+		add_attack(Attack.make("mordida", "Mordida", {"max_range": 1.7, "windup": 0.35, "active": 0.15, "recover": 0.45,
+			"cooldown": 0.9, "damage": BITE_DAMAGE, "reach": 1.4, "arc": 80.0, "lunge": 4.5, "track": 8.0, "lead": 0.12, "weight": 3.0}))
+		add_attack(Attack.make("pulo", "Pulo", {"min_range": 2.5, "max_range": 6.0, "windup": 0.55, "active": 0.4,
+			"recover": 0.7, "cooldown": 4.0, "damage": 22.0, "shape": Attack.Shape.CIRCLE, "reach": 1.0, "leap": true,
+			"track": 4.0, "lead": 0.4, "weight": 1.5}))
+		add_attack(Attack.make("teia", "Teia cuspida", {"min_range": 3.0, "max_range": 8.0, "windup": 0.5, "active": 0.15,
+			"recover": 0.5, "cooldown": 5.0, "damage": 4.0, "shape": Attack.Shape.CIRCLE, "reach": 1.2, "at_point": true,
+			"track": 5.0, "lead": 0.45, "needs_sight": true, "knockback": false, "effect": "slow", "effect_power": 2.5, "weight": 1.5}))
+		add_attack(Attack.make("frenesi", "Frenesi", {"max_range": 1.8, "windup": 0.22, "active": 0.12, "recover": 0.3,
+			"cooldown": 4.0, "damage": 10.0, "reach": 1.5, "arc": 100.0, "lunge": 3.0, "track": 10.0,
+			"only_enraged": true, "combo_next": "frenesi", "weight": 2.5}))
 	else:
 		display_name = "Irmã menor"
 		level = 1
@@ -92,9 +108,19 @@ func _build_visual() -> void:
 	add_child(legs)
 
 
+func _make_brain() -> Brain:
+	if not hunter:
+		return null   # a irmã menor só foge (lógica simples em _think)
+	return Brain.new() \
+		.add(Behaviors.Combat.new("Caçando você")) \
+		.add(Behaviors.Stalk.new()) \
+		.add(Behaviors.Forage.new()) \
+		.add(Behaviors.Wander.new(6.0, 0.35))
+
+
 func _think(delta: float) -> Vector3:
 	if hunter:
-		return _think_hunter(delta)
+		return super._think(delta)
 	return _think_small(delta)
 
 
@@ -114,73 +140,22 @@ func _think_small(delta: float) -> Vector3:
 	return wander(delta, 4.0, 0.4)
 
 
-func _think_hunter(delta: float) -> Vector3:
-	bite_cd -= delta
-	mode_time += delta
-	if biting:
-		if target != null and is_instance_valid(target):
-			face_toward(target.global_position)
-		if not bite_done and mode_time >= 0.35:
-			bite_done = true
-			telegraph = false
-			if target != null and is_instance_valid(target) and flat_dist_to(target) <= 1.6:
-				var p := target as Player
-				if p != null:
-					p.take_damage(BITE_DAMAGE, self)
-				else:
-					var prey := target as Creature
-					if prey != null and not prey.dead:
-						prey.take_damage(999.0, self)
-						hunger = 0.0
-		if mode_time >= 0.6:
-			biting = false
-			bite_cd = 1.1
-		return Vector3.ZERO
-
-	target = null
-	var pl := GameState.player as Player
-	if pl != null and not pl.dead:
-		if can_see(pl, SIGHT * pl.visibility_mult(), FOV) or flat_dist_to(pl) < maxf(3.0, pl.noise_radius()):
-			target = pl
-	if target == null and hunger > 30.0:
-		var best_d := 8.0
-		for n in World.near(global_position, 8.0):
-			var s := n as Sister
-			if s != null and s != self and not s.hunter and not s.dead:
-				var d := flat_dist_to(s)
-				if d < best_d and has_line_of_sight(s):
-					target = s
-					best_d = d
-	stalking = false
-	if target == null and pl != null and not pl.dead and flat_dist_to(pl) < TRACK_RANGE and pl.body_size() == 0:
-		# faminta: segue o cheiro da filhote mesmo sem ver
-		stalking = true
-		if not _was_stalking:
-			EventBus.stalked.emit(self)
-		_was_stalking = true
-		if _guess_t <= 0.0 or Fx.flat_dist(global_position, _guess) < 1.0:
-			_guess_t = 1.5
-			var err := flat_dist_to(pl) * 0.2
-			_guess = pl.global_position + Vector3(randf_range(-err, err), 0.0, randf_range(-err, err))
-		_guess_t -= delta
-		return nav_to(_guess, 0.85)
-	_was_stalking = stalking
-	if target != null:
-		var dist := flat_dist_to(target)
-		face_toward(target.global_position)
-		if dist <= 1.3 and bite_cd <= 0.0:
-			biting = true
-			bite_done = false
-			mode_time = 0.0
-			telegraph = true
-			return Vector3.ZERO
-		return move_to(target.global_position, 1.0)
-	hunger += delta
-	return wander(delta, 6.0, 0.35)
+func is_prey(o: Creature) -> bool:
+	return hunter and o is Sister and not (o as Sister).hunter
 
 
-func hunting_player() -> bool:
-	return hunter and (stalking or target == GameState.player)
+func sees_player_as_prey(p: Player) -> bool:
+	## Canibal: a Filhote é do tamanho dela, e ela está sempre com fome.
+	return p.body_size() == 0 or needs.hunger > 75.0
+
+
+func is_resting_phase() -> bool:
+	return false   # no Berçário ninguém dorme
+
+
+func combat_start() -> void:
+	if noticed_player:
+		EventBus.stalked.emit(self)
 
 
 func _lod_changed(near: bool) -> void:

@@ -8,6 +8,7 @@ var failures := 0
 
 
 func _ready() -> void:
+	GameState.permadeath = false   # este teste morre de propósito e volta do casulo
 	GameState.delete_save()
 	GameState.said = {}
 	GameState.flags = {}
@@ -62,11 +63,15 @@ func _run() -> void:
 			best = d
 	print("  info: irmã faminta mais próxima a %.1f m de B2" % best)
 	_teleport(hungry.global_position + Vector3(-2.0, 0.1, 0.0) if hungry != null else Vector3(-25.0, 0.1, -9.0))
-	await _seconds(3.0)
+	await _seconds(4.0)
 	_check(player.hp < hp0, "irmã faminta caça e morde (PV %d)" % int(player.hp))
 
-	# B3: fio sobre o abismo
+	# B3: fio sobre o abismo (a irmã faminta agora não larga: tira ela do caminho)
+	for s2 in get_tree().get_nodes_in_group("predator"):
+		if s2 is Sister and Fx.flat_dist(s2.global_position, player.global_position) < 20.0:
+			s2.queue_free()
 	player.hp = player.max_hp
+	player._slow_time = 0.0
 	_teleport(Vector3(-4.0, 0.1, -3.0))
 	await _frames(5)
 	var a: WebAnchor = WebNetwork.anchors["B3_a"]

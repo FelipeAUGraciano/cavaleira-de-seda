@@ -28,6 +28,7 @@ var map_system: MapSystem
 var webs: Node3D
 var clock: CaveClock
 var resumed := false
+var restarting := false        ## morreu: o ato recomeçou do início (permadeath)
 
 
 func _ready() -> void:
@@ -37,8 +38,13 @@ func _ready() -> void:
 	_configure()
 
 	var data := GameState.load_game()
-	resumed = not data.is_empty() and String(data.get("scene", "")) == scene_file_path
-	if resumed:
+	var here := not data.is_empty() and String(data.get("scene", "")) == scene_file_path
+	resumed = here and bool(data.get("checkpoint", true))
+	restarting = here and not resumed
+	var k = data.get("knowledge", {})
+	if k is Dictionary and not k.is_empty():
+		GameState.knowledge = k
+	if here:
 		var said = data.get("said", {})
 		if said is Dictionary:
 			GameState.said = said
@@ -83,14 +89,23 @@ func _ready() -> void:
 
 	_populate()
 
+	map_system.from_dict((GameState.knowledge.get("maps", {}) as Dictionary).get(scene_file_path, {}))
 	if resumed:
 		WebNetwork.load_from(data.get("web", {}))
 		map_system.from_dict(data.get("map", {}))
 		player.from_dict(data.get("player", {}))
-		EventBus.message.emit("Save carregado do último casulo. (Esc → Menu inicial → Novo jogo para recomeçar.)")
+		GameState.act = data.get("act", {})
+		EventBus.message.emit("Save carregado do último casulo.")
+	elif restarting:
+		GameState.act = data.get("act", {})
+		player.apply_carry(GameState.act.get("player", {}))
+		EventBus.message.emit("O ato recomeçou. Você lembra do caminho... e de quem te matou.")
 	elif not GameState.carry.is_empty():
 		player.apply_carry(GameState.carry)
 		GameState.carry = {}
+	if GameState.act.is_empty() or String(GameState.act.get("scene", "")) != scene_file_path:
+		GameState.act = {"scene": scene_file_path, "player": player.to_dict(), "flags": GameState.flags.duplicate(true)}
+		GameState.save_act_start()
 
 	EventBus.player_died.connect(_on_player_died)
 	_start()
@@ -141,6 +156,15 @@ func _start() -> void:
 
 func _on_player_died() -> void:
 	pass
+
+
+func restart_act() -> void:
+	## Chamado pela jogadora morta (permadeath): escurece e recomeça o ato.
+	if hud != null:
+		hud.show_title("Você morreu", "O ato recomeça do início. Só o que você aprendeu fica.")
+		await hud.fade(1.0, 1.4)
+		await get_tree().create_timer(1.2).timeout
+	GameState.restart_act()
 
 
 # ---------------------------------------------------------------- câmaras

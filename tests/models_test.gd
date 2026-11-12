@@ -6,6 +6,7 @@ var failures := 0
 
 
 func _ready() -> void:
+	GameState.permadeath = false   # este teste morre de propósito e volta do casulo
 	Models.root = "res://tests/fixtures/models"
 	Models.clear_cache()
 	await get_tree().process_frame

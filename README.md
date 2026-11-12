@@ -1,6 +1,19 @@
-# Cavaleira de Seda — protótipo (v0.7)
+# Cavaleira de Seda — protótipo (v0.8-etapa1)
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
+
+## Novidades da v0.8 (etapa 1) — hardcore: combate e IA
+
+- **Golpes estilo Monster Hunter:** cada bicho tem 3 ou 4 golpes. Antes de cada um aparece uma **marca laranja no chão** com a área, que enche até o golpe sair. O golpe vai até o fim mesmo que você saia andando (só a esquiva ou estar fora da marca salva), mira onde você **vai estar** e gira atrás de você. Depois do golpe o bicho fica parado um instante: é a hora de bater.
+  - **Sapo:** bote, língua (puxa você e emenda um bote), salto esmagador e **giro de língua** contra quem fica rodando do lado dele. Furioso: cuspe ácido que deixa poça.
+  - **Lagarto-lanterna:** mordida, investida em linha, chicote de cauda (quem fica do lado/atrás). Furioso: clarão da isca que te deixa lenta.
+  - **Irmã faminta:** mordida, pulo, teia cuspida (deixa lenta). Furiosa: frenesi de mordidas em sequência.
+  - **Morcegos:** até 3 mergulham juntos, miram à frente de quem corre e **gritam** — o grito te deixa lenta e chama todo predador por perto.
+- **Fúria:** abaixo da metade da vida o bicho fica furioso: avisa menos, bate mais forte e ganha um golpe novo.
+- **Perseguição que não desiste:** quem te caça segue seu barulho e seu cheiro. Só despista quem **some de vista e fica quieta** (parada, runa apagada). Aí ele ainda vasculha a área uns segundos antes de desistir.
+- **Filhote frágil:** dois golpes de qualquer predador matam. A vida quase não regenera sozinha.
+- **Teia por tamanho:** bicho P fica preso; M (sapo, lagarto) fica preso uns 2 s e **rasga a teia**; G (Centopeia) arrebenta na hora. Bicho andando que esbarra num fio no chão também enrosca (e o M arrebenta o fio).
+- **Morte permanente por ato:** morreu, o ato recomeça do início com o nível, a forma e os itens de quando você entrou nele. Fica só o conhecimento: o mapa descoberto e as falas. O casulo continua salvando para você sair e voltar (Continuar).
 
 ## Novidades da v0.7 — mais difícil e você vira a presa
 
@@ -193,6 +206,7 @@ godot --headless --path . res://tests/models_test.tscn     # troca de modelos (1
 godot --headless --path . res://tests/vida_test.tscn       # mundo vivo: relógio, sono, pasto, bando, medo, brigas e desempenho
 godot --headless --path . res://tests/dificuldade_test.tscn  # Filhote, evolução, predadores que te caçam, transição e patas (18 verificações)
 godot --headless --path . res://tests/menu_test.tscn       # menu inicial, pausa, continuar e novo jogo (15 verificações)
+godot --headless --path . res://tests/hardcore_test.tscn   # golpes, fúria, perseguição, teia por tamanho e morte permanente (21 verificações)
 ```
 
 Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, sapo, teia de captura, paredes, mapa, irmãs, fresta, cristal, pata da Mãe e a fuga.

@@ -275,8 +275,8 @@ class Stalk extends Behavior:
 		label = "Te caçando"
 
 	func utility(c: Creature) -> float:
-		if c.aggression <= 0.0 or c.needs.hunger < 35.0:
-			return 0.0
+		if c.aggression <= 0.0 or c.needs.hunger < 35.0 or c.combat_wants():
+			return 0.0   # já sabe onde você está: quem manda é o Combate
 		var p := GameState.player as Player
 		if p == null or p.dead or not c.sees_player_as_prey(p):
 			return 0.0

@@ -12,6 +12,13 @@ var current_layer = null
 var flags: Dictionary = {}
 ## Atributos levados de uma camada para a próxima.
 var carry: Dictionary = {}
+## Morte permanente por ato: morreu, o ato recomeça com o que você tinha ao entrar nele.
+var permadeath := true
+## Começo do ato atual: {"scene", "player", "flags"}.
+var act: Dictionary = {}
+## O que sobrevive à morte: mapa descoberto por camada ({"maps": {cena: {...}}}). As falas
+## já ditas (said) também ficam.
+var knowledge: Dictionary = {"maps": {}}
 
 
 func _ready() -> void:
@@ -32,8 +39,10 @@ func say_once(id: String, text: String) -> void:
 func save_now() -> void:
 	if player == null:
 		return
+	remember_map()
 	var data := {
-		"version": 2,
+		"version": 3,
+		"checkpoint": true,
 		"scene": current_layer.scene_file_path if current_layer != null else "",
 		"player": player.to_dict(),
 		"web": WebNetwork.to_dict(),
@@ -41,7 +50,61 @@ func save_now() -> void:
 		"said": said,
 		"flags": flags,
 		"clock": World.clock.t if World.clock != null else 0.0,
+		"act": act,
+		"knowledge": knowledge,
 	}
+	_write(data)
+
+
+func save_act_start() -> void:
+	## Grava o começo do ato (sem casulo ainda): Continuar e a morte voltam para cá.
+	remember_map()
+	_write({
+		"version": 3,
+		"checkpoint": false,
+		"scene": String(act.get("scene", "")),
+		"act": act,
+		"knowledge": knowledge,
+		"said": said,
+		"flags": act.get("flags", {}),
+	})
+
+
+func remember_map() -> void:
+	if current_layer == null or current_layer.map_system == null:
+		return
+	var maps: Dictionary = knowledge.get("maps", {})
+	var path: String = current_layer.scene_file_path
+	var old: Dictionary = maps.get(path, {})
+	var now: Dictionary = current_layer.map_system.to_dict()
+	var rev: Array = old.get("revealed", []).duplicate()
+	for r in now.get("revealed", []):
+		if not rev.has(r):
+			rev.append(r)
+	var seen: Array = old.get("locks_seen", []).duplicate()
+	for l in now.get("locks_seen", []):
+		if not seen.has(l):
+			seen.append(l)
+	maps[path] = {"revealed": rev, "locks_seen": seen}
+	knowledge["maps"] = maps
+
+
+func restart_act() -> void:
+	## Morte permanente: o ato recomeça. Fica só o conhecimento (mapa e falas).
+	if act.is_empty():
+		reset_run()
+		return
+	save_act_start()
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	flags = (act.get("flags", {}) as Dictionary).duplicate(true)
+	carry = {}
+	player = null
+	current_layer = null
+	get_tree().change_scene_to_file.call_deferred(String(act["scene"]))
+
+
+func _write(data: Dictionary) -> void:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(data, "\t"))
@@ -94,6 +157,8 @@ func _clear_run() -> void:
 	said = {}
 	flags = {}
 	carry = {}
+	act = {}
+	knowledge = {"maps": {}}
 	player = null
 	current_layer = null
 

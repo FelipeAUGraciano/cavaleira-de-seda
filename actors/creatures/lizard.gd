@@ -6,15 +6,15 @@ extends Creature
 ## mordida de perto e investida de longe. Não persegue para fora do território.
 ## Comer o lagarto dá Energia máxima.
 
-enum Mode { IDLE, WARN, CHASE, BITE, CHARGE, RETURN, EAT }
+enum Mode { IDLE, WARN, CHASE, RETURN, EAT }
 
 const SIGHT := 9.0
 const FOV := 130.0
 const LURE_REVEAL := 5.0
 const LURE_PULL := 9.0
-const BITE_DAMAGE := 12.0
-const CHARGE_DAMAGE := 18.0
-const CHARGE_SPEED := 11.0
+const BITE_DAMAGE := 26.0
+const CHARGE_DAMAGE := 32.0
+const CHARGE_SPEED := 12.0
 
 var territory_radius := 9.0
 var mode: Mode = Mode.IDLE
@@ -50,6 +50,18 @@ func _init() -> void:
 	needs.hunger_rate = 2.0
 	model_size = 2.4
 	model_fit = "length"
+	aggression = 0.6
+	combat_label = "Defendendo o território"
+	add_attack(Attack.make("mordida", "Mordida", {"max_range": 2.3, "windup": 0.45, "active": 0.18, "recover": 0.6,
+		"cooldown": 1.4, "damage": BITE_DAMAGE, "reach": 2.1, "arc": 75.0, "lunge": 4.0, "track": 6.0, "lead": 0.15, "weight": 3.0}))
+	add_attack(Attack.make("investida", "Investida", {"min_range": 3.0, "max_range": 8.0, "windup": 0.6, "active": 0.5,
+		"recover": 0.9, "cooldown": 3.5, "damage": CHARGE_DAMAGE, "shape": Attack.Shape.LINE, "reach": 6.5, "width": 1.4,
+		"lunge": CHARGE_SPEED, "track": 3.0, "lead": 0.35, "needs_sight": true, "weight": 2.0}))
+	add_attack(Attack.make("cauda", "Chicote de cauda", {"max_range": 2.8, "windup": 0.4, "active": 0.22, "recover": 0.5,
+		"cooldown": 3.0, "damage": 20.0, "shape": Attack.Shape.RING, "reach": 2.7, "track": 0.0, "flank": true, "weight": 2.0}))
+	add_attack(Attack.make("clarao", "Clarão da isca", {"max_range": 6.0, "windup": 0.8, "active": 0.15, "recover": 0.7,
+		"cooldown": 8.0, "damage": 0.0, "shape": Attack.Shape.RING, "reach": 6.0, "track": 0.0, "knockback": false,
+		"only_enraged": true, "effect": "slow", "effect_power": 2.5, "weight": 1.5}))
 
 
 func _ready() -> void:
@@ -138,11 +150,11 @@ func find_rival() -> Creature:
 func combat_wants() -> bool:
 	var p := GameState.player as Player
 	var intruder := p != null and not p.dead and in_territory(p.global_position) and noticed_player
-	return intruder or mode == Mode.WARN or mode == Mode.CHASE or mode == Mode.BITE or mode == Mode.CHARGE or mode == Mode.RETURN
+	return intruder or cur_attack != null or mode == Mode.WARN or mode == Mode.CHASE or mode == Mode.RETURN
 
 
 func combat_locked() -> bool:
-	return mode == Mode.BITE or mode == Mode.CHARGE
+	return cur_attack != null
 
 
 func combat_start() -> void:
@@ -158,20 +170,16 @@ func combat_start() -> void:
 func combat_stop() -> void:
 	if mode != Mode.RETURN:
 		mode = Mode.IDLE
-	telegraph = false
+	cancel_attack()
 
 
 func combat_tick(delta: float) -> Vector3:
 	mode_time += delta
-	bite_cd -= delta
-	charge_cd -= delta
 	var p := GameState.player as Player
+	if cur_attack != null:
+		return attack_tick(delta, p)
 	var intruder := p != null and not p.dead and in_territory(p.global_position) and noticed_player
 	match mode:
-		Mode.BITE:
-			return _do_bite(p)
-		Mode.CHARGE:
-			return _do_charge(p)
 		Mode.RETURN:
 			if flat_dist_to_home() < 1.0:
 				mode = Mode.IDLE
@@ -184,75 +192,29 @@ func combat_tick(delta: float) -> Vector3:
 			if not intruder and mode_time > 0.4:
 				mode = Mode.IDLE
 				return Vector3.ZERO
-			if mode_time >= 1.4:
+			if mode_time >= (0.8 if enraged else 1.4):
 				mode = Mode.CHASE
 				mode_time = 0.0
 			return Vector3.ZERO
 		Mode.CHASE:
-			if p == null or p.dead or Fx.flat_dist(p.global_position, home) > territory_radius + 3.0:
+			if p == null or p.dead or Fx.flat_dist(p.global_position, home) > territory_radius + 4.0:
 				mode = Mode.RETURN
 				EventBus.message.emit("O Lagarto-lanterna volta para o território.")
 				return Vector3.ZERO
-			return _chase(p)
+			return fight_player(delta, p)
 	if intruder:
 		combat_start()
 	return Vector3.ZERO
 
 
+func on_attack_active(a: Attack) -> void:
+	if a.id == "clarao" and lure != null:
+		lure.light_energy = 9.0
+		EventBus.message.emit("O clarão da isca te ofuscou!")
+
+
 func flat_dist_to_home() -> float:
 	return Fx.flat_dist(global_position, home)
-
-
-func _chase(p: Player) -> Vector3:
-	var d := flat_dist_to(p)
-	face_toward(p.global_position)
-	if d <= 1.9 and bite_cd <= 0.0:
-		_begin(Mode.BITE)
-		return Vector3.ZERO
-	if d >= 3.0 and d <= 7.0 and charge_cd <= 0.0 and has_line_of_sight(p):
-		_begin(Mode.CHARGE)
-		return Vector3.ZERO
-	if d <= 1.5:
-		return Vector3.ZERO
-	return move_to(p.global_position, 1.0)
-
-
-func _begin(m: Mode) -> void:
-	mode = m
-	mode_time = 0.0
-	attack_done = false
-	telegraph = true
-
-
-func _do_bite(p: Player) -> Vector3:
-	if p != null:
-		face_toward(p.global_position)
-	if not attack_done and mode_time >= 0.45:
-		attack_done = true
-		telegraph = false
-		if p != null and not p.dead and flat_dist_to(p) <= 2.3:
-			p.take_damage(BITE_DAMAGE, self)
-	if mode_time >= 0.8:
-		bite_cd = 1.4
-		mode = Mode.CHASE
-	return Vector3.ZERO
-
-
-func _do_charge(p: Player) -> Vector3:
-	if mode_time < 0.6:
-		if p != null:
-			face_toward(p.global_position)
-			charge_dir = facing
-		return Vector3.ZERO
-	telegraph = false
-	if mode_time >= 1.05:
-		charge_cd = 3.5
-		mode = Mode.CHASE
-		return Vector3.ZERO
-	if not attack_done and p != null and not p.dead and flat_dist_to(p) <= body_radius + 0.8:
-		attack_done = true
-		p.take_damage(CHARGE_DAMAGE, self)
-	return safe_dir(charge_dir) * CHARGE_SPEED
 
 
 func _larva_in_reach() -> Larva:
@@ -260,7 +222,7 @@ func _larva_in_reach() -> Larva:
 
 
 func _on_hurt(source: Node3D) -> void:
-	if source != null and source.is_in_group("player") and mode != Mode.BITE and mode != Mode.CHARGE:
+	if source != null and source.is_in_group("player"):
 		mode = Mode.CHASE
 		mode_time = 0.0
 
@@ -269,7 +231,7 @@ func _update_glow(delta: float) -> void:
 	super._update_glow(delta)
 	if _lure_mat == null:
 		return
-	var warn := mode == Mode.WARN or mode == Mode.CHARGE and mode_time < 0.6
+	var warn := mode == Mode.WARN or (cur_attack != null and atk_phase == 0)
 	var c := Color(1.0, 0.25, 0.2) if warn else Color(0.75, 1.0, 0.45)
 	var pulse := 1.0 + 0.5 * sin(_anim_t * (14.0 if warn else 2.5))
 	if asleep:

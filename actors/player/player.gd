@@ -115,6 +115,8 @@ var _safe_timer := 0.0
 var _death_timer := 0.0
 var _starve_msg_timer := 0.0
 var _hurt_flash := 0.0
+var _slow_mult := 1.0
+var _slow_time := 0.0
 
 # visual (formas cinza; troque por um modelo depois)
 var _visual: Node3D
@@ -355,9 +357,14 @@ func _physics_process(delta: float) -> void:
 	if dead:
 		_death_timer -= delta
 		if _death_timer <= 0.0:
-			_respawn()
+			if GameState.permadeath and GameState.current_layer != null and GameState.current_layer.has_method("restart_act"):
+				_death_timer = INF   # uma vez só
+				GameState.current_layer.restart_act()
+			else:
+				_respawn()
 		return
 	invuln = maxf(invuln - delta, 0.0)
+	_slow_time = maxf(_slow_time - delta, 0.0)
 	state_time += delta
 
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -407,6 +414,8 @@ func _start_state(s: State) -> void:
 func _state_normal() -> Vector3:
 	var running := Input.is_action_pressed("run") and move_dir.length() > 0.1
 	var spd := (RUN_SPEED if running else WALK_SPEED) * float(form_data()["speed"])
+	if _slow_time > 0.0:
+		spd *= _slow_mult
 	if on_strand:
 		spd *= STRAND_SPEED_MULT
 	if satiety <= 0.0:
@@ -873,12 +882,13 @@ func _update_resources(delta: float) -> void:
 	if satiety > 30.0:
 		silk = minf(max_silk, silk + delta)
 	if satiety > 60.0:
-		hp = minf(max_hp, hp + 0.5 * delta)
+		hp = minf(max_hp, hp + (0.15 if form == Form.FILHOTE else 0.4) * delta)
 
 
-func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -> void:
+func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -> bool:
+	## Devolve false se não pegou (esquiva com invulnerabilidade, já morta).
 	if dead or invuln > 0.0:
-		return
+		return false
 	invuln = 0.35
 	_hurt_flash = 0.25
 	if crystal_skin:
@@ -893,6 +903,20 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 	_hurt(amount)
 	if not dead:
 		GameState.say_once("primeiro_dano", "AI! Ok, ok, tudo aqui é maior que eu. Anotado.")
+	return true
+
+
+func apply_slow(mult: float, secs: float) -> void:
+	## Teia cuspida, grito de morcego, clarão do lagarto: anda mais devagar por um tempo.
+	if dead:
+		return
+	_slow_mult = minf(_slow_mult, mult) if _slow_time > 0.0 else mult
+	_slow_time = maxf(_slow_time, secs)
+
+
+func is_quiet() -> bool:
+	## Quieta = parada (ou quase), runa apagada e sem atacar. Só assim um caçador perde o rastro.
+	return not rune_on and Vector2(velocity.x, velocity.z).length() < 0.8 and (state == State.NORMAL or state == State.EAT)
 
 
 func pull_toward(point: Vector3, strength: float) -> bool:

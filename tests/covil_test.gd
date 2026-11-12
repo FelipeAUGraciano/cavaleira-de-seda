@@ -8,6 +8,7 @@ var failures := 0
 
 
 func _ready() -> void:
+	GameState.permadeath = false   # este teste morre de propósito e volta do casulo
 	GameState.delete_save()
 	GameState.said = {}
 	GameState.flags = {}
@@ -216,8 +217,9 @@ func _run() -> void:
 	_check(player.crystal_skin, "comer a carapaça dá Pele de Cristal")
 	player.hp = player.max_hp
 	player.invuln = 0.0   # sem a invencibilidade de algum golpe anterior
-	player.take_damage(10.0, null, false)
-	_check(absf(player.hp - (player.max_hp - 8.0)) < 0.1, "Pele de Cristal reduz o dano em 20%")
+	var hp_before := player.hp
+	var took := player.take_damage(10.0, null, false)
+	_check(took and absf((hp_before - player.hp) - 8.0) < 0.1, "Pele de Cristal reduz o dano em 20%% (%.1f)" % (hp_before - player.hp))
 
 	# G15: o chão cede (o teste para antes de trocar de cena)
 	_teleport(Vector3(169.0, 0.1, 110.0))

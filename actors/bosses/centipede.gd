@@ -20,8 +20,8 @@ const SPACING := 1.05
 const SENSE_RANGE := 18.0
 const CHARGE_SPEED := 13.0
 const CHARGE_TIME := 1.3
-const BITE_DAMAGE := 20.0
-const CHARGE_DAMAGE := 22.0
+const BITE_DAMAGE := 34.0
+const CHARGE_DAMAGE := 40.0
 const ARMOR := 0.1
 const TANGLE_TIME := 4.5
 
@@ -329,7 +329,7 @@ func _check_strands() -> void:
 	for s in WebNetwork.strands.duplicate():
 		if is_instance_valid(s) and s.distance_to(global_position) < 1.1:
 			WebNetwork.remove_strand(s)
-			entangle(TANGLE_TIME)
+			entangle_raw(TANGLE_TIME)
 			_end_charge(0.4)   # enredada ela já fica parada; o _think nem roda até soltar
 			EventBus.web_touched.emit(global_position, self)
 			EventBus.big_message.emit("Enredada! A carapaça abriu!")

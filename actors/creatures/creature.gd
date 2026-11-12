@@ -117,6 +117,28 @@ var _strike_cd := 0.0
 var _strike_target: Node3D = null
 var _grid_move := false      ## anda presa à grade de navegação (sem colidir com a malha da caverna)
 
+# Golpes contra a jogadora (systems/ai/attack.gd), estilo Monster Hunter
+var attacks: Array[Attack] = []
+var cur_attack: Attack = null
+var atk_t := 0.0
+var atk_phase := 0             ## 0 aviso, 1 golpe, 2 recuperação
+var atk_point := Vector3.ZERO  ## para onde o golpe mira (previsão de onde você vai estar)
+var atk_hit := false
+var atk_gap := 0.0             ## respiro entre um golpe e outro
+var enraged := false           ## fúria: abaixo de enrage_frac da vida, avisa menos e bate mais
+var enrage_frac := 0.5
+var chase_speed := 1.0
+var combat_label := "Caçando você"
+var search_time := 8.0         ## depois de perder você de vista, vasculha a área por esse tempo
+var search_left := 0.0
+var _search_pt := Vector3.ZERO
+var _search_t := 0.0
+var _forced_next := ""
+var _combo_count := 0
+var _strafe := 1.0
+var _marker: AttackMarker
+var _web_immune := 0.0
+
 
 func _ready() -> void:
 	add_to_group("creature")
@@ -234,15 +256,15 @@ func find_rival() -> Creature:
 
 
 func combat_wants() -> bool:
-	return false
+	return not attacks.is_empty() and hunt_wants()
 
 
-func combat_tick(_delta: float) -> Vector3:
-	return Vector3.ZERO
+func combat_tick(delta: float) -> Vector3:
+	return hunt_combat(delta)
 
 
 func combat_locked() -> bool:
-	return false
+	return cur_attack != null
 
 
 func combat_start() -> void:
@@ -313,12 +335,14 @@ func _physics_process(delta: float) -> void:
 			_sense_t = sense_interval()
 			_sense()
 	_strike_cd -= delta
+	_tick_attacks(delta)
 	var desired := Vector3.ZERO
 	if entangled_time <= 0.0:
 		desired = _think(delta) * slow_mult
 	else:
 		telegraph = false
 		_strike_t = -1.0
+		cancel_attack()
 	velocity.x = desired.x + external_velocity.x
 	velocity.z = desired.z + external_velocity.z
 	if _grid_move:
@@ -387,7 +411,10 @@ func sense_interval() -> float:
 
 func _sense() -> void:
 	var p := GameState.player as Player
+	var was_near := near_player
 	near_player = p == null or Fx.flat_dist(p.global_position, global_position) < LOD_DISTANCE
+	if was_near != near_player:
+		_lod_changed(near_player)
 	var was_noticed := noticed_player
 	noticed_player = p != null and not p.dead and near_player and notices_player(p)
 	if noticed_player and not was_noticed and brain != null:
@@ -395,8 +422,15 @@ func _sense() -> void:
 	if noticed_player:
 		player_memory = memory_time
 		last_player_pos = p.global_position
-	else:
-		player_memory = maxf(0.0, player_memory - sense_interval())
+	elif player_memory > 0.0:
+		if keeps_tracking(p):
+			# caçando: segue o barulho e o cheiro. Só despista quem some de vista E fica quieta.
+			player_memory = memory_time
+			last_player_pos = p.global_position
+		else:
+			player_memory = maxf(0.0, player_memory - sense_interval())
+			if player_memory <= 0.0 and aggression > 0.0:
+				search_left = search_time
 	threat = World.nearest(global_position, fear_radius, is_threat)
 	if threat != null:
 		needs.feel_fear(100.0 * (1.0 - flat_dist_to(threat) / fear_radius) + 30.0)
@@ -409,6 +443,18 @@ func _sense() -> void:
 			fear_source = p.global_position
 	if size >= Size.G:
 		_tear_strands()
+	elif hover_y < 0.0 and entangled_time <= 0.0:
+		_walk_into_strands()
+
+
+func keeps_tracking(p: Player) -> bool:
+	## Predador que já está atrás de você não perde o rastro enquanto você faz barulho
+	## (anda, corre, luta, runa acesa) ou está à vista. Longe demais, perde.
+	if aggression <= 0.0 or p == null or p.dead:
+		return false
+	if flat_dist_to(p) > maxf(track_range * 1.6, 24.0):
+		return false
+	return not p.is_quiet() or has_line_of_sight(p)
 
 
 func is_resting_phase() -> bool:
@@ -444,6 +490,24 @@ func _tear_strands() -> void:
 				EventBus.message.emit("Algo grande arrebentou um fio do seu território!")
 
 
+func _walk_into_strands() -> void:
+	## Andando, P fica presa no fio (e o fio aguenta); M fica presa um instante e arrebenta.
+	if _web_immune > 0.0 or WebNetwork.strands.is_empty():
+		return
+	for s in WebNetwork.strands:
+		if is_instance_valid(s) and s.crossing_distance(global_position, body_radius * 2.0 + 0.2) < body_radius + 0.15:
+			var held := entangle(3.0 if size == Size.P else 1.2)
+			if held <= 0.0:
+				return
+			EventBus.web_touched.emit(global_position, self)
+			if size == Size.M:
+				var mine: bool = s.in_territory
+				WebNetwork.remove_strand(s)
+				if mine:
+					EventBus.message.emit("O %s se enroscou num fio e arrebentou!" % display_name)
+			return
+
+
 func _update_glow(delta: float) -> void:
 	_flash = maxf(0.0, _flash - delta)
 	if _overlay != null:
@@ -477,6 +541,7 @@ func _tick_status(delta: float) -> void:
 		entangled_time -= delta
 		if entangled_time <= 0.0:
 			_web_overlay.visible = false
+	_web_immune -= delta
 	if slow_time > 0.0:
 		slow_time -= delta
 		if slow_time <= 0.0:
@@ -501,6 +566,8 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 			external_velocity += push.normalized() * (4.0 if size == Size.P else 1.5)
 	_on_hurt(source)
 	_apply_damage(amount)
+	if not dead and not enraged and not attacks.is_empty() and hp < max_hp * enrage_frac:
+		enrage()
 
 
 func _apply_damage(amount: float) -> void:
@@ -514,11 +581,31 @@ func add_poison() -> void:
 	poison_time = POISON_DURATION
 
 
-func entangle(duration: float) -> void:
+func entangle(duration: float) -> float:
+	## Teia por tamanho: P fica presa o tempo todo; M fica presa mas rasga e se solta em
+	## poucos segundos; G arrebenta na hora e só perde o passo. Devolve o tempo preso.
+	if _web_immune > 0.0:
+		return 0.0
+	match size:
+		Size.P:
+			pass
+		Size.M:
+			duration = minf(duration, 2.2)
+		_:
+			slow(0.55, 1.0)
+			return 0.0
+	entangle_raw(duration)
+	return duration
+
+
+func entangle_raw(duration: float) -> void:
+	## Prende sem a regra de tamanho (mecânicas de chefe, como a investida da Centopeia no fio).
 	entangled_time = maxf(entangled_time, duration)
 	external_velocity = Vector3.ZERO
 	telegraph = false
+	cancel_attack()
 	_web_overlay.visible = true
+	_web_immune = duration + 1.5
 
 
 func is_entangled() -> bool:
@@ -715,6 +802,280 @@ func _radius_of(n: Node3D) -> float:
 
 func is_striking() -> bool:
 	return _strike_t >= 0.0
+
+
+# ---------------------------------------------------------------- golpes contra a jogadora
+
+func add_attack(a: Attack) -> Attack:
+	attacks.append(a)
+	return a
+
+
+func find_attack(id: String) -> Attack:
+	for a in attacks:
+		if a.id == id:
+			return a
+	return null
+
+
+func _tick_attacks(delta: float) -> void:
+	atk_gap -= delta
+	for a in attacks:
+		a.cd_left -= delta
+
+
+func cancel_attack() -> void:
+	if cur_attack == null:
+		return
+	cur_attack.cd_left = cur_attack.cooldown * 0.5
+	cur_attack = null
+	telegraph = false
+	_forced_next = ""
+	if _marker != null:
+		_marker.clear()
+
+
+func enrage() -> void:
+	enraged = true
+	_flash = 0.3
+	if near_player:
+		EventBus.message.emit("O %s ficou FURIOSO!" % display_name)
+	on_enrage()
+
+
+func on_enrage() -> void:
+	pass
+
+
+func on_attack_start(_a: Attack) -> void:
+	pass
+
+
+func on_attack_active(_a: Attack) -> void:
+	pass
+
+
+func on_attack_hit(a: Attack, p: Player) -> void:
+	## Efeitos genéricos; a espécie pode completar.
+	match a.effect:
+		"pull":
+			p.pull_toward(global_position, a.effect_power if a.effect_power > 0.0 else 12.0)
+		"slow":
+			p.apply_slow(0.5, a.effect_power if a.effect_power > 0.0 else 2.0)
+
+
+func _wind_mult() -> float:
+	return 0.75 if enraged else 1.0
+
+
+func _predict(p: Player, a: Attack) -> Vector3:
+	var v := Vector3(p.velocity.x, 0.0, p.velocity.z)
+	var goal := p.global_position + v * a.lead
+	goal.y = 0.0
+	if a.leap or a.at_point:
+		var to := goal - global_position
+		to.y = 0.0
+		goal = global_position + to.limit_length(a.max_range + 1.0)
+		goal.y = 0.0
+		if a.leap and World.nav != null and not World.nav.walkable(goal, nav_kind):
+			goal = _last_walkable_on_line(goal)
+	return goal
+
+
+func _last_walkable_on_line(goal: Vector3) -> Vector3:
+	## Não pula num abismo: para no último ponto andável na direção do salto.
+	var best := global_position
+	var n := int(Fx.flat_dist(global_position, goal) / 0.5) + 1
+
+	for i in range(1, n + 1):
+		var q := global_position.lerp(goal, float(i) / n)
+		if not World.nav.walkable(q, nav_kind):
+			break
+		best = q
+	best.y = 0.0
+	return best
+
+
+func _turn_toward(pos: Vector3, max_rad: float) -> void:
+	var to := pos - global_position
+	to.y = 0.0
+	if to.length() < 0.05:
+		return
+	var want := to.normalized()
+	var ang := facing.signed_angle_to(want, Vector3.UP)
+	facing = facing.rotated(Vector3.UP, clampf(ang, -max_rad, max_rad)).normalized()
+
+
+func player_flank_angle(p: Player) -> float:
+	## Ângulo (graus) entre a frente do bicho e a jogadora: >70 = do lado ou atrás.
+	var to := p.global_position - global_position
+	to.y = 0.0
+	if to.length() < 0.05:
+		return 0.0
+	return rad_to_deg(facing.angle_to(to.normalized()))
+
+
+func pick_attack(p: Player) -> Attack:
+	var d := flat_dist_to(p)
+	if _forced_next != "":
+		var nxt := find_attack(_forced_next)
+		_forced_next = ""
+		if nxt != null and d <= nxt.max_range + 1.5:
+			return nxt
+	_combo_count = 0
+	var flanked := player_flank_angle(p) > 70.0
+	var opts: Array = []
+	var total := 0.0
+	for a in attacks:
+		if a.cd_left > 0.0 or not a.in_range(d):
+			continue
+		if a.only_enraged and not enraged:
+			continue
+		if a.needs_sight and not has_line_of_sight(p):
+			continue
+		if a.leap and World.nav != null and not _clear_line(p.global_position):
+			continue   # tem pedra ou buraco no meio: não pula
+		var w := a.weight
+		if a.flank:
+			w *= 5.0 if flanked else 0.1
+		opts.append([a, w])
+		total += w
+	if opts.is_empty():
+		return null
+	var r := randf() * total
+	for o in opts:
+		r -= float(o[1])
+		if r <= 0.0:
+			return o[0]
+	return opts[opts.size() - 1][0]
+
+
+func start_attack(a: Attack, p: Player) -> void:
+	cur_attack = a
+	atk_t = 0.0
+	atk_phase = 0
+	atk_hit = false
+	atk_point = _predict(p, a)
+	telegraph = true
+	activity = a.label
+	if _marker == null:
+		_marker = AttackMarker.new()
+		add_child(_marker)
+	on_attack_start(a)
+
+
+func attack_tick(delta: float, p: Player) -> Vector3:
+	var a := cur_attack
+	atk_t += delta
+	var alive := p != null and not p.dead
+	if atk_phase == 0:
+		var wu := a.windup * _wind_mult()
+		if alive and not (a.leap and atk_t > wu * 0.8):
+			atk_point = _predict(p, a)
+		_turn_toward(atk_point, a.track * delta * (1.3 if enraged else 1.0))
+		if near_player:
+			_marker.draw_attack(a, global_position, facing, atk_point, atk_t / wu, enraged)
+		if atk_t >= wu:
+			atk_phase = 1
+			atk_t = 0.0
+			telegraph = false
+			on_attack_active(a)
+		return Vector3.ZERO
+	if atk_phase == 1:
+		var v := Vector3.ZERO
+		if a.leap:
+			var to := atk_point - global_position
+			to.y = 0.0
+			var left := maxf(a.active - atk_t, 0.05)
+			if to.length() > 0.15:
+				v = to.normalized() * minf(to.length() / left, 20.0)
+
+		elif a.lunge > 0.0:
+			v = facing * a.lunge
+		var landing := not a.leap or atk_t >= a.active * 0.65
+		if not atk_hit and alive and landing:
+			if a.hits(global_position, facing, atk_point, p.global_position, 0.3 * p.vis_scale):
+				var dmg := a.damage * (1.2 if enraged else 1.0)
+				if dmg <= 0.0 or p.take_damage(dmg, self, a.knockback):
+					atk_hit = true
+					on_attack_hit(a, p)
+		if near_player:
+			_marker.draw_attack(a, global_position, facing, atk_point, 1.0, enraged)
+		if atk_t >= a.active:
+			atk_phase = 2
+			atk_t = 0.0
+			_marker.clear()
+			if atk_hit and a.combo_next != "" and _combo_count < 3:
+				_forced_next = a.combo_next
+				_combo_count += 1
+		return v
+	var rec := a.recover * (0.7 if enraged else 1.0)
+	if _forced_next != "":
+		rec = minf(rec, 0.12)
+	if atk_t >= rec:
+		a.cd_left = a.cooldown * (0.7 if enraged else 1.0)
+		cur_attack = null
+		atk_gap = 0.0 if _forced_next != "" else randf_range(0.2, 0.6) * (0.6 if enraged else 1.0)
+	return Vector3.ZERO
+
+
+func preferred_distance() -> float:
+	## Distância que o bicho tenta manter quando nenhum golpe está pronto.
+	var best := 1.5
+	for a in attacks:
+		if a.cd_left <= 0.0 and not a.only_enraged:
+			best = maxf(best, a.max_range * 0.8)
+	return best if best < 3.0 else attack_reach + 0.5
+
+
+func fight_player(delta: float, p: Player) -> Vector3:
+	## Luta contra a jogadora: golpe em andamento → termina; senão escolhe um golpe; senão
+	## chega perto e, sem golpe pronto, rodeia (como os monstros de Monster Hunter).
+	if cur_attack != null:
+		return attack_tick(delta, p)
+	if p == null or p.dead:
+		return Vector3.ZERO
+	var d := flat_dist_to(p)
+	var see := noticed_player or d < 2.5
+	if see:
+		face_toward(p.global_position)
+	if atk_gap <= 0.0 and see:
+		var a := pick_attack(p)
+		if a != null:
+			start_attack(a, p)
+			return Vector3.ZERO
+	activity = combat_label
+	var goal := p.global_position if see else last_player_pos
+	if d > preferred_distance() or not see:
+		return nav_to(goal, chase_speed * (1.15 if enraged else 1.0))
+	var to := p.global_position - global_position
+	to.y = 0.0
+	if randf() < delta * 0.5:
+		_strafe = -_strafe
+	var side := Vector3(-to.z, 0.0, to.x).normalized() * _strafe
+	return safe_dir(side) * speed * 0.5
+
+
+func hunt_combat(delta: float) -> Vector3:
+	## Combate completo: luta enquanto sabe onde você está; perdeu, vasculha a área.
+	var p := GameState.player as Player
+	if cur_attack != null or player_memory > 0.0:
+		search_left = search_time if aggression > 0.0 else 0.0
+		return fight_player(delta, p)
+	search_left -= delta
+	activity = "Procurando você"
+	_search_t -= delta
+	if _search_t <= 0.0 or Fx.flat_dist(global_position, _search_pt) < 0.8:
+		_search_t = 2.0
+		var ang := randf() * TAU
+		_search_pt = last_player_pos + Vector3(cos(ang), 0.0, sin(ang)) * randf_range(1.0, 5.0)
+		if World.nav != null and not World.nav.walkable(_search_pt, nav_kind):
+			_search_pt = last_player_pos
+	return nav_to(_search_pt, 0.6)
+
+
+func hunt_wants() -> bool:
+	return player_memory > 0.0 or search_left > 0.0 or cur_attack != null
 
 
 # ---------------------------------------------------------------- Leitura

@@ -17,9 +17,11 @@ const ALERT_Y := 2.3
 const DIVE_Y := 0.45
 const DIVE_SPEED := 9.5
 const DIVE_HOMING := 3.5        ## m/s que o alvo do mergulho segue o alvo (esquiva ainda escapa)
-const BITE_DAMAGE := 5.0
+const BITE_DAMAGE := 10.0        ## cinco mergulhos matam uma Filhote — e o bando mergulha junto
 const PREY_DAMAGE := 9.0
-const MAX_DIVERS := 2
+const MAX_DIVERS := 3
+const DIVE_LEAD := 0.35          ## mira onde você vai estar
+const SCREECH_RANGE := 7.0
 
 var flock := "bando"            ## morcegos do mesmo bando passeiam juntos
 var mode: Mode = Mode.ROOST
@@ -29,6 +31,7 @@ var dive_target := Vector3.ZERO
 var orbit_angle := 0.0
 var bit := false
 var catch_immunity := 0.0
+var screech_cd := 4.0
 var _wings: Array[Node3D] = []
 
 
@@ -115,6 +118,13 @@ func notices_player(p: Player) -> bool:
 	return hears(p)
 
 
+func keeps_tracking(p: Player) -> bool:
+	## Caça pelo som: enquanto você se mexe, ele sabe onde você está. Parada, ele perde.
+	if p == null or p.dead or flat_dist_to(p) > 24.0:
+		return false
+	return Vector2(p.velocity.x, p.velocity.z).length() > 0.8
+
+
 func sees_player_as_prey(p: Player) -> bool:
 	return p.body_size() == 0   # o bando ataca qualquer coisa pequena; a Cavaleira já é grande demais
 
@@ -175,6 +185,10 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 	match mode:
 		Mode.ALERT:
 			hover_y = ALERT_Y
+			screech_cd -= delta
+			var pl := target as Player
+			if pl != null and heard and screech_cd <= 0.0 and flat_dist_to(pl) < SCREECH_RANGE and randf() < delta * 1.5:
+				_screech(pl)
 			if dive_cd <= 0.0 and heard and _divers() < MAX_DIVERS:
 				mode = Mode.WINDUP
 				mode_time = 0.0
@@ -186,7 +200,11 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 			face_toward(target.global_position)
 			if mode_time >= 0.45:
 				telegraph = false
-				dive_target = target.global_position
+				var pv := Vector3.ZERO
+				if target is CharacterBody3D:
+					pv = (target as CharacterBody3D).velocity
+					pv.y = 0.0
+				dive_target = target.global_position + pv * DIVE_LEAD
 				mode = Mode.DIVE
 				mode_time = 0.0
 				bit = false
@@ -221,6 +239,25 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 				dive_cd = randf_range(2.2, 4.0)
 			return safe_dir(facing) * speed * 0.8
 	return Vector3.ZERO
+
+
+func _screech(p: Player) -> void:
+	## Grito sônico: atordoa (anda devagar) e chama todo predador por perto até você.
+	screech_cd = randf_range(7.0, 11.0)
+	_flash = 0.25
+	Fx.beam(get_parent(), global_position, p.global_position + Vector3.UP * 0.3, Color(0.75, 0.6, 1.0), 0.3, 0.05)
+	p.apply_slow(0.55, 1.6)
+	for c in World.near(p.global_position, 16.0):
+		var cr := c as Creature
+		if cr != null and cr != self and cr.aggression > 0.0 and not cr.dead:
+			cr.last_player_pos = p.global_position
+			cr.player_memory = maxf(cr.player_memory, cr.memory_time * 0.5)
+			cr.asleep = false
+			if cr.brain != null:
+				cr.brain.wake_up()
+	if near_player:
+		EventBus.message.emit("Um Morcego-eco gritou: tudo por perto sabe onde você está!")
+		GameState.say_once("morcego_grito", "AAH, meus ouvidos! ...E agora a caverna inteira sabe onde eu tô.")
 
 
 func _orbit(center: Vector3, radius: float, mult: float, delta: float) -> Vector3:

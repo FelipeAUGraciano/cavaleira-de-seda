@@ -1,6 +1,6 @@
 class_name CaptureWeb
 extends Area3D
-## Teia de captura: área de ~3x3 m que enreda criaturas P e M (e só desacelera as G).
+## Teia de captura: área de ~3x3 m. P fica presa; M fica presa uns 2 s e rasga a teia; G arrebenta.
 
 const RADIUS := 1.6
 const ENTANGLE_TIME := 4.0
@@ -40,10 +40,12 @@ func _on_body_entered(body: Node3D) -> void:
 	var c := body as Creature
 	if c == null or c.dead:
 		return
-	if c.size <= Creature.Size.M:
-		c.entangle(ENTANGLE_TIME)
-	else:
-		c.slow(0.5, ENTANGLE_TIME)
+	# Teia por tamanho (Creature.entangle): P fica presa; M rasga e se solta logo; G arrebenta.
+	c.entangle(ENTANGLE_TIME)
+	if c.size >= Creature.Size.M:
+		charges = 1   # quem rasga a teia acaba com ela
+		if c.size >= Creature.Size.G:
+			EventBus.message.emit("O %s arrebentou a teia de captura!" % c.display_name)
 	charges -= 1
 	_disc_mat.albedo_color.a = 0.12 if charges <= 0 else 0.22
 	EventBus.web_touched.emit(global_position, c)

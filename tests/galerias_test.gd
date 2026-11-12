@@ -8,6 +8,7 @@ var failures := 0
 
 
 func _ready() -> void:
+	GameState.permadeath = false   # este teste morre de propósito e volta do casulo
 	GameState.delete_save()
 	GameState.said = {}
 	GameState.flags = {}
@@ -104,17 +105,24 @@ func _run() -> void:
 	_check(not is_instance_valid(target) or target.global_position.y < 0.8, "morcego enredado cai no chão")
 
 	# Fio esticado no caminho do bando prende morcegos
-	_teleport(Vector3(20.0, 0.1, -7.0))
+	_teleport(Vector3(1.0, 0.1, -17.0))   # longe do bando (G1): eles voltam a passear
+	player.rune_on = false
+	for b in _alive("bat"):
+		b.player_memory = 0.0
+		b.search_left = 0.0
+		b.needs.hunger = 0.0   # sem fome: não sai caçando a Filhote, só passeia com o bando
 	WebNetwork.create_strand(WebNetwork.anchors["G3_a"], WebNetwork.anchors["G3_b"])
 	var caught := false
-	for i in 24:
+	for i in 40:
 		await _seconds(0.5)
 		for b in _alive("bat"):
 			if b.is_entangled() and b != target:
 				caught = true
+
 		if caught:
 			break
 	_check(caught, "morcego bate no fio esticado e cai")
+	player.rune_on = true
 
 	# Lagarto-lanterna: isca atrai larvas e ele as come
 	var lz: Lizard = lizards[0]
@@ -136,6 +144,7 @@ func _run() -> void:
 
 	# Território: aviso, depois ataque; fora do território, ele volta
 	player.rune_on = false
+	player.hp = player.max_hp
 	_teleport(lz.global_position + Vector3(0.0, 0.0, -3.5))
 	player.global_position.y = 0.1
 	hp0 = player.hp

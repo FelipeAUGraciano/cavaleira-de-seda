@@ -9,6 +9,7 @@ var failures := 0
 
 
 func _ready() -> void:
+	GameState.permadeath = false   # este teste morre de propósito e volta do casulo
 	GameState.delete_save()
 	GameState.said = {}
 	main = load("res://world/layers/test_chamber.tscn").instantiate()
