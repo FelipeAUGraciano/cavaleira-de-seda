@@ -538,6 +538,13 @@ func _physics_process(delta: float) -> void:
 
 
 func _start_state(s: State) -> void:
+	# sair de um estado no meio (tomou dano, caiu, etc.) não pode deixar nada para trás
+	if state == State.DODGE and s != State.DODGE:
+		collision_mask = 1 | 4 | 8   # Investida: volta a colidir com os bichos
+	if state == State.ZIP and s != State.ZIP:
+		_visual.position.y = 0.0
+		_zip_wait = false
+		_release_silk_later(0.0)
 	state = s
 	state_time = 0.0
 	hit_done = false
@@ -975,6 +982,17 @@ func _eat(c: Corpse) -> void:
 	c.consume()
 
 
+func rest_blocker() -> String:
+	## Nome do bicho que está te caçando perto (aí não dá para dormir no casulo), ou "".
+	for n in get_tree().get_nodes_in_group("creature"):
+		var c := n as Creature
+		if c == null or c.dead:
+			continue
+		if c.hunting_player() and Fx.flat_dist(c.global_position, global_position) < 14.0:
+			return c.display_name
+	return ""
+
+
 func _rest(c: Cocoon) -> void:
 	hp = max_hp
 	energy = max_energy
@@ -1033,6 +1051,8 @@ func learn(id: String) -> bool:
 			add_bonus(15.0, 0.0)
 		"reserva":
 			add_bonus(0.0, 0.0, 20.0)
+		"olhos":
+			_sight_light.omni_range = sight_radius()   # a luz da visão cresce na hora
 	return true
 
 

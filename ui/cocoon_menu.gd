@@ -43,6 +43,7 @@ var _learn_btn: Button
 var _leave_btn: Button
 var _art: Texture2D
 var _threads: Array = []
+var _hunter := ""   ## bicho te caçando perto: descansar fica bloqueado
 
 
 func _init() -> void:
@@ -94,6 +95,10 @@ func close() -> void:
 func rest() -> void:
 	## Descansar (salvar): cura, passa o tempo, faz a muda se der, grava e sai.
 	if player == null:
+		return
+	var hunter := player.rest_blocker()
+	if hunter != "":
+		_say("Não dá para dormir: %s está te caçando aqui perto." % hunter)
 		return
 	var was := player.form
 	var c := cocoon
@@ -255,6 +260,7 @@ func _process(delta: float) -> void:
 	var k := minf(vp.x / W, vp.y / H)
 	_frame.scale = Vector2(k, k)
 	_frame.position = (vp - Vector2(W, H) * k) * 0.5
+	_hunter = player.rest_blocker()
 	if tab == "hab":
 		var why := player.skill_block(selected)
 		var br := _badge_rect(why)
@@ -630,7 +636,9 @@ func _draw_bottom(ci: Control) -> void:
 	_panel(ci, rb, Color(0.2, 0.15, 0.08, 0.95) if hot else Color(0.12, 0.1, 0.08, 0.95), GOLD, 8.0, hot)
 	SkillIcons.draw(ci, "cocoon", rb.position + Vector2(26, 31), 11.0, GOLD)
 	var label := "MUDA E DESCANSO" if player.can_evolve() else "DESCANSAR (SALVAR)"
-	_text(ci, rb.position + Vector2(44, 38), label, "title", 15, Color(1.0, 0.9, 0.7))
+	if _hunter != "":
+		label = "PERIGO POR PERTO"
+	_text(ci, rb.position + Vector2(44, 38), label, "title", 15, Color(1.0, 0.9, 0.7) if _hunter == "" else Color(1.0, 0.5, 0.4))
 
 
 # ================================================================= peças de desenho

@@ -126,6 +126,27 @@ func _run() -> void:
 	m.close()
 	await _frames(2)
 	_check(not m.visible and not get_tree().paused and player.hp < 21.0, "Sair (Esc) fecha sem descansar")
+	# com um predador te caçando perto, não dá para dormir
+	var frog := Frog.new()
+	frog.position = player.global_position + Vector3(4.0, 0.3, 0.0)
+	layer.ecosystem.add_child(frog)
+	await _frames(3)
+	frog.needs.hunger = 90.0
+	frog.player_memory = 10.0
+	frog.last_player_pos = player.global_position
+	frog.brain.decide(frog)
+	player._interact()
+	await _frames(2)
+	if frog.hunting_player():
+		m.rest()
+		await _frames(2)
+		_check(m.visible and player.hp < player.max_hp, "com um bicho te caçando perto, Descansar não deixa dormir")
+		m.close()
+	else:
+		print("  info  (o sapo não entrou em caça; checagem do bloqueio pulada)")
+		m.close()
+	frog.queue_free()
+	await _frames(3)
 	player._interact()
 	await _frames(2)
 	m.rest()

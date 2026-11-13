@@ -19,7 +19,7 @@ static func help_lines() -> Array:
 		"%s esquiva (parada = backstep)" % k.call("dodge"),
 		"%s lançar fio: puxa presa pequena ou te puxa até a parede" % k.call("throw_silk"),
 		"Segurar %s: Modo Tecelagem (câmera lenta)" % k.call("weave"),
-		"   %s em 2 pilares = fio-guia (5 seda)" % k.call("attack"),
+		"   %s em 2 pilares = fio-guia (%d seda)" % [k.call("attack"), int(GameState.player.strand_cost()) if GameState.player != null else 5],
 		"   %s = teia de captura (15 seda, nível 3)" % k.call("bite"),
 		"%s tecer casulo (30 seda) · %s comer / descansar" % [k.call("cocoon"), k.call("interact")],
 		"%s apagar/acender runa (furtividade)" % k.call("rune"),
@@ -376,7 +376,7 @@ func _draw_status(vp: Vector2) -> void:
 func _draw_weave_hint(vp: Vector2) -> void:
 	var lines := [
 		"MODO TECELAGEM — tempo a 25%, gasta Energia",
-		"%s em 2 pilares para esticar um fio-guia (5 seda, até 12 m)" % Settings.text("attack"),
+		"%s em 2 pilares para esticar um fio-guia (%d seda, até 12 m)" % [Settings.text("attack"), int(player.strand_cost()) if player != null else 5],
 		"%s: teia de captura no cursor (15 seda, nível 3) · %s: casulo (30 seda)" % [Settings.text("bite"), Settings.text("cocoon")],
 	]
 	var y := vp.y - 110.0

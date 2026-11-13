@@ -107,6 +107,12 @@ func _run() -> void:
 	_teleport(cocoon.global_position + Vector3(0.0, 0.1, 1.5))
 	await _frames(3)
 	player.hp = 30.0
+	# ninguém te caçando agora (com predador por perto o casulo não deixa dormir)
+	for c in World.creatures:
+		if is_instance_valid(c) and c.brain != null:
+			c.player_memory = 0.0
+			c.brain.decide(c)
+	_check(player.rest_blocker() == "", "ninguém caçando perto do casulo (%s)" % player.rest_blocker())
 	player._interact()
 	await _frames(3)
 	var menu: CocoonMenu = GameState.current_layer.hud.cocoon_menu
