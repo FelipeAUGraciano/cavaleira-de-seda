@@ -134,6 +134,21 @@ var enrage_frac := 0.5
 var chase_speed := 1.0
 var combat_label := "Caçando você"
 var search_time := 8.0         ## depois de perder você de vista, vasculha a área por esse tempo
+# Interesse na caçada (0-100): sobe vendo/apanhando, cai com o tempo, mais rápido se você
+# some de vista, fica longe, inalcançável (fio, outro andar) ou leva o bicho longe de casa.
+# Zerou = desiste e fica um tempo sem ligar para você (só volta se você encostar ou bater).
+var uses_interest := true      ## chefes e bichos de território seguem as próprias regras
+var interest := 0.0
+var leash_range := 26.0        ## arrastado assim longe de onde a caçada começou, perde a vontade
+var _hunt_origin := Vector3.ZERO
+var _bored_t := 0.0            ## desistiu há pouco: ignora você por esse tempo
+var _stall_t := 0.0            ## tempo correndo atrás sem chegar mais perto
+var _best_d := INF
+var _provoked_t := 0.0         ## acabou de apanhar de você: revida antes de qualquer outra coisa
+const INTEREST_SEE := 45.0     ## por segundo, vendo você
+const INTEREST_HIT := 40.0     ## levou um golpe seu
+const BORED_TIME := 14.0
+const BORED_IGNORE := 5.0
 var search_left := 0.0
 var _search_pt := Vector3.ZERO
 var _search_t := 0.0
@@ -227,7 +242,10 @@ func _think(delta: float) -> Vector3:
 func notices_player(p: Player) -> bool:
 	## Sentidos da espécie. Padrão: visão em cone e ouvir barulho. Dormindo, quase nada.
 	var k := 0.3 if asleep else 1.0
-	if flat_dist_to(p) < p.noise_radius() * k:
+	var d := flat_dist_to(p)
+	if not asleep and d < body_radius + 1.2:
+		return true   # encostou: sente mesmo de costas e no escuro
+	if d < p.noise_radius() * k:
 		return true
 	return can_see(p, sight_range * p.visibility_mult() * k, sight_fov)
 
@@ -424,13 +442,21 @@ func _sense() -> void:
 		_lod_changed(near_player)
 	var was_noticed := noticed_player
 	noticed_player = p != null and not p.dead and near_player and notices_player(p)
+	if uses_interest and aggression > 0.0 and p != null:
+		_update_interest(sense_interval(), p)
+		if noticed_player and _bored_t > 0.0:
+			if flat_dist_to(p) > BORED_IGNORE:
+				noticed_player = false   # desistiu há pouco: só volta se você chegar bem perto
+			else:
+				_bored_t = 0.0           # encostou: a caçada recomeça
+				_update_interest(sense_interval(), p)
 	if noticed_player and not was_noticed and brain != null:
 		brain.wake_up()
 	if noticed_player:
 		player_memory = memory_time
 		last_player_pos = p.global_position
 	elif player_memory > 0.0:
-		if keeps_tracking(p):
+		if keeps_tracking(p) and (not uses_interest or interest > 0.0):
 			# caçando: segue o barulho e o cheiro. Só despista quem some de vista E fica quieta.
 			player_memory = memory_time
 			last_player_pos = p.global_position
@@ -452,6 +478,77 @@ func _sense() -> void:
 		_tear_strands()
 	elif hover_y < 0.0 and entangled_time <= 0.0:
 		_walk_into_strands()
+
+
+func _update_interest(dt: float, p: Player) -> void:
+	_bored_t = maxf(0.0, _bored_t - dt)
+	_provoked_t = maxf(0.0, _provoked_t - dt)
+	if p.dead:
+		interest = 0.0
+		return
+	var d := flat_dist_to(p)
+	var reachable := World.nav == null or World.nav.walkable(p.global_position, nav_kind)
+	var stalking := brain != null and brain.is_doing("stalk")
+	if player_memory <= 0.0 and search_left <= 0.0 and not stalking:
+		_hunt_origin = global_position   # a caçada (se começar) conta a partir daqui
+	var leashed := hunt_leashed()
+	if leashed and stalking and player_memory <= 0.0:
+		give_up_hunt()   # seguiu o cheiro longe demais sem te achar: volta para casa
+		return
+	if noticed_player and _bored_t <= 0.0 and reachable and not leashed:
+		# ver você só alimenta a caçada se der para te pegar (e sem estar longe demais de casa)
+		interest += INTEREST_SEE * dt * (1.6 if d < 4.0 else 1.0) * (0.4 if _stall_t > 5.0 else 1.0)
+	var decay := 4.0
+	if not noticed_player:
+		decay += 8.0                      # sumiu de vista
+	if d > track_range:
+		decay += 12.0                     # longe demais
+	if not reachable:
+		decay += 18.0                     # inalcançável: no fio, do outro lado do abismo, outro andar
+	if leashed:
+		decay += 25.0                     # longe de casa: a coragem acaba
+	if _stall_t > 5.0:
+		decay += 14.0                     # corre, corre e não chega
+	decay *= lerpf(1.7, 0.55, clampf(needs.hunger / 100.0, 0.0, 1.0))   # faminto insiste, cheio desiste
+	interest = clampf(interest - decay * dt, 0.0, 100.0)
+	if interest <= 0.0 and (player_memory > 0.0 or search_left > 0.0) and cur_attack == null:
+		give_up_hunt()
+
+
+func give_up_hunt() -> void:
+	## Desiste da caçada: esquece você, não vasculha, e fica um tempo sem ligar.
+	player_memory = 0.0
+	search_left = 0.0
+	interest = 0.0
+	_bored_t = BORED_TIME
+	_stall_t = 0.0
+	_best_d = INF
+	if brain != null:
+		brain.wake_up()
+
+
+func combat_utility() -> float:
+	## Quanto a luta contra você vale frente a outras vontades (comer outra presa, fugir...).
+	## Com pouco interesse, uma presa fácil por perto ganha.
+	if not uses_interest or cur_attack != null:
+		return 1.0
+	if player_memory <= 0.0:
+		return 0.45 if search_left > 0.0 else 0.0
+	return 0.5 + 0.45 * interest / 100.0 + (0.35 if _provoked_t > 0.0 else 0.0)
+
+
+func hunt_leashed() -> bool:
+	## Já foi longe demais atrás de você desde que a caçada começou.
+	return Fx.flat_dist(global_position, _hunt_origin) > leash_range
+
+
+func mark_hunt_start() -> void:
+	if player_memory <= 0.0:
+		_hunt_origin = global_position
+
+
+func bored_of_player() -> bool:
+	return uses_interest and _bored_t > 0.0
 
 
 func keeps_tracking(p: Player) -> bool:
@@ -560,6 +657,9 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 	if source != null and source.is_in_group("player"):
 		player_memory = memory_time + 2.0
 		last_player_pos = source.global_position
+		interest = minf(100.0, interest + INTEREST_HIT)   # apanhou: agora é pessoal
+		_bored_t = 0.0
+		_provoked_t = 4.0
 	if brain != null:
 		brain.wake_up()
 	if source != null and entangled_time <= 0.0:
@@ -1092,8 +1192,15 @@ func fight_player(delta: float, p: Player) -> Vector3:
 		var a := pick_attack(p)
 		if a != null:
 			start_attack(a, p)
+			_stall_t = 0.0   # atacou: a caçada está rendendo
+			_best_d = d
 			return Vector3.ZERO
 	activity = combat_label
+	if d < _best_d - 0.75:
+		_best_d = d
+		_stall_t = 0.0
+	else:
+		_stall_t += delta
 	var goal := p.global_position if see else last_player_pos
 	if d > preferred_distance() or not see:
 		return nav_to(goal, chase_speed * (1.15 if enraged else 1.0))

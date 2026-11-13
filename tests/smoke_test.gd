@@ -111,7 +111,12 @@ func _run() -> void:
 	for c in World.creatures:
 		if is_instance_valid(c) and c.brain != null:
 			c.player_memory = 0.0
+			if c.uses_interest:
+				c.give_up_hunt()
 			c.brain.decide(c)
+	# um sapo passeando pode ter arrebentado o fio-guia (é do jogo): tece de novo
+	if WebNetwork.strands.is_empty():
+		WebNetwork.create_strand(WebNetwork.anchors["Pilar_06"], WebNetwork.anchors["Pilar_12"])
 	_check(player.rest_blocker() == "", "ninguém caçando perto do casulo (%s)" % player.rest_blocker())
 	player._interact()
 	await _frames(3)
@@ -129,8 +134,8 @@ func _run() -> void:
 	var frog: Frog = null
 	for f in get_tree().get_nodes_in_group("predator"):
 		var fr := f as Frog
-		if fr != null and fr.global_position.x < 0.0:
-			frog = fr
+		if fr != null and (frog == null or fr.global_position.x < 0.0):
+			frog = fr   # o do oeste, se ainda estiver lá (pode ter passeado)
 	_check(frog != null, "sapo do oeste existe")
 	if frog != null:
 		player.hp = player.max_hp

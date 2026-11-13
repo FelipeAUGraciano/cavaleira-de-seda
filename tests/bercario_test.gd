@@ -58,10 +58,13 @@ func _run() -> void:
 	var best := 1e9
 	for s in get_tree().get_nodes_in_group("predator"):
 		var d := Fx.flat_dist(s.global_position, Vector3(-25.0, 0.0, -9.0))
-		if s is Sister and d < best:
+		if s is Sister and (s as Sister).hunter and d < best:
 			hungry = s
 			best = d
 	print("  info: irmã faminta mais próxima a %.1f m de B2" % best)
+	if hungry != null:
+		hungry.needs.hunger = 85.0   # pode ter comido uma irmã menor antes
+		hungry.brain.wake_up()
 	_teleport(hungry.global_position + Vector3(-2.0, 0.1, 0.0) if hungry != null else Vector3(-25.0, 0.1, -9.0))
 	await _seconds(4.0)
 	_check(player.hp < hp0, "irmã faminta caça e morde (PV %d)" % int(player.hp))

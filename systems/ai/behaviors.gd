@@ -78,7 +78,12 @@ class Forage extends Behavior:
 			target = c.find_food()
 		if target == null:
 			return 0.0
-		return c.needs.hunger / 100.0 * 0.9
+		var u := c.needs.hunger / 100.0 * 0.9
+		# oportunidade: presa viva (ou carniça) bem perto vale mais que correr atrás de você
+		var tp: Variant = target
+		if tp is Node3D and is_instance_valid(tp) and Fx.flat_dist(c.global_position, (tp as Node3D).global_position) < 6.0:
+			u += 0.2
+		return u
 
 	func start(_c: Creature) -> void:
 		eat_t = 0.0
@@ -204,7 +209,7 @@ class Combat extends Behavior:
 		label = label_
 
 	func utility(c: Creature) -> float:
-		return 1.0 if c.combat_wants() else 0.0
+		return c.combat_utility() if c.combat_wants() else 0.0
 
 	func start(c: Creature) -> void:
 		c.asleep = false
@@ -277,6 +282,8 @@ class Stalk extends Behavior:
 	func utility(c: Creature) -> float:
 		if c.aggression <= 0.0 or c.needs.hunger < 35.0 or c.combat_wants():
 			return 0.0   # já sabe onde você está: quem manda é o Combate
+		if c.bored_of_player():
+			return 0.0   # desistiu há pouco (foi longe demais ou perdeu o interesse)
 		var p := GameState.player as Player
 		if p == null or p.dead or not c.sees_player_as_prey(p):
 			return 0.0
@@ -290,6 +297,7 @@ class Stalk extends Behavior:
 
 	func start(c: Creature) -> void:
 		_refresh = 0.0
+		c.mark_hunt_start()
 		c.on_stalk_start()
 
 	func run(c: Creature, delta: float) -> Vector3:

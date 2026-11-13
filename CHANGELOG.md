@@ -2,6 +2,16 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## IA dos caçadores — eles desistem (13/11)
+
+- **Interesse:** sapos, irmãs e morcegos têm um medidor de interesse em você. Ver você enche; sumir de vista, ficar num fio sobre o abismo (onde ele não alcança), se afastar demais de onde a caça começou (26 m) ou correr atrás sem chegar perto esvaziam. Com fome ele insiste mais; de barriga cheia larga rápido.
+- **Desistência:** com o interesse zerado ele volta à rotina e fica 14 s ignorando você (a menos que você encoste, a 5 m).
+- **Troca de presa:** com pouco interesse, uma larva por perto ganha a disputa e ele vai comer.
+- **Revide:** bater num bicho enche o interesse e ele foca em você por uns segundos.
+- **Encostar acorda o bicho:** a menos de ~2 m um bicho acordado sente você mesmo de costas e no escuro.
+- Lagarto (emboscada) e Centopeia (chefe) continuam como antes.
+- Teste novo: `caca_test`.
+
 ## Revisão geral (13/11)
 
 - README reorganizado (estado atual) e histórico movido para este arquivo.

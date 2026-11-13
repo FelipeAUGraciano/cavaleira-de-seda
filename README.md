@@ -112,6 +112,8 @@ Fase do relógio (CaveClock)            ──┘        (4×/s perto, 1×/s lon
 
 Cada espécie monta o seu cérebro em `_make_brain()` com os comportamentos de `systems/ai/behaviors.gd` (e os dela, como a isca do lagarto ou o bote do morcego) e define os ataques em `combat_tick()`. Para criar uma espécie nova: estender `Creature`, preencher a ficha no `_init()` (tamanho, fase de descanso, câmaras por onde passeia, o que come) e escolher os comportamentos.
 
+**Interesse na caça (sapos, irmãs, morcegos):** cada caçador tem um medidor de interesse (0–100). Ver você enche; perder de vista, você fora de alcance (num fio sobre o abismo), longe demais de onde a caça começou (26 m) ou a perseguição sem progresso esvaziam. Fome alta deixa mais teimoso. Zerou: ele desiste, volta à rotina e passa 14 s ignorando você se estiver a mais de 5 m. Com pouco interesse, uma presa fácil por perto (larva) ganha a disputa. Bater nele dá interesse na hora (revida). Lagarto e Centopeia não usam o medidor (emboscada e chefe).
+
 ## Dublagem
 
 As falas do monólogo e os nomes de arquivo estão em [`docs/falas.md`](docs/falas.md). Grave, salve como `audio/voice/<id>.ogg` e o jogo toca sozinho.
@@ -139,6 +141,7 @@ godot --headless --path . res://tests/vida_test.tscn        # mundo vivo e desem
 godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evolução, predadores que te caçam
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte por ato
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
+godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar
 godot --headless --path . res://tests/casulo_test.tscn      # habilidades, despensa e menu do casulo
 godot --headless --path . res://tests/menu_test.tscn        # menu inicial, espaços de save, Opções e pausa
 godot --headless --path . res://tests/models_test.tscn      # modelos 3D e encaixes

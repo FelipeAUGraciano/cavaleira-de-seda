@@ -29,6 +29,7 @@ var _warned := false
 
 
 func _init() -> void:
+	uses_interest = false   # segue as próprias regras (chefe / território)
 	display_name = "Lagarto-lanterna"
 	size = Size.M
 	level = 5

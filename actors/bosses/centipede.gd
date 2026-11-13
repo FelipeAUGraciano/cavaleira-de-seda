@@ -49,6 +49,7 @@ var _armor_msg_cd := 0.0
 
 
 func _init() -> void:
+	uses_interest = false   # segue as próprias regras (chefe / território)
 	display_name = "Centopeia-blindada"
 	size = Size.G
 	level = 12

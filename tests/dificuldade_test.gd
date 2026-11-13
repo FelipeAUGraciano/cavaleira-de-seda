@@ -58,6 +58,17 @@ func _run() -> void:
 	frog.global_position = layer._snap_floor(Galerias.W(Vector3(-4.0, 0.3, 38.0)), 1.0)
 	frog.player_memory = 0.0
 	frog.needs.hunger = 90.0
+	frog.interest = 0.0
+	frog._provoked_t = 0.0
+	frog.brain.wake_up()
+	# sem larva por perto: com uma presa fácil ao lado ele iria comer ela (é o certo)
+	for c in World.creatures:
+		if c is Larva and Fx.flat_dist(c.global_position, frog.global_position) < 14.0:
+			c.global_position += Vector3(0, 0, 60.0)
+	for k in World.corpses:
+		if is_instance_valid(k) and Fx.flat_dist(k.global_position, frog.global_position) < 14.0:
+			k.queue_free()
+	frog.brain.decide(frog)
 	_teleport(Galerias.W(Vector3(4.0, 0.1, 27.0)))   # a ~13 m, atrás de pedra/fora do cone
 	player.rune_on = false
 	var d0 := frog.flat_dist_to(player)
@@ -103,6 +114,8 @@ func _run() -> void:
 	_check(not frog.sees_player_as_prey(player), "sapo com fome comum não vê a Cavaleira como comida")
 	frog.needs.hunger = 90.0
 	_check(frog.sees_player_as_prey(player), "mas faminto, arrisca")
+	frog.needs.hunger = 20.0
+	frog.give_up_hunt()   # sem ninguém trombando nela no teste das patas
 
 	# Patas: pisando no chão, sem perna esticada para longe
 	_teleport(Galerias.W(Vector3(128.0, 0.1, 40.0)))   # Galeria do eco: chão largo e plano
