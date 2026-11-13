@@ -189,6 +189,11 @@ func _run() -> void:
 	for pair in [["G6_a", "G6_c"], ["G6_f", "G6_h"], ["G6_j", "G6_l"]]:
 		_check(player._strand_error(WebNetwork.anchors[pair[0]], WebNetwork.anchors[pair[1]]) == "", "fenda %s ↔ %s alcançável" % pair)
 
+	# Paredes de baixo (baixas para a câmera ver a aranha) também param o fio e a visão
+	var sw_from := Galerias.W(Vector3(-6, 0.5, 24))
+	var sq := PhysicsRayQueryParameters3D.create(sw_from, sw_from + Vector3(0, 0, 14), 1)
+	_check(not player.get_world_3d().direct_space_state.intersect_ray(sq).is_empty(), "parede de baixo tem colisão alta (fio lançado prende nela)")
+
 	# Ganchos de parede: poucos, em pares, no chão firme e com o fio entre eles possível
 	_check(layer.wall_hook_count >= 4 and layer.wall_hook_count <= 20, "ganchos de parede: %d (poucos, mas existem)" % layer.wall_hook_count)
 	for i in range(0, layer.wall_hook_count, 2):

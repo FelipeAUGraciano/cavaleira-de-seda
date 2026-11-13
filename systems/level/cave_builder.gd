@@ -435,6 +435,24 @@ func _mesh_node(parent: Node3D, verts: PackedVector3Array, normals: PackedVector
 		parent.add_child(mi)
 
 
+func _collision_node(parent: Node3D, faces: PackedVector3Array) -> void:
+	## Só colisão (sem malha). As paredes do lado da câmera são baixas para ver a aranha,
+	## mas a colisão delas tem a altura toda: fio lançado, linha de visão e fios-guia
+	## param nelas como nas paredes altas.
+	if faces.is_empty():
+		return
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var shape := ConcavePolygonShape3D.new()
+	shape.backface_collision = true
+	shape.set_faces(faces)
+	var cs := CollisionShape3D.new()
+	cs.shape = shape
+	body.add_child(cs)
+	parent.add_child(body)
+
+
 func _shade_floor(p: Vector2) -> Color:
 	var o := _open_cached(p)
 	var ao := clampf(0.55 + o * 0.22, 0.55, 1.0)
@@ -494,6 +512,7 @@ func _add_walls(parent: Node3D, segs: PackedVector2Array) -> void:
 	var top_v := PackedVector3Array()
 	var top_n := PackedVector3Array()
 	var top_c := PackedColorArray()
+	var col_v := PackedVector3Array()   # colisão sempre alta: a parede baixa (perto da câmera) é só visual
 	var info := {}
 	for p in segs:
 		if not info.has(p):
@@ -517,13 +536,17 @@ func _add_walls(parent: Node3D, segs: PackedVector2Array) -> void:
 		var b1 := Vector3(b.x, hb, b.y)
 		_tri(verts, normals, colors, a0, b0, b1, face_n, cb, cb, ct)
 		_tri(verts, normals, colors, a0, b1, a1, face_n, cb, ct, ct)
+		var ac := Vector3(a.x, maxf(ha, WALL_TALL), a.y)
+		var bc := Vector3(b.x, maxf(hb, WALL_TALL), b.y)
+		col_v.append_array(PackedVector3Array([a0, b0, bc, a0, bc, ac]))
 		var a2 := a1 + Vector3(na.x, 0.0, na.y) * 0.9
 		var b2 := b1 + Vector3(nb.x, 0.0, nb.y) * 0.9
 		var cap := Color(base.r * 0.8, base.g * 0.8, base.b * 0.85)
 		_tri(top_v, top_n, top_c, a1, b1, b2, Vector3.UP, ct, ct, cap)
 		_tri(top_v, top_n, top_c, a1, b2, a2, Vector3.UP, ct, cap, cap)
-	_mesh_node(parent, verts, normals, colors, true)
+	_mesh_node(parent, verts, normals, colors, false)
 	_mesh_node(parent, top_v, top_n, top_c, false)
+	_collision_node(parent, col_v)
 
 
 func _add_cliffs(parent: Node3D, segs: PackedVector2Array) -> void:

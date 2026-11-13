@@ -135,6 +135,7 @@ var _leg_rig: SpiderLegs
 var _body_mat: StandardMaterial3D
 var _rune_mat: StandardMaterial3D
 var _rune_light: OmniLight3D
+const RUNE_RANGE := 7.5   ## runa acesa ilumina longe (mas os bichos te veem); apagada, só a visão curta
 var _scarf_tail: MeshInstance3D
 var _abdomen: MeshInstance3D
 var _plates: Array[MeshInstance3D] = []
@@ -193,10 +194,11 @@ func _build_visual() -> void:
 	_visual.add_child(rune)
 	_rune_light = OmniLight3D.new()
 	_rune_light.light_color = Color(0.4, 0.85, 1.0)
-	_rune_light.omni_range = 4.5
+	_rune_light.omni_range = RUNE_RANGE
 	_rune_light.light_energy = 1.4
+	_rune_light.omni_attenuation = 0.6   # cai devagar: ilumina o salão em volta, não só o chão debaixo
 	_rune_light.shadow_enabled = true
-	_rune_light.position = Vector3(0.0, 1.3, 0.2)
+	_rune_light.position = Vector3(0.0, 1.6, 0.2)
 	add_child(_rune_light)
 	_sight_light = OmniLight3D.new()
 	_sight_light.light_color = Color(0.62, 0.66, 0.85)
@@ -306,7 +308,7 @@ func _apply_form_visual() -> void:
 	_visual.scale = Vector3.ONE * k
 	if _leg_rig == null or not is_equal_approx(_leg_rig.size, k):
 		_build_legs(k)
-	_rune_light.omni_range = 4.5 * k
+	_rune_light.omni_range = RUNE_RANGE * maxf(k, 0.8)
 	_sight_light.omni_range = sight_radius()
 	_update_blades_visible()
 
@@ -321,7 +323,7 @@ func evolve() -> void:
 	tw.tween_property(self, "vis_scale", float(form_data()["scale"]), 1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_build_legs(float(form_data()["scale"]))
 	_update_blades_visible()
-	_rune_light.omni_range = 4.5
+	_rune_light.omni_range = RUNE_RANGE
 	_sight_light.omni_range = sight_radius()
 	EventBus.big_message.emit("Evolução: Cavaleira de Seda!")
 	_msg("A muda terminou. Lâminas de cristal, placas novas e muito mais vida. O nível voltou a 1.")
@@ -1401,7 +1403,7 @@ func _update_visual(delta: float) -> void:
 		flicker = 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.02)
 	_rune_mat.emission_energy_multiplier = (0.4 + 3.0 * e) * flicker if rune_on else 0.1
 	_rune_light.visible = rune_on
-	_rune_light.light_energy = (0.5 + 1.2 * e) * flicker
+	_rune_light.light_energy = (1.0 + 1.8 * e) * flicker
 
 	# Cachecol = Seda
 	var s := 0.15 + 0.75 * silk / max_silk

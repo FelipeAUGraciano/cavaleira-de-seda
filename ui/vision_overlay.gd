@@ -6,6 +6,7 @@ extends CanvasLayer
 var player: Player
 var _rect: ColorRect
 var _mat: ShaderMaterial
+var _r := 0.0   ## raio suavizado (acender/apagar a runa abre e fecha a visão devagar)
 
 const SHADER := """
 shader_type canvas_item;
@@ -36,7 +37,7 @@ func _ready() -> void:
 	add_child(_rect)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if player == null or not is_instance_valid(player) or player.camera == null:
 		_rect.visible = false
 		return
@@ -44,8 +45,10 @@ func _process(_delta: float) -> void:
 	var cam := player.camera
 	var vp := _rect.get_viewport_rect().size
 	var c := cam.unproject_position(player.global_position + Vector3.UP * 0.4)
-	var r := player.sight_radius() * (1.25 if player.rune_on else 1.0)
-	var edge := cam.unproject_position(player.global_position + cam.global_transform.basis.x * r)
+	# runa acesa clareia bem mais em volta (a luz azul dela); apagada, só a visão no escuro
+	var r := player.sight_radius() * ((1.35 + 0.35 * player.energy / maxf(player.max_energy, 1.0)) if player.rune_on else 1.0)
+	_r = r if _r <= 0.0 else lerpf(_r, r, clampf(delta * 5.0, 0.0, 1.0))
+	var edge := cam.unproject_position(player.global_position + cam.global_transform.basis.x * _r)
 	_mat.set_shader_parameter("center", c)
 	_mat.set_shader_parameter("radius", maxf(40.0, c.distance_to(edge)))
 	_mat.set_shader_parameter("soft", maxf(60.0, c.distance_to(edge) * 0.8))
