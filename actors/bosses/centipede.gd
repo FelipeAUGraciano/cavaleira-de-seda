@@ -461,18 +461,18 @@ func _trail_dir_near_head(dist: float) -> Vector3:
 
 func _place_joint(joint: MeshInstance3D, a: Vector3, b: Vector3, h: float) -> void:
 	var d := a - b
-	var len := d.length()
-	if len < 0.01:
+	var ln := d.length()
+	if ln < 0.01:
 		joint.visible = false
 		return
 	joint.visible = true
-	var y := d / len
+	var y := d / ln
 	var x := y.cross(Vector3.UP)
 	if x.length() < 0.01:
 		x = Vector3.RIGHT
 	x = x.normalized()
 	var z := x.cross(y).normalized()
-	joint.global_transform = Transform3D(Basis(x, y * len, z), (a + b) * 0.5 + Vector3.UP * h)
+	joint.global_transform = Transform3D(Basis(x, y * ln, z), (a + b) * 0.5 + Vector3.UP * h)
 
 
 func die(fell: bool = false) -> void:

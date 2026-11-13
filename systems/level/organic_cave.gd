@@ -214,7 +214,7 @@ func connect_all(min_size: int = 40, skip: Array = []) -> void:
 			var best := INF
 			var pa := Vector2.ZERO
 			var pb := Vector2.ZERO
-			var stride := maxi(1, main.size() / 400)
+			var stride := maxi(1, floori(main.size() / 400.0))
 			for c in cells:
 				for mi in range(0, main.size(), stride):
 					var m: Vector2i = main[mi]
@@ -309,7 +309,7 @@ func wall_hooks(max_pairs: int, span_max: float, min_pocket: int = 8) -> Array:
 			continue
 		var c := Vector2.ZERO
 		for k in comp:
-			c += center_of(k % w, k / w)
+			c += center_of(k % w, floori(k / float(w)))
 		c /= float(comp.size())
 		var cands: Array = []
 		var cc := cell_of(c)
@@ -388,7 +388,7 @@ func _chasm_components() -> Array:
 			var k: int = stack.pop_back()
 			comp.append(k)
 			var i := k % w
-			var j := k / w
+			var j := floori(k / float(w))
 			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 				var ni: int = i + d.x
 				var nj: int = j + d.y

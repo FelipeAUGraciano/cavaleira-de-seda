@@ -189,9 +189,9 @@ func _build_pantry_buttons() -> void:
 		var b := _flat_button(Rect2(r.position + Vector2(20, r.size.y - 40), Vector2(r.size.x - 40, 30)))
 		b.pressed.connect(_eat.bind(i))
 		_page_btns.append(b)
-	var wrap := _flat_button(Rect2(840, 610, 670, 48))
-	wrap.pressed.connect(_wrap)
-	_page_btns.append(wrap)
+	var wrap_btn := _flat_button(Rect2(840, 610, 670, 48))
+	wrap_btn.pressed.connect(_wrap)
+	_page_btns.append(wrap_btn)
 
 
 func _select(id: String) -> void:
@@ -434,12 +434,12 @@ func _draw_node(ci: Control, id: String) -> void:
 
 func _tooltip_rect() -> Rect2:
 	var p := _node_pos(selected)
-	var size := Vector2(320, 168)
-	var pos := p + Vector2(_node_r(selected) + 26.0, -size.y * 0.5)
-	if pos.x + size.x > RIGHT.end.x - 12.0:
-		pos.x = p.x - _node_r(selected) - 26.0 - size.x
-	pos.y = clampf(pos.y, RIGHT.position.y + 96.0, RIGHT.end.y - size.y - 40.0)
-	return Rect2(pos, size)
+	var sz := Vector2(320, 168)
+	var pos := p + Vector2(_node_r(selected) + 26.0, -sz.y * 0.5)
+	if pos.x + sz.x > RIGHT.end.x - 12.0:
+		pos.x = p.x - _node_r(selected) - 26.0 - sz.x
+	pos.y = clampf(pos.y, RIGHT.position.y + 96.0, RIGHT.end.y - sz.y - 40.0)
+	return Rect2(pos, sz)
 
 
 func _badge_text(why: String) -> String:
@@ -458,17 +458,17 @@ func _draw_tooltip(ci: Control) -> void:
 		return
 	var r := _tooltip_rect()
 	var pos := r.position
-	var size := r.size
+	var sz := r.size
 	_panel(ci, r, Color(0.03, 0.035, 0.08, 0.97), Color(GOLD.r, GOLD.g, GOLD.b, 0.75), 10.0)
 	_text(ci, pos + Vector2(20, 34), String(s["name"]), "title", 19, GOLD)
 	_text(ci, pos + Vector2(20, 54), String(s["branch"]).to_upper(), "body_b", 12, QUIET)
-	_wrap_text(ci, pos + Vector2(20, 78), size.x - 40.0, String(s["desc"]), "body", 16, TEXT)
-	ci.draw_line(pos + Vector2(20, size.y - 44), pos + Vector2(size.x - 20, size.y - 44), Color(GOLD.r, GOLD.g, GOLD.b, 0.3), 1.0)
+	_wrap_text(ci, pos + Vector2(20, 78), sz.x - 40.0, String(s["desc"]), "body", 16, TEXT)
+	ci.draw_line(pos + Vector2(20, sz.y - 44), pos + Vector2(sz.x - 20, sz.y - 44), Color(GOLD.r, GOLD.g, GOLD.b, 0.3), 1.0)
 	var why := player.skill_block(selected)
 	var cost := int(s["cost"])
 	if cost > 0:
-		SkillIcons.draw(ci, "crystal", pos + Vector2(28, size.y - 22), 8.0, CYAN)
-		_text(ci, pos + Vector2(42, size.y - 15), "%d ponto%s" % [cost, "" if cost == 1 else "s"], "body_b", 16, TEXT)
+		SkillIcons.draw(ci, "crystal", pos + Vector2(28, sz.y - 22), 8.0, CYAN)
+		_text(ci, pos + Vector2(42, sz.y - 15), "%d ponto%s" % [cost, "" if cost == 1 else "s"], "body_b", 16, TEXT)
 	var badge := _badge_text(why)
 	var bcol := QUIET
 	if why == "":
@@ -546,7 +546,7 @@ func _draw_evolution(ci: Control) -> void:
 # ---------------------------------------------------------------- aba Despensa
 
 func _slot_rect(i: int) -> Rect2:
-	return Rect2(840 + (i % 4) * 172, 200 + (i / 4) * 196, 158, 182)
+	return Rect2(840 + (i % 4) * 172, 200 + floori(i / 4.0) * 196, 158, 182)
 
 
 func _draw_pantry(ci: Control) -> void:
@@ -562,9 +562,9 @@ func _draw_pantry(ci: Control) -> void:
 			_text(ci, r.position + Vector2(r.size.x * 0.5, 112), String(it.get("name", "presa")), "body_b", 16, TEXT, HORIZONTAL_ALIGNMENT_CENTER)
 			_text(ci, r.position + Vector2(r.size.x * 0.5, 132), "+%d sac · +%d seda" % [int(it.get("sat", 0)), int(it.get("silk", 0))], "body", 14, QUIET, HORIZONTAL_ALIGNMENT_CENTER)
 			var b: Button = _page_btns[i] if i < _page_btns.size() - 1 else null
-			var hot := b != null and (b.has_focus() or b.is_hovered())
+			var hot_i := b != null and (b.has_focus() or b.is_hovered())
 			var br := Rect2(r.position + Vector2(20, r.size.y - 40), Vector2(r.size.x - 40, 30))
-			_panel(ci, br, Color(0.1, 0.2, 0.35, 0.9) if hot else Color(0.08, 0.1, 0.2, 0.9), CYAN if hot else BORDER, 6.0)
+			_panel(ci, br, Color(0.1, 0.2, 0.35, 0.9) if hot_i else Color(0.08, 0.1, 0.2, 0.9), CYAN if hot_i else BORDER, 6.0)
 			_text(ci, br.get_center() + Vector2(0, 6), "Comer", "body_b", 16, TEXT, HORIZONTAL_ALIGNMENT_CENTER)
 		else:
 			_dashed_rect(ci, r, Color(0.4, 0.45, 0.6, 0.25))
@@ -640,29 +640,29 @@ func _fnt(k: String) -> Font:
 	return f if f is Font else ThemeDB.fallback_font
 
 
-func _text(ci: Control, p: Vector2, s: String, font: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT) -> void:
+func _text(ci: Control, p: Vector2, s: String, font: String, fsize: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT) -> void:
 	var f := _fnt(font)
 	var x := p.x
 	if align != HORIZONTAL_ALIGNMENT_LEFT:
-		var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
 		x -= w * (0.5 if align == HORIZONTAL_ALIGNMENT_CENTER else 1.0)
-	ci.draw_string(f, Vector2(x, p.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+	ci.draw_string(f, Vector2(x, p.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
 
 
-func _wrap_text(ci: Control, p: Vector2, width: float, s: String, font: String, size: int, col: Color) -> void:
+func _wrap_text(ci: Control, p: Vector2, width: float, s: String, font: String, fsize: int, col: Color) -> void:
 	var f := _fnt(font)
 	var line := ""
 	var y := p.y
 	for word in s.split(" "):
 		var t := word if line == "" else line + " " + word
-		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and line != "":
-			ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
-			y += size * 1.3
+		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x > width and line != "":
+			ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
+			y += fsize * 1.3
 			line = word
 		else:
 			line = t
 	if line != "":
-		ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+		ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
 
 
 func _panel(ci: Control, r: Rect2, fill: Color, border: Color, radius: float, glow := false) -> void:

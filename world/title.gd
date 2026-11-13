@@ -235,7 +235,7 @@ func _draw() -> void:
 	draw_string(font, Vector2(vp.x - w - 20.0, vp.y - 20.0), credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.54, 0.66))
 
 
-func _center_text(font: Font, text: String, y: float, size: int, color: Color) -> void:
-	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0, 0, 0, 0.6 * color.a))
-	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5 - 2.0, y - 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+func _center_text(font: Font, text: String, y: float, fsize: int, color: Color) -> void:
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
+	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color(0, 0, 0, 0.6 * color.a))
+	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5 - 2.0, y - 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, color)

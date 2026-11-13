@@ -5,7 +5,7 @@ extends Node3D
 
 const LIFE := 120.0
 const MAX := 90
-static var _all: Array[Track] = []
+static var _all: Array = []   ## sem tipo: guarda rastros que podem já ter sido apagados (troca de camada)
 
 var _age := 0.0
 var _mat: StandardMaterial3D
@@ -19,9 +19,9 @@ static func drop(parent: Node, pos: Vector3, dir: Vector3, width: float) -> void
 	t._build(width)
 	_all.append(t)
 	while _all.size() > MAX:
-		var old: Track = _all.pop_front()
+		var old = _all.pop_front()
 		if is_instance_valid(old):
-			old.queue_free()
+			(old as Node).queue_free()
 
 
 func _build(width: float) -> void:
@@ -32,9 +32,12 @@ func _build(width: float) -> void:
 		add_child(mark)
 
 
+func _exit_tree() -> void:
+	_all.erase(self)   # camada trocada ou rastro apagado: sai da lista
+
+
 func _process(delta: float) -> void:
 	_age += delta
 	_mat.albedo_color.a = 0.55 * (1.0 - _age / LIFE)
 	if _age >= LIFE:
-		_all.erase(self)
 		queue_free()

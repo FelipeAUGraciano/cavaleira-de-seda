@@ -87,12 +87,12 @@ func _build_model_legs(body: Node3D) -> void:
 			var d := MaeLegs.make(k)
 			if d.is_empty():
 				return
-			var wrap := Node3D.new()
-			wrap.position = xf.origin
-			wrap.basis = Basis(out, Vector3.UP, out.cross(Vector3.UP).normalized())
-			wrap.add_child(d["root"])
-			add_child(wrap)
-			wraps.append(wrap)
+			var holder_w := Node3D.new()
+			holder_w.position = xf.origin
+			holder_w.basis = Basis(out, Vector3.UP, out.cross(Vector3.UP).normalized())
+			holder_w.add_child(d["root"])
+			add_child(holder_w)
+			wraps.append(holder_w)
 			d["phase"] = (0.0 if n % 2 == 0 else PI) + (0.0 if side == "L" else PI)
 			d["sign"] = 1.0 if side == "L" else -1.0
 			MaeLegs.pose(d, MaeLegs.REST["hip"], MaeLegs.REST["j1"], MaeLegs.REST["j2"], MaeLegs.REST["j3"])

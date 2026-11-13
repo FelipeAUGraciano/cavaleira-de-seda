@@ -171,9 +171,9 @@ func to_dict() -> Dictionary:
 		if is_instance_valid(st):
 			s.append([st.anchor_a, st.anchor_b])
 	var t := []
-	for tr in traps:
-		if is_instance_valid(tr) and tr.charges > 0:
-			t.append([tr.position.x, tr.position.z, tr.charges])
+	for trp in traps:
+		if is_instance_valid(trp) and trp.charges > 0:
+			t.append([trp.position.x, trp.position.z, trp.charges])
 	var c := []
 	for co in cocoons:
 		if is_instance_valid(co):

@@ -135,18 +135,18 @@ func _build_visual(length: float) -> void:
 		var w := an as WebAnchor
 		var dirz := float(e[1])
 		var tp := to_local(w.tie_point())
-		var tr := w.trunk_radius()
+		var trk := w.trunk_radius()
 		var out := clampf(span * 0.18, 0.5, 1.4) / span
 		var t_out := out if dirz > 0.0 else 1.0 - out
 		var t_end := 0.0 if dirz > 0.0 else 1.0
 		for side in [-1.0, 0.0, 1.0]:
 			var start := _cable(side, t_out, z0, span, -1) if side != 0.0 else Vector3(0, 0.03, lerpf(z0, z1, t_out))
-			var to := tp + Vector3(side * tr * 0.85, _rng.randf_range(-0.05, 0.05), dirz * tr * (0.5 if side == 0.0 else 0.2))
+			var to := tp + Vector3(side * trk * 0.85, _rng.randf_range(-0.05, 0.05), dirz * trk * (0.5 if side == 0.0 else 0.2))
 			_tube(st, [start, start.lerp(to, 0.5) + Vector3.DOWN * 0.04, to], 0.011)
 		# e as pontas dos cabos encostam no tronco, rente ao chão
 		for side in [-1.0, 1.0]:
 			var a0 := _cable(side, t_end, z0, span, -1)
-			_tube(st, [a0, Vector3(side * tr * 0.6, 0.12, tp.z + dirz * tr * 0.4)], 0.014)
+			_tube(st, [a0, Vector3(side * trk * 0.6, 0.12, tp.z + dirz * trk * 0.4)], 0.014)
 		w.tie(true)
 	var mi := MeshInstance3D.new()
 	mi.name = "Fios"

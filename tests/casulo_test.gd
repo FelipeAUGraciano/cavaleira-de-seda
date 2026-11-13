@@ -93,6 +93,19 @@ func _run() -> void:
 	_check(q.skill_points == 4, "save antigo ganha os pontos dos níveis que já tinha (%d)" % q.skill_points)
 	q.queue_free()
 
+	# rastros da Centopeia: trocar de camada apaga os rastros e a lista não fica com lixo
+	var tmp := Node3D.new()
+	add_child(tmp)
+	for i in 5:
+		Track.drop(tmp, Vector3.ZERO, Vector3.FORWARD, 1.0)
+	tmp.free()
+	for i in Track.MAX + 3:
+		Track.drop(layer, Vector3(i * 0.1, 0, 0), Vector3.FORWARD, 1.0)
+	var all_ok := Track._all.size() <= Track.MAX
+	for t in Track._all:
+		all_ok = all_ok and is_instance_valid(t)
+	_check(all_ok, "rastros: lista sem rastros apagados (bug do 'drop')")
+
 	# o menu
 	var cocoon := WebNetwork.create_cocoon(player.global_position + Vector3(0, 0, -1.6))
 	await _frames(3)

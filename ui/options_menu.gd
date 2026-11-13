@@ -116,10 +116,10 @@ func _slider_row(text: String, key: String, lo: float, hi: float) -> void:
 	s.process_mode = Node.PROCESS_MODE_ALWAYS
 	var v := _label("", 20, ACCENT)
 	v.custom_minimum_size = Vector2(80, 0)
-	var show := func(x: float): v.text = "%d%%" % roundi(x * 100.0)
-	show.call(s.value)
+	var show_val := func(x: float): v.text = "%d%%" % roundi(x * 100.0)
+	show_val.call(s.value)
 	s.value_changed.connect(func(x: float):
-		show.call(x)
+		show_val.call(x)
 		Settings.set_value(key, x))
 	row.add_child(s)
 	row.add_child(v)
@@ -254,19 +254,19 @@ func _reset_all() -> void:
 
 # ---------------------------------------------------------------- peças
 
-func _label(text: String, size: int, color: Color) -> Label:
+func _label(text: String, fsize: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", fsize)
 	l.add_theme_color_override("font_color", color)
 	return l
 
 
-func _button(text: String, action: Callable, size: Vector2, font := 20) -> Button:
+func _button(text: String, action: Callable, min_size: Vector2, font := 20) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = size
+	b.custom_minimum_size = min_size
 	b.focus_mode = Control.FOCUS_ALL
 	b.process_mode = Node.PROCESS_MODE_ALWAYS
 	b.add_theme_font_size_override("font_size", font)

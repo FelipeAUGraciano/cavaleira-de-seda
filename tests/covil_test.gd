@@ -110,7 +110,7 @@ func _run() -> void:
 	boss.global_position = Galerias.W(Vector3(135.0, 0.05, 73.0))
 	boss._reset_trail()
 	await _seconds(0.5)
-	_check(not WebNetwork.strands.has(s0), "passeando, ela arrebenta o fio em que pisa")
+	_check(not is_instance_valid(s0) or not WebNetwork.strands.has(s0), "passeando, ela arrebenta o fio em que pisa")
 
 	# Caça: com fome, ataca um sapo
 	boss.global_position = layer.ARENA + Vector3(0, 0.05, 0)
@@ -163,14 +163,21 @@ func _run() -> void:
 	# Investida através de um fio = enredada
 	_teleport(Galerias.W(Vector3(122.0, 0.1, 118.0)))   # longe e parada: ela não sente
 	player.velocity = Vector3.ZERO
-	boss.global_position = Vector3(layer.ARENA.x - 6.0, 0.05, layer.ARENA.z)
-	boss.velocity = Vector3.ZERO
-	boss.facing = Vector3(1, 0, 0)
-	boss._reset_trail()
 	var s := WebNetwork.create_strand(WebNetwork.anchors["G14_0"], WebNetwork.anchors["G14_7"])
+	# investida reta, de frente para o meio do fio (perpendicular a ele)
+	var sm := (s.a_pos + s.b_pos) * 0.5
+	var along := (s.b_pos - s.a_pos).normalized()
+	var across := Vector3(-along.z, 0.0, along.x)
+	if across.dot(layer.ARENA - sm) < 0.0:
+		across = -across
+	boss.global_position = Vector3(sm.x, 0.05, sm.z) + across * 6.0
+	boss.velocity = Vector3.ZERO
+	boss.facing = -across
+	boss._reset_trail()
 	boss.player_memory = 0.0
 	boss.mode = Centipede.Mode.WINDUP
 	boss.mode_time = 0.79
+	boss.brain.decide(boss)   # entra no combate já (sem esperar o próximo "pensar", que podia levá-la a passear)
 	var tangled := false
 	for i in 30:
 		await _frames(5)

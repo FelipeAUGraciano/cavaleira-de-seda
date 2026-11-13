@@ -134,11 +134,11 @@ func reset_all() -> void:
 
 # ---------------------------------------------------------------- controles
 
-static func is_kb(e: InputEvent) -> bool:
+func is_kb(e: InputEvent) -> bool:
 	return e is InputEventKey or e is InputEventMouseButton
 
 
-static func is_pad(e: InputEvent) -> bool:
+func is_pad(e: InputEvent) -> bool:
 	return e is InputEventJoypadButton or e is InputEventJoypadMotion
 
 
@@ -218,7 +218,7 @@ func _same(a: InputEvent, b: InputEvent) -> bool:
 	return _to_dict(a) == _to_dict(b)
 
 
-static func _to_dict(e: InputEvent) -> Dictionary:
+func _to_dict(e: InputEvent) -> Dictionary:
 	if e is InputEventKey:
 		var k := e as InputEventKey
 		return {"t": "key", "c": int(k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode)}
@@ -232,7 +232,7 @@ static func _to_dict(e: InputEvent) -> Dictionary:
 	return {}
 
 
-static func _from_dict(d) -> InputEvent:
+func _from_dict(d) -> InputEvent:
 	if not (d is Dictionary):
 		return null
 	match String(d.get("t", "")):
@@ -256,7 +256,7 @@ static func _from_dict(d) -> InputEvent:
 	return null
 
 
-static func capture_ok(e: InputEvent, pad: bool) -> InputEvent:
+func capture_ok(e: InputEvent, pad: bool) -> InputEvent:
 	## Evento que serve como tecla nova (ou null). Para eixos, só um empurrão forte.
 	if pad:
 		if e is InputEventJoypadButton and e.pressed:
@@ -301,7 +301,7 @@ func move_text() -> String:
 	return s if s.length() == 4 else "%s/%s/%s/%s" % [text("move_up"), text("move_left"), text("move_down"), text("move_right")]
 
 
-static func event_text(e: InputEvent) -> String:
+func event_text(e: InputEvent) -> String:
 	if e is InputEventKey:
 		var k := e as InputEventKey
 		var code := k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode

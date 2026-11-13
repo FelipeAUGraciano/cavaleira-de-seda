@@ -88,9 +88,9 @@ static func draw(ci: CanvasItem, id: String, c: Vector2, r: float, col: Color) -
 		"wind":
 			for k in 3:
 				var y := (k - 1) * r * 0.42
-				var len := r * (1.3 if k == 1 else 1.0)
-				ci.draw_line(c + Vector2(-r * 0.8, y), c + Vector2(-r * 0.8 + len, y), col, w, true)
-				_arc(ci, c + Vector2(-r * 0.8 + len, y - r * 0.14), r * 0.14, -PI * 0.5, PI * 0.5, col, w)
+				var ln := r * (1.3 if k == 1 else 1.0)
+				ci.draw_line(c + Vector2(-r * 0.8, y), c + Vector2(-r * 0.8 + ln, y), col, w, true)
+				_arc(ci, c + Vector2(-r * 0.8 + ln, y - r * 0.14), r * 0.14, -PI * 0.5, PI * 0.5, col, w)
 		"fang":
 			_arc(ci, c + Vector2(0, -r * 0.25), r * 0.75, PI * 0.15, PI * 0.85, col, w)
 			for s in [-1.0, 1.0]:

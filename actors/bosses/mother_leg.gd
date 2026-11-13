@@ -60,12 +60,12 @@ func _build_model(tip: Node3D, lower: Node3D, joint: Node3D, upper: Node3D) -> v
 		return
 	for p in [tip, lower, joint, upper]:
 		p.visible = false
-	var wrap := Node3D.new()
-	wrap.rotation.y = -0.35   # a pata se arqueia de lado: a câmera vê o joelho dobrado
-	_leg.add_child(wrap)
-	wrap.add_child(d["root"])
+	var holder_w := Node3D.new()
+	holder_w.rotation.y = -0.35   # a pata se arqueia de lado: a câmera vê o joelho dobrado
+	_leg.add_child(holder_w)
+	holder_w.add_child(d["root"])
 	MaeLegs.pose(d, 1.05, -2.15, -0.45, -0.25)
-	var tip_p := MaeLegs.tip_in(d, wrap)
+	var tip_p := MaeLegs.tip_in(d, holder_w)
 	(d["root"] as Node3D).position -= tip_p
 
 

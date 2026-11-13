@@ -455,10 +455,10 @@ func _text_center(width: float, y: float, s: String, size: int, color: Color) ->
 # ---------------------------------------------------------------- mapa
 
 func _map_system():
-	var layer = GameState.current_layer
-	if layer == null or not is_instance_valid(layer):
+	var lyr = GameState.current_layer
+	if lyr == null or not is_instance_valid(lyr):
 		return null
-	return layer.map_system
+	return lyr.map_system
 
 
 func _on_draw_mini() -> void:
@@ -486,7 +486,7 @@ func _draw_minimap(ms, vp: Vector2) -> void:
 	if World.clock != null:
 		var left := int(World.clock.seconds_to_change())
 		var col := Color(0.65, 1.0, 0.75) if World.clock.phase == CaveClock.Phase.BRILHO else Color(0.75, 0.65, 1.0)
-		_text(area.position.x + 8.0, area.position.y + area.size.y + 34.0, "%s (%d:%02d)" % [CaveClock.NAMES[World.clock.phase], left / 60, left % 60], 12, col)
+		_text(area.position.x + 8.0, area.position.y + area.size.y + 34.0, "%s (%d:%02d)" % [CaveClock.NAMES[World.clock.phase], int(left / 60.0), left % 60], 12, col)
 
 
 func _draw_full_map(ms, vp: Vector2) -> void:

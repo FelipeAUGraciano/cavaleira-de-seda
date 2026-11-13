@@ -38,13 +38,13 @@ func add_button(text: String, action: Callable, danger := false) -> Button:
 	return b
 
 
-func add_label(text: String, size := 18, color := Color(0.75, 0.78, 0.88)) -> Label:
+func add_label(text: String, fsize := 18, color := Color(0.75, 0.78, 0.88)) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(520, 0)
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", fsize)
 	l.add_theme_color_override("font_color", color)
 	add_child(l)
 	return l
