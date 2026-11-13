@@ -82,6 +82,23 @@ const PANTRY_MAX := 8
 const SILK_WRAP := 10.0
 const WRAP_RANGE := 8.0
 var _dash_hit: Array = []
+# golpes no estilo dos inimigos: marca no chão (cone/anel) que enche até o golpe
+var _swing_marker: AttackMarker
+var _swing: Attack = null
+var _swing_t := -1.0
+var _swing_hit := 0.1
+var _swing_dir := Vector3.FORWARD
+var _swing_cols := [Color(0.4, 0.85, 1.0, 0.12), Color(0.5, 0.9, 1.0, 0.4)]
+const SWING_FADE := 0.18
+const BITE_LUNGE_TIME := 0.16
+const BITE_ASSIST := 2.6          ## a mordida avança até um bicho a esta distância (no cone da mira)
+var _bite_dir := Vector3.FORWARD
+var _bite_speed := 0.0
+# fio do Q
+var _silk: SilkLine = null
+var _zip_wait := false
+var _zip_dir := Vector3.FORWARD
+var _zip_total := 1.0
 var _spin := 0.0                    ## Corte em Espiral: o corpo dá uma volta inteira
 const SPIN_TIME := 0.25
 var rune_on := true
@@ -553,7 +570,7 @@ func _state_normal() -> Vector3:
 		if Input.is_action_just_pressed("attack"):
 			_start_attack(0)
 		elif Input.is_action_just_pressed("bite"):
-			_start_state(State.BITE)
+			_start_bite()
 		elif Input.is_action_just_pressed("interact"):
 			_interact()
 	if Input.is_action_just_pressed("rune"):
@@ -614,6 +631,62 @@ func _start_attack(index: int) -> void:
 	combo_queued = false
 	_start_state(State.ATTACK)
 	_swing_blades(index)
+	var reach := ATTACK_RANGE * float(form_data()["scale"]) + 0.3
+	if index == 2 and _spiral_ready():
+		_begin_swing(Attack.make("espiral", "", {"shape": Attack.Shape.RING, "reach": reach + 0.5}), 0.1, aim_dir, false)
+	else:
+		_begin_swing(Attack.make("golpe", "", {"shape": Attack.Shape.CONE, "reach": reach, "arc": ATTACK_ARC}), 0.1, aim_dir, false)
+
+
+func _start_bite() -> void:
+	## Mordida: micro-avanço. Se houver um bicho perto na mira, avança até encostar nele.
+	_start_state(State.BITE)
+	_bite_dir = aim_dir
+	var dist := 0.6
+	var best := BITE_ASSIST
+	for n in get_tree().get_nodes_in_group("creature"):
+		var c := n as Creature
+		if c == null or c.dead or c.global_position.y - global_position.y > 1.3:
+			continue
+		var to := c.global_position - global_position
+		to.y = 0.0
+		var d := to.length() - c.body_radius
+		if d > best or to.length() < 0.05:
+			continue
+		if rad_to_deg(aim_dir.angle_to(to.normalized())) > 40.0:
+			continue
+		best = d
+		_bite_dir = to.normalized()
+		dist = clampf(d - 0.35, 0.0, 1.6)
+	_bite_speed = dist / BITE_LUNGE_TIME
+	_begin_swing(Attack.make("mordida", "", {"shape": Attack.Shape.CONE, "reach": BITE_RANGE, "arc": 70.0}), 0.2, _bite_dir, true)
+
+
+func _begin_swing(a: Attack, hit_time: float, dir: Vector3, poison: bool) -> void:
+	if _swing_marker == null:
+		_swing_marker = AttackMarker.new()
+		add_child(_swing_marker)
+	_swing = a
+	_swing_t = 0.0
+	_swing_hit = hit_time
+	_swing_dir = dir
+	_swing_cols = [Color(0.45, 1.0, 0.45, 0.12), Color(0.55, 1.0, 0.5, 0.42)] if poison else [Color(0.4, 0.85, 1.0, 0.12), Color(0.5, 0.9, 1.0, 0.4)]
+
+
+func _update_swing(delta: float) -> void:
+	if _swing_t < 0.0 or _swing_marker == null:
+		return
+	_swing_t += delta
+	var fill := clampf(_swing_t / _swing_hit, 0.0, 1.0)
+	var fade := 1.0 - clampf((_swing_t - _swing_hit) / SWING_FADE, 0.0, 1.0)
+	if fade <= 0.0:
+		_swing_t = -1.0
+		_swing_marker.clear()
+		return
+	var b: Color = _swing_cols[0]
+	var h: Color = _swing_cols[1]
+	_swing_marker.draw_shape(_swing, global_position, _swing_dir, global_position, fill,
+		Color(b.r, b.g, b.b, b.a * fade), Color(h.r, h.g, h.b, h.a * fade * (1.6 if _swing_t >= _swing_hit else 1.0)))
 
 
 func _state_attack() -> Vector3:
@@ -629,16 +702,16 @@ func _state_attack() -> Vector3:
 		var reach := ATTACK_RANGE * float(form_data()["scale"]) + 0.3
 		if combo_index == 2 and _spiral_ready():
 			_spiral_fx(reach + 0.5)
-			_melee(dmg, reach + 0.5, 360.0, false)
+			_melee(dmg, reach + 0.5, 360.0, false, _swing_dir)
 		else:
-			_melee(dmg, reach, ATTACK_ARC, false)
+			_melee(dmg, reach, ATTACK_ARC, false, _swing_dir)
 	if state_time >= ATTACK_TIME:
 		if combo_queued and combo_index < 2:
 			_start_attack(combo_index + 1)
 		else:
 			_start_state(State.NORMAL)
 	var lunge := 3.0 if state_time < 0.12 else 0.0
-	return aim_dir * lunge + move_dir * 1.5
+	return _swing_dir * lunge + move_dir * 1.5
 
 
 func _spiral_ready() -> bool:
@@ -660,9 +733,11 @@ func _state_bite() -> Vector3:
 	noise = 4.0
 	if not hit_done and state_time >= 0.2:
 		hit_done = true
-		_melee(float(form_data()["bite"]), BITE_RANGE, 70.0, true)
+		_melee(float(form_data()["bite"]), BITE_RANGE, 70.0, true, _bite_dir)
 	if state_time >= BITE_TIME:
 		_start_state(State.NORMAL)
+	if state_time < BITE_LUNGE_TIME:
+		return _bite_dir * _bite_speed   # o bote: avança e crava
 	return move_dir * 1.0
 
 
@@ -680,24 +755,41 @@ func _state_eat() -> Vector3:
 
 func _state_zip() -> void:
 	noise = 3.0
+	if _zip_wait:
+		# o fio ainda está voando até a parede
+		velocity = Vector3.ZERO
+		if state_time > 0.35 or _silk == null or not is_instance_valid(_silk):
+			_zip_wait = false
+		state_time = minf(state_time, 0.35)
+		return
 	var to := zip_target - global_position
 	to.y = 0.0
-	if to.length() < 0.7 or state_time > 1.2:
+	var left := to.length()
+	var p := 1.0 - clampf(left / _zip_total, 0.0, 1.0)
+	if left < 0.5 or state_time > 1.6:
 		velocity = Vector3.ZERO
+		_visual.position.y = 0.0
+		_release_silk_later(0.0)
 		_start_state(State.NORMAL)
 		return
-	velocity = to.normalized() * 16.0
+	# arranca rápido, voa e freia perto da parede; o corpo sobe num arco
+	var spd := minf(20.0, 7.0 + 40.0 * state_time)
+	spd = minf(spd, 4.0 + left * 9.0)
+	velocity = to / left * spd
 	velocity.y = 0.0
+	_visual.position.y = sin(PI * p) * 0.35
 	move_and_slide()
+	if get_slide_collision_count() > 0 and velocity.length() < 1.0:
+		_visual.position.y = 0.0
+		_release_silk_later(0.0)
+		_start_state(State.NORMAL)
 
 
 # ================================================================= ações
 
-func _melee(damage: float, reach: float, arc_deg: float, poison: bool) -> void:
-	var root := get_parent()
-	var side := aim_dir.cross(Vector3.UP) * 0.6
-	var center := global_position + Vector3.UP * 0.5
-	Fx.beam(root, center + side + aim_dir * 0.3, center - side + aim_dir * reach, Color(0.7, 0.95, 1.0), 0.1, 0.05)
+func _melee(damage: float, reach: float, arc_deg: float, poison: bool, dir := Vector3.ZERO) -> void:
+	if dir == Vector3.ZERO:
+		dir = aim_dir
 	for n in get_tree().get_nodes_in_group("creature"):
 		var c := n as Creature
 		if c == null or c.dead:
@@ -708,7 +800,7 @@ func _melee(damage: float, reach: float, arc_deg: float, poison: bool) -> void:
 			continue
 		if c.global_position.y - global_position.y > 1.3:
 			continue   # voando alto demais (morcego): use fio (Q) ou espere o mergulho
-		if to.length() > 0.3 and rad_to_deg(aim_dir.angle_to(to.normalized())) > arc_deg * 0.5:
+		if to.length() > 0.3 and rad_to_deg(dir.angle_to(to.normalized())) > arc_deg * 0.5:
 			continue
 		var dmg := damage
 		var crit := c.is_entangled()
@@ -725,35 +817,91 @@ func _throw_silk() -> void:
 		_msg("Seda insuficiente para lançar fio.")
 		return
 	silk -= SILK_THROW
+	if _silk != null and is_instance_valid(_silk):
+		_silk.release()
+	var dir := aim_dir
 	var from := global_position + Vector3.UP * 0.5
-	var to := from + aim_dir * throw_range()
+	var to := from + dir * throw_range()
+	var root := get_parent()
 	var flyer := _flyer_in_aim()
 	if flyer != null:
-		Fx.beam(get_parent(), from, flyer.global_position, Color(0.9, 0.95, 1.0), 0.3, 0.05)
-		flyer.entangle(4.0)
-		_msg("Fio no ar! %s caiu enredado." % flyer.display_name)
-		GameState.say_once("derrubou_morcego", "Desce daí, rato de asa!")
+		var fl_ref: WeakRef = weakref(flyer)   # o bicho pode sumir com o fio no ar
+		_silk = SilkLine.shoot(root, _mouth.bind(dir), func(): return _ref_pos(fl_ref, to, 0.0))
+		_silk.arrived.connect(func():
+			var fl := fl_ref.get_ref() as Creature
+			if fl != null and not fl.dead:
+				fl.entangle(4.0)
+				_msg("Fio no ar! %s caiu enredado." % fl.display_name)
+				GameState.say_once("derrubou_morcego", "Desce daí, rato de asa!")
+			_release_silk_later(0.35))
 		return
 	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 4)
 	q.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	if hit.is_empty():
-		Fx.beam(get_parent(), from, to, Color(0.9, 0.95, 1.0), 0.15, 0.04)
+		# errou: o fio vai até o fim do alcance e cai
+		_silk = SilkLine.shoot(root, _mouth.bind(dir), func(): return to)
+		_silk.arrived.connect(func(): _silk.release(true))
 		return
 	var hit_pos: Vector3 = hit["position"]
-	Fx.beam(get_parent(), from, hit_pos, Color(0.9, 0.95, 1.0), 0.3, 0.05)
 	var c := hit["collider"] as Creature
 	if c != null:
+		var c_ref: WeakRef = weakref(c)
+		var cname := c.display_name
+		_silk = SilkLine.shoot(root, _mouth.bind(dir), func(): return _ref_pos(c_ref, hit_pos, 0.3))
 		if c.size == Creature.Size.P or (c.size == Creature.Size.M and has_skill("puxao")):
-			c.pull_toward(global_position, 10.0 if c.size == Creature.Size.P else 6.0)
+			_silk.arrived.connect(func(): _yank(c_ref.get_ref()))
 			GameState.say_once("primeiro_puxao", "Vem cá, lanchinho!")
 		else:
-			_msg("%s é grande demais para puxar." % c.display_name)
+			_silk.arrived.connect(func():
+				_msg("%s é grande demais para puxar." % cname)
+				_release_silk_later(0.15))
 		return
-	zip_target = hit_pos - aim_dir * 0.7
+	# parede: o fio voa, prende, e ela se puxa até lá (o fio encurta junto)
+	_zip_dir = dir
+	zip_target = hit_pos - dir * 0.7
 	zip_target.y = global_position.y
+	_zip_total = maxf(0.5, Fx.flat_dist(zip_target, global_position))
+	_zip_wait = true
+	_silk = SilkLine.shoot(root, _mouth.bind(dir), func(): return hit_pos)
+	_silk.arrived.connect(func(): _zip_wait = false)
 	_start_state(State.ZIP)
 	GameState.say_once("primeiro_zip", "Fio, parede, VOOOU!")
+
+
+func _mouth(dir: Vector3) -> Vector3:
+	## De onde sai o fio: na frente da aranha (ela segura o fio com as patas da frente).
+	return global_position + dir * 0.45 * vis_scale + Vector3.UP * (0.35 + _visual.position.y) * vis_scale
+
+
+func _ref_pos(r: WeakRef, fallback: Vector3, up: float) -> Vector3:
+	var o = r.get_ref()
+	return (o as Node3D).global_position + Vector3.UP * up if o != null else fallback
+
+
+func _yank(obj) -> void:
+	## Puxão: o bicho vem voando até a sua frente e fica tonto um instante.
+	var c := obj as Creature
+	if c == null or not is_instance_valid(c) or c.dead:
+		_release_silk_later(0.0)
+		return
+	var to := c.global_position - global_position
+	to.y = 0.0
+	var stop := global_position + to.normalized() * (0.6 * vis_scale + c.body_radius + 0.35)
+	c.yank_to(stop, 0.32)
+	_release_silk_later(0.34)
+
+
+func _release_silk_later(t: float) -> void:
+	var s := _silk
+	if s == null or not is_instance_valid(s):
+		return
+	if t <= 0.0:
+		s.release()
+		return
+	get_tree().create_timer(t, false).timeout.connect(func():
+		if is_instance_valid(s):
+			s.release())
 
 
 func _flyer_in_aim() -> Creature:
@@ -1387,14 +1535,16 @@ func _update_camera(real_dt: float, snap: bool) -> void:
 func _update_visual(delta: float) -> void:
 	if dead:
 		return
-	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-aim_dir.x, -aim_dir.z), clampf(delta * 14.0, 0.0, 1.0))
+	var face := _zip_dir if state == State.ZIP else aim_dir
+	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-face.x, -face.z), clampf(delta * 14.0, 0.0, 1.0))
 	if _spin > 0.0:
 		_spin = maxf(0.0, _spin - delta)
 		_visual.rotation.y = atan2(-aim_dir.x, -aim_dir.z) + TAU * (1.0 - _spin / SPIN_TIME)
 	_leg_rig.velocity_hint = Vector3(velocity.x, 0.0, velocity.z)
 	# o corpo sobe um pouquinho a cada grupo de patas que pousa
 	var spd := Vector2(velocity.x, velocity.z).length()
-	_visual.position.y = absf(sin(_leg_rig.phase * TAU)) * 0.03 * clampf(spd / 4.0, 0.0, 1.0)
+	if state != State.ZIP:
+		_visual.position.y = absf(sin(_leg_rig.phase * TAU)) * 0.03 * clampf(spd / 4.0, 0.0, 1.0)
 
 	# Runa = Energia (e luz). Apagada = furtiva.
 	var e := energy / max_energy
@@ -1419,6 +1569,7 @@ func _update_visual(delta: float) -> void:
 	for i in _plates.size():
 		_plates[i].visible = i < plates_left
 
+	_update_swing(delta)
 	_hurt_flash = maxf(0.0, _hurt_flash - delta)
 	_body_mat.emission_enabled = _hurt_flash > 0.0
 	_body_mat.emission = Color(1.0, 0.2, 0.2)

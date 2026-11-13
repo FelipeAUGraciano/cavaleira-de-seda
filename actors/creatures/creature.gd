@@ -72,8 +72,12 @@ var poison_time := 0.0
 var entangled_time := 0.0
 var slow_mult := 1.0
 var slow_time := 0.0
-var telegraph := false   ## brilho amarelo = vai atacar
+var telegraph := false   ## vai atacar (o aviso é a marca no chão; o corpo não pisca mais)
 var external_velocity := Vector3.ZERO
+var _yank_t := -1.0             ## puxada pelo fio (Q): voa até um ponto e fica tonta
+var _yank_dur := 0.3
+var _yank_from := Vector3.ZERO
+var _yank_to := Vector3.ZERO
 var home := Vector3.ZERO
 var facing := Vector3(0, 0, -1)
 
@@ -334,6 +338,9 @@ func _physics_process(delta: float) -> void:
 		if _sense_t <= 0.0:
 			_sense_t = sense_interval()
 			_sense()
+	if _yank_t >= 0.0:
+		_tick_yank(delta)
+		return
 	_strike_cd -= delta
 	_tick_attacks(delta)
 	var desired := Vector3.ZERO
@@ -510,21 +517,17 @@ func _walk_into_strands() -> void:
 
 func _update_glow(delta: float) -> void:
 	_flash = maxf(0.0, _flash - delta)
+	if not telegraph and cur_attack == null and _marker != null and _marker.visible:
+		_marker.clear()   # golpe cancelado (enredada, atordoada, morta): a marca some junto
 	if _overlay != null:
 		if _flash > 0.0:
 			_overlay.albedo_color = Color(1, 1, 1, 0.6)
-		elif telegraph:
-			_overlay.albedo_color = Color(1.0, 0.8, 0.1, 0.35 + 0.25 * sin(_anim_t * 30.0))
 		else:
 			_overlay.albedo_color = Color(0, 0, 0, 0)
 	if _flash > 0.0:
 		_mat.emission_enabled = true
 		_mat.emission = Color(1, 1, 1)
 		_mat.emission_energy_multiplier = 1.5
-	elif telegraph:
-		_mat.emission_enabled = true
-		_mat.emission = Color(1.0, 0.8, 0.1)
-		_mat.emission_energy_multiplier = 0.8 + 0.6 * sin(_anim_t * 30.0)
 	else:
 		_mat.emission_enabled = false
 
@@ -615,6 +618,39 @@ func is_entangled() -> bool:
 func slow(mult: float, duration: float) -> void:
 	slow_mult = mult
 	slow_time = duration
+
+
+func yank_to(point: Vector3, dur: float = 0.3) -> void:
+	## Puxão do fio: sai voando (num arquinho) até o ponto, larga o que fazia e fica tonta.
+	_yank_from = global_position
+	_yank_to = Vector3(point.x, global_position.y, point.z)
+	_yank_dur = maxf(dur, 0.05)
+	_yank_t = 0.0
+	cancel_attack()
+	telegraph = false
+	_strike_t = -1.0
+	external_velocity = Vector3.ZERO
+	asleep = false
+
+
+func _tick_yank(delta: float) -> void:
+	_yank_t += delta
+	var k := clampf(_yank_t / _yank_dur, 0.0, 1.0)
+	var e := 1.0 - pow(1.0 - k, 3.0)
+	var target := _yank_from.lerp(_yank_to, e)
+	var step := target - global_position
+	step.y = 0.0
+	velocity = step / maxf(delta, 0.001)
+	velocity.y = 0.0
+	move_and_slide()
+	if _visual != null:
+		_visual.position.y = sin(PI * k) * 0.45   # sai do chão no puxão
+	if k >= 1.0:
+		_yank_t = -1.0
+		if _visual != null:
+			_visual.position.y = 0.0
+		velocity = Vector3.ZERO
+		entangle_raw(0.7)   # tonta: um instante para morder ou bater (crítico)
 
 
 func pull_toward(point: Vector3, strength: float) -> void:
@@ -831,6 +867,19 @@ func cancel_attack() -> void:
 	cur_attack = null
 	telegraph = false
 	_forced_next = ""
+	if _marker != null:
+		_marker.clear()
+
+
+func show_marker(a: Attack, point: Vector3, fill: float) -> void:
+	## Marca no chão para golpes fora do sistema de ataques (Centopeia, Morcego).
+	if _marker == null:
+		_marker = AttackMarker.new()
+		add_child(_marker)
+	_marker.draw_attack(a, global_position, facing, point, fill, enraged)
+
+
+func hide_marker() -> void:
 	if _marker != null:
 		_marker.clear()
 

@@ -30,11 +30,16 @@ func clear() -> void:
 
 
 func draw_attack(a: Attack, origin: Vector3, facing: Vector3, point: Vector3, fill: float, enraged: bool) -> void:
+	var base := Color(1.0, 0.25, 0.1, 0.16) if enraged else Color(1.0, 0.55, 0.1, 0.14)
+	var hot := Color(1.0, 0.2, 0.1, 0.4) if enraged else Color(1.0, 0.6, 0.15, 0.36)
+	draw_shape(a, origin, facing, point, fill, base, hot)
+
+
+func draw_shape(a: Attack, origin: Vector3, facing: Vector3, point: Vector3, fill: float, base: Color, hot: Color) -> void:
+	## Mesma marca com cores próprias (a jogadora usa azul; a mordida, verde de veneno).
 	_im.clear_surfaces()
 	visible = true
 	global_transform = Transform3D.IDENTITY
-	var base := Color(1.0, 0.25, 0.1, 0.16) if enraged else Color(1.0, 0.55, 0.1, 0.14)
-	var hot := Color(1.0, 0.2, 0.1, 0.4) if enraged else Color(1.0, 0.6, 0.15, 0.36)
 	fill = clampf(fill, 0.0, 1.0)
 	var o := Vector3(origin.x, Y, origin.z)
 	var f := Vector3(facing.x, 0.0, facing.z)

@@ -2,6 +2,14 @@
 
 Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. Este é o **protótipo cinza** (formas simples, sem arte final). Ele existe para responder uma pergunta: *o loop de 10 minutos é divertido?*
 
+## Novidades da v0.8 — golpes e fio da protagonista
+
+- **Golpes como os dos inimigos:** cada golpe do combo desenha o **cone** no chão (azul), que enche até o instante do corte; o Corte em Espiral desenha um anel.
+- **Mordida com bote:** a mordida avança. Se há um bicho perto na mira (até 2,6 m), ela pula até encostar nele e crava; sem alvo, dá um passinho. O cone dela é verde (veneno).
+- **Sem piscar amarelo:** os inimigos não brilham mais em amarelo ao atacar. O aviso é só a marca no chão (a Centopeia e o Morcego ganharam marcas também).
+- **Fio (Q) de verdade:** o fio sai da boca da aranha e voa até o alvo, ondulando. Na parede, ela espera prender, arranca, voa num arquinho e freia; o fio encurta junto e recolhe quando ela chega (não fica mais uma reta parada que ela atravessava). Errou: o fio cai.
+- **Puxão melhor:** o bicho puxado sai do chão, vem até a sua frente e fica tonto um instante (dá para morder com crítico).
+
 ## Novidades da v0.8 — props e a Mãe em 3D
 
 - **A Mãe:** corpo e pata novos. Na Fuga (B6) ela corre com as 8 patas presas nos encaixes do corpo, dobrando as juntas a cada passo; na Despensa (B5) a pata gigante se arqueia do alto até o chão.

@@ -99,6 +99,7 @@ func _run() -> void:
 	if aimed != null:
 		target = aimed
 	player._throw_silk()
+	await _frames(12)   # o fio voa até ele
 	_check(target.is_entangled(), "Q prende o morcego no ar")
 	await _seconds(1.0)
 	_check(not is_instance_valid(target) or target.global_position.y < 0.8, "morcego enredado cai no chão")

@@ -23,6 +23,7 @@ const MAX_DIVERS := 3
 const DIVE_LEAD := 0.35          ## mira onde você vai estar
 const SCREECH_RANGE := 7.0
 
+var _tele_dive := Attack.make("mergulho", "", {"shape": Attack.Shape.CIRCLE, "reach": 0.9, "at_point": true})   ## marca no chão do mergulho
 var flock := "bando"            ## morcegos do mesmo bando passeiam juntos
 var mode: Mode = Mode.ROOST
 var mode_time := 0.0
@@ -198,7 +199,9 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 		Mode.WINDUP:
 			hover_y = ALERT_Y + 0.3
 			face_toward(target.global_position)
+			show_marker(_tele_dive, target.global_position, mode_time / 0.45)
 			if mode_time >= 0.45:
+				hide_marker()
 				telegraph = false
 				var pv := Vector3.ZERO
 				if target is CharacterBody3D:

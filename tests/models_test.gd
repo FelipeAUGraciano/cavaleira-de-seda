@@ -46,7 +46,7 @@ func _ready() -> void:
 	frog._anim_t = 0.05
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	_check(frog._overlay != null and frog._overlay.albedo_color.a > 0.05, "aviso de ataque brilha por cima do modelo")
+	_check(frog._overlay != null and frog._overlay.albedo_color.a < 0.05, "aviso de ataque não pisca o modelo (a marca no chão avisa)")
 
 	var larva := Larva.new()
 	larva.position = Vector3(4, 0.3, 0)

@@ -20,6 +20,9 @@ const SPACING := 1.05
 const SENSE_RANGE := 18.0
 const CHARGE_SPEED := 13.0
 const CHARGE_TIME := 1.3
+## marcas no chão (substituem o brilho amarelo): investida em linha e mordida em cone
+var _tele_charge := Attack.make("investida", "", {"shape": Attack.Shape.LINE, "reach": 10.0, "width": 2.6})
+var _tele_bite := Attack.make("mordida", "", {"shape": Attack.Shape.CONE, "reach": 3.0, "arc": 80.0})
 const BITE_DAMAGE := 34.0
 const CHARGE_DAMAGE := 40.0
 const ARMOR := 0.1
@@ -284,7 +287,9 @@ func combat_tick(delta: float) -> Vector3:
 		Mode.WINDUP:
 			if player_memory > 0.0:
 				face_toward(last_heard)
+			show_marker(_tele_charge, global_position, mode_time / windup)
 			if mode_time >= windup:
+				hide_marker()
 				telegraph = false
 				charge_dir = facing
 				mode = Mode.CHARGE
@@ -308,8 +313,11 @@ func combat_tick(delta: float) -> Vector3:
 		Mode.BITE:
 			if p != null:
 				face_toward(p.global_position)
+			if not attack_done:
+				show_marker(_tele_bite, global_position, mode_time / 0.5)
 			if not attack_done and mode_time >= 0.5:
 				attack_done = true
+				hide_marker()
 				telegraph = false
 				if p != null and not p.dead and flat_dist_to(p) <= 3.0:
 					p.take_damage(BITE_DAMAGE, self)
@@ -328,6 +336,7 @@ func _begin(m: Mode) -> void:
 
 
 func _end_charge(pause: float) -> void:
+	hide_marker()
 	telegraph = false
 	mode = Mode.RECOVER
 	mode_time = -pause   # RECOVER termina quando mode_time passa de 0
