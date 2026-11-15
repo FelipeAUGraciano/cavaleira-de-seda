@@ -24,7 +24,7 @@ const PORTRAIT := Rect2(30, 30, 770, 700)
 const BOTTOM := Rect2(50, 745, 1500, 120)
 const WEB_C := Vector2(1175, 420)
 const WEB_STEP := 82.0
-const TABS := [["hab", "Habilidades", "star"], ["evo", "Evolução", "crystal"], ["desp", "Despensa", "cocoon"]]
+const TABS := [["hab", "Habilidades", "star"], ["evo", "Evolução", "crystal"], ["desp", "Toca e despensa", "cocoon"]]
 
 var player: Player
 var cocoon: Node3D
@@ -188,15 +188,46 @@ func _show_tab(t: String) -> void:
 	_frame.queue_redraw()
 
 
+func _den() -> Den:
+	return player.current_den() if player != null else null
+
+
+func _page_button(r: Rect2, label: String, enabled: bool, cb: Callable) -> Button:
+	var b := _flat_button(r)
+	b.set_meta("label", label)
+	b.set_meta("on", enabled)
+	b.pressed.connect(cb)
+	_page_btns.append(b)
+	return b
+
+
+func _pantry_slot(i: int) -> Rect2:
+	return Rect2(840 + (i % 5) * 138, 196 + floori(i / 5.0) * 150, 128, 140)
+
+
+func _bag_slot(i: int) -> Rect2:
+	return Rect2(840 + i * 258, 520, 250, 74)
+
+
 func _build_pantry_buttons() -> void:
-	for i in player.pantry.size():
-		var r := _slot_rect(i)
-		var b := _flat_button(Rect2(r.position + Vector2(20, r.size.y - 40), Vector2(r.size.x - 40, 30)))
-		b.pressed.connect(_eat.bind(i))
-		_page_btns.append(b)
-	var wrap_btn := _flat_button(Rect2(840, 610, 670, 48))
-	wrap_btn.pressed.connect(_wrap)
-	_page_btns.append(wrap_btn)
+	var den := _den()
+	if den != null and den.claimed:
+		for i in den.pantry.size():
+			var r := _pantry_slot(i)
+			var full := player.bag.size() >= Player.BAG_MAX
+			_page_button(Rect2(r.position + Vector2(6, r.size.y - 32), Vector2(56, 26)), "Comer", true, _eat.bind(i))
+			_page_button(Rect2(r.position + Vector2(66, r.size.y - 32), Vector2(56, 26)), "Levar", not full, _take.bind(i))
+	for i in player.bag.size():
+		var r := _bag_slot(i)
+		var can_store := den != null and den.claimed and den.pantry.size() < Den.PANTRY_MAX
+		_page_button(Rect2(r.position + Vector2(162, 8), Vector2(80, 26)), "Guardar", can_store, _store.bind(i))
+		_page_button(Rect2(r.position + Vector2(162, 40), Vector2(80, 26)), "Comer", true, _eat_bag.bind(i))
+	var n := player.wrappable_corpses().size()
+	var can_wrap := n > 0 and player.silk >= Player.SILK_WRAP
+	_page_button(Rect2(840, 650, 420, 44), "Embrulhar presas por perto (%d) · 10 de Seda" % n, can_wrap, _wrap)
+	if den != null and den.claimed:
+		var lab := "Fios-alarme instalados" if den.alarm else "Fios-alarme · %d de Seda" % int(Den.ALARM_COST)
+		_page_button(Rect2(1270, 650, 250, 44), lab, not den.alarm and player.silk >= Den.ALARM_COST, _buy_alarm)
 
 
 func _select(id: String) -> void:
@@ -222,16 +253,55 @@ func _press_node(id: String) -> void:
 
 
 func _eat(i: int) -> void:
-	var name_ := String(player.pantry[i].get("name", "presa")) if i < player.pantry.size() else ""
+	var den := _den()
+	var name_ := String(den.pantry[i].get("name", "presa")) if den != null and i < den.pantry.size() else ""
 	if player.eat_from_pantry(i):
 		_say("Comeu %s da despensa." % name_)
 	_show_tab("desp")
 
 
-func _wrap() -> void:
-	if player.pantry.size() >= Player.PANTRY_MAX:
-		_say("A despensa está cheia.")
+func _take(i: int) -> void:
+	var den := _den()
+	if den == null or player.bag.size() >= Player.BAG_MAX:
+		_say("A bolsa está cheia (%d embrulhos)." % Player.BAG_MAX)
 		return
+	var it := den.take(i)
+	if not it.is_empty():
+		player.bag.append(it)
+		_say("%s foi para a bolsa." % String(it.get("name", "presa")))
+	_show_tab("desp")
+
+
+func _store(i: int) -> void:
+	var den := _den()
+	if den == null or i >= player.bag.size():
+		return
+	if den.store(player.bag[i]):
+		_say("%s guardado na despensa." % String(player.bag[i].get("name", "presa")))
+		player.bag.remove_at(i)
+	else:
+		_say("A despensa está cheia.")
+	_show_tab("desp")
+
+
+func _eat_bag(i: int) -> void:
+	if i >= player.bag.size():
+		return
+	var it: Dictionary = player.bag[i]
+	player.bag.remove_at(i)
+	player._eat_item(it)
+	_say("Comeu %s." % String(it.get("name", "presa")))
+	_show_tab("desp")
+
+
+func _buy_alarm() -> void:
+	var den := _den()
+	if den != null and den.buy_alarm(player):
+		_say("Fios-alarme instalados: você vai sentir de longe quem mexer nas portas.")
+	_show_tab("desp")
+
+
+func _wrap() -> void:
 	if player.wrappable_corpses().is_empty():
 		_say("Nenhuma presa fresca por perto para embrulhar.")
 		return
@@ -239,8 +309,11 @@ func _wrap() -> void:
 		_say("Seda insuficiente (10 por presa).")
 		return
 	var n := player.wrap_nearby()
-	_say("Embrulhou %d presa%s." % [n, "" if n == 1 else "s"])
-	GameState.say_once("despensa", "Lanchinho embrulhado pra viagem. Não apodrece mais.")
+	if n == 0:
+		_say("Sem espaço: a despensa e a bolsa estão cheias.")
+	else:
+		_say("Embrulhou %d presa%s." % [n, "" if n == 1 else "s"])
+	GameState.say_once("despensa", "Lanchinho embrulhado. Não apodrece mais.")
 	_show_tab("desp")
 
 
@@ -551,37 +624,54 @@ func _draw_evolution(ci: Control) -> void:
 
 # ---------------------------------------------------------------- aba Despensa
 
-func _slot_rect(i: int) -> Rect2:
-	return Rect2(840 + (i % 4) * 172, 200 + floori(i / 4.0) * 196, 158, 182)
-
-
 func _draw_pantry(ci: Control) -> void:
+	var den := _den()
 	var y0 := RIGHT.position.y + 110.0
-	_text(ci, Vector2(840, y0 + 10), "Despensa  %d / %d" % [player.pantry.size(), Player.PANTRY_MAX], "title", 20, TEXT)
-	_text(ci, Vector2(1100, y0 + 10), "Presas embrulhadas em seda não apodrecem.", "body", 16, QUIET)
-	for i in Player.PANTRY_MAX:
-		var r := _slot_rect(i)
-		if i < player.pantry.size():
-			var it: Dictionary = player.pantry[i]
+	if den == null or not den.claimed:
+		_text(ci, Vector2(840, y0 + 10), "Sem toca nesta camada", "title", 20, TEXT)
+		_wrap_text(ci, Vector2(840, y0 + 40), 680, "A despensa fica na toca. Aqui você só tem a bolsa (2 embrulhos para a viagem).", "body", 17, QUIET)
+	else:
+		_text(ci, Vector2(840, y0 + 10), "Despensa da toca  %d / %d" % [den.pantry.size(), Den.PANTRY_MAX], "title", 20, TEXT)
+		_text(ci, Vector2(1180, y0 + 10), "Embrulhado não estraga.", "body", 16, QUIET)
+		for i in Den.PANTRY_MAX:
+			var r := _pantry_slot(i)
+			if i < den.pantry.size():
+				var it: Dictionary = den.pantry[i]
+				_panel(ci, r, Color(0.06, 0.08, 0.16, 0.9), BORDER, 10.0)
+				_cocoon_icon(ci, r.position + Vector2(r.size.x * 0.5, 36), 20.0)
+				_text(ci, r.position + Vector2(r.size.x * 0.5, 76), _short(String(it.get("name", "presa"))), "body_b", 14, TEXT, HORIZONTAL_ALIGNMENT_CENTER)
+				_text(ci, r.position + Vector2(r.size.x * 0.5, 94), "+%d sac · +%d seda" % [int(it.get("sat", 0)), int(it.get("silk", 0))], "body", 12, QUIET, HORIZONTAL_ALIGNMENT_CENTER)
+			else:
+				_dashed_rect(ci, r, Color(0.4, 0.45, 0.6, 0.25))
+	_text(ci, Vector2(840, 508), "Bolsa (viagem)  %d / %d  ·  %s come em qualquer lugar" % [player.bag.size(), Player.BAG_MAX, Settings.text("eat")], "body_b", 17, TEXT)
+	for i in Player.BAG_MAX:
+		var r := _bag_slot(i)
+		if i < player.bag.size():
+			var it: Dictionary = player.bag[i]
 			_panel(ci, r, Color(0.06, 0.08, 0.16, 0.9), BORDER, 10.0)
-			_cocoon_icon(ci, r.position + Vector2(r.size.x * 0.5, 58), 30.0)
-			_text(ci, r.position + Vector2(r.size.x * 0.5, 112), String(it.get("name", "presa")), "body_b", 16, TEXT, HORIZONTAL_ALIGNMENT_CENTER)
-			_text(ci, r.position + Vector2(r.size.x * 0.5, 132), "+%d sac · +%d seda" % [int(it.get("sat", 0)), int(it.get("silk", 0))], "body", 14, QUIET, HORIZONTAL_ALIGNMENT_CENTER)
-			var b: Button = _page_btns[i] if i < _page_btns.size() - 1 else null
-			var hot_i := b != null and (b.has_focus() or b.is_hovered())
-			var br := Rect2(r.position + Vector2(20, r.size.y - 40), Vector2(r.size.x - 40, 30))
-			_panel(ci, br, Color(0.1, 0.2, 0.35, 0.9) if hot_i else Color(0.08, 0.1, 0.2, 0.9), CYAN if hot_i else BORDER, 6.0)
-			_text(ci, br.get_center() + Vector2(0, 6), "Comer", "body_b", 16, TEXT, HORIZONTAL_ALIGNMENT_CENTER)
+			_cocoon_icon(ci, r.position + Vector2(30, 37), 18.0)
+			_text(ci, r.position + Vector2(54, 32), _short(String(it.get("name", "presa"))), "body_b", 13, TEXT)
+			_text(ci, r.position + Vector2(56, 52), "+%d sac · +%d seda" % [int(it.get("sat", 0)), int(it.get("silk", 0))], "body", 12, QUIET)
 		else:
 			_dashed_rect(ci, r, Color(0.4, 0.45, 0.6, 0.25))
-	var n := player.wrappable_corpses().size()
-	var wr := Rect2(840, 610, 670, 48)
-	var wb: Button = _page_btns[_page_btns.size() - 1] if not _page_btns.is_empty() else null
-	var hot := wb != null and (wb.has_focus() or wb.is_hovered())
-	var can := n > 0 and player.silk >= Player.SILK_WRAP and player.pantry.size() < Player.PANTRY_MAX
-	_panel(ci, wr, Color(0.1, 0.18, 0.32, 0.9) if can else Color(0.06, 0.07, 0.12, 0.85), (CYAN if hot else BORDER) if can else Color(0.25, 0.27, 0.35), 8.0)
-	SkillIcons.draw(ci, "cocoon", wr.position + Vector2(30, 24), 12.0, CYAN if can else DIM)
-	_text(ci, wr.position + Vector2(52, 31), "Embrulhar presas por perto  (%d)  ·  10 de Seda cada" % n, "body_b", 18, TEXT if can else DIM)
+	if den != null and den.claimed:
+		_text(ci, Vector2(1360, 532), "Portas", "body_b", 16, TEXT)
+		_text(ci, Vector2(1360, 554), den.doors_summary(), "body", 14, QUIET)
+		var y := 576.0
+		for line in den.log_lines.slice(0, 2):
+			_wrap_text(ci, Vector2(1360, y), 170, String(line), "body", 12, Color(1.0, 0.7, 0.55))
+			y += 30.0
+	for b in _page_btns:
+		var on: bool = b.get_meta("on", true)
+		var hot: bool = b.has_focus() or b.is_hovered()
+		var br := Rect2(b.position, b.size)
+		_panel(ci, br, (Color(0.1, 0.2, 0.35, 0.9) if hot else Color(0.08, 0.1, 0.2, 0.9)) if on else Color(0.05, 0.06, 0.1, 0.85), (CYAN if hot else BORDER) if on else Color(0.22, 0.24, 0.32), 6.0)
+		var fs := 15 if b.size.y < 40 else 17
+		_text(ci, br.get_center() + Vector2(0, 6), String(b.get_meta("label", "")), "body_b", fs, TEXT if on else DIM, HORIZONTAL_ALIGNMENT_CENTER)
+
+
+func _short(s: String) -> String:
+	return s if s.length() <= 16 else s.substr(0, 15) + "…"
 
 
 func _cocoon_icon(ci: Control, c: Vector2, r: float) -> void:

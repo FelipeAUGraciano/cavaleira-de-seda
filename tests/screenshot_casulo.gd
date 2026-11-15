@@ -30,7 +30,7 @@ func _run() -> void:
 		p.skills[id] = true
 	p.hp = 84
 	p.silk = 70
-	p.pantry = [{"name": "Larva-de-musgo", "sat": 20, "silk": 10}, {"name": "Larva-de-musgo", "sat": 20, "silk": 10}, {"name": "Irmã-aranha", "sat": 30, "silk": 15}]
+	p.bag = [{"name": "Larva-de-musgo", "sat": 20, "silk": 10}, {"name": "Irmã-aranha", "sat": 30, "silk": 15}]
 	var cocoon := WebNetwork.create_cocoon(p.global_position + Vector3(0, 0, -1.6))
 	await _frames(5)
 	layer.hud.open_cocoon(cocoon)

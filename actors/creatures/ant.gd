@@ -238,6 +238,9 @@ class FollowLine extends Behavior:
 
 	func run(c: Creature, _delta: float) -> Vector3:
 		var a := c as Ant
+		a.fix_line()
+		if a.ahead == null:
+			return Vector3.ZERO   # a da frente morreu entre a escolha e o passo
 		var spot := a.ahead.global_position - a.ahead.facing * 0.75
 		spot.y = 0.0
 		if Fx.flat_dist(c.global_position, spot) < 0.35:

@@ -504,3 +504,7 @@ func die(fell: bool = false) -> void:
 
 func _animate(_delta: float, _speed_now: float) -> void:
 	pass
+
+
+func can_raid() -> bool:
+	return false

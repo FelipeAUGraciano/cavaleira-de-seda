@@ -101,7 +101,7 @@ func _configure() -> void:
 			"line_id": "g3_morcegos", "line": "Um túnel cheio de asas. Que maravilha."},
 		{"id": "G4", "name": "Grande Gruta", "checkpoint": true, "label_only": true, "open_r": 9.5,
 			"shapes": [CaveBuilder.blob(W2(44, 36), 7.0, 0.0)],
-			"hint": "Teça um casulo (C) para salvar. Depois ligue com fios (R) os pilares perto dele: tudo o que estiver ligado ao casulo vira seu território.",
+			"hint": "Aqui não dá para dormir: casulo só na sua toca. Procure o Fosso escuro, a sudoeste, depois do Jardim de musgo: lá tem um ninho velho, bom para virar toca.",
 			"line_id": "g4_gruta", "line": "Espaço, pilares, ninguém me caçando... por enquanto. Aqui vai ser minha casa."},
 		{"id": "G5", "name": "Jardim de musgo", "label_only": true, "open_r": 7.5,
 			"shapes": [CaveBuilder.blob(W2(44, 72), 7.0, 0.0)],
@@ -139,7 +139,7 @@ func _configure() -> void:
 			"line_id": "g12_ninho", "line": "Uma, duas, três lanternas. E todas com fome."},
 		{"id": "G13", "name": "Antecâmara", "checkpoint": true, "label_only": true, "open_r": 6.5,
 			"shapes": [CaveBuilder.blob(W2(135, 77), 7.0, 0.0)],
-			"hint": "Último lugar seguro antes do covil. Teça um casulo (C) e descanse: depois daqui não tem volta fácil.",
+			"hint": "Último ponto seguro antes do covil: o jogo salva aqui, mas não cura. Sua toca fica longe: entre com a vida cheia.",
 			"line_id": "g13_antecamara", "line": "Dá pra sentir o chão tremendo daqui. Ela é GRANDE."},
 		{"id": "G14", "name": "Covil da Centopeia",
 			"shapes": [CaveBuilder.ellipse(ARENA_2D, S(15.0), S(12.0), 0.0, 1.2)]},
@@ -157,7 +157,9 @@ func _configure() -> void:
 		{"id": "G20", "name": "Mirante", "label_only": true, "shapes": [CaveBuilder.blob(W2(186, 12), 5.0, 0.0)],
 			"line_id": "g20_mirante", "line": "Daqui dá pra ver o nada. Muito nada."},
 		{"id": "G21", "name": "Corredores do leste", "label_only": true, "shapes": [CaveBuilder.blob(W2(160, 70), 5.0, 0.0)]},
-		{"id": "G22", "name": "Fosso escuro", "label_only": true, "shapes": [CaveBuilder.blob(W2(20, 88), 5.0, 0.0)]},
+		{"id": "G22", "name": "Fosso escuro", "label_only": true, "shapes": [CaveBuilder.blob(Vector2(28.5, 84.5), 5.0, 0.0)],
+			"hint": "Um ninho velho no meio da câmara. Teça o casulo central nele (C, 30 de Seda) para tomar o Fosso escuro como sua toca: o único lugar que salva e cura.",
+			"line_id": "g22_toca", "line": "Redondinha, escura, quatro entradas. Isso aqui tem cara de casa."},
 	]
 	locks = [
 		{"type": "cristal", "pos": CRYSTAL_WALL},
@@ -198,6 +200,7 @@ func _generate_organic() -> void:
 			upper.open_blob((r["shapes"][0] as Dictionary)["c"], float(r.get("open_r", 4.0)))
 	upper.connect_all(80, [W2(168, 13), W2(76, 4), W2(138, 21)])
 	upper.chasm_pockets(0.36, 3.2, 0.07)
+	_sculpt_den(upper)
 	cave.tunnels.append(upper.open_shape(0.5))
 	cave.chasms.append(upper.chasm_shape(0.25))
 
@@ -325,7 +328,6 @@ func _build_level() -> void:
 		[Vector2(31.5, 57.5), Vector2(37.5, 57.5)],   # C-d G4/G5
 		[Vector2(38.5, 62.5), Vector2(38.5, 58.5)],   # C-e G4/G5
 		[Vector2(37.5, 71.7), Vector2(30.5, 70.3)],   # C-f G5/G7
-		[Vector2(27.5, 80.5), Vector2(31.5, 80.5)],   # C-g G22/G7
 		[Vector2(143.5, 10.5), Vector2(143.5, 14.5)],   # C-h G20
 		[Vector2(141.7, 59.9), Vector2(146.3, 63.1)],   # C-i G9
 		[Vector2(126.5, 71.5), Vector2(126.5, 76.5)],   # C-j G21
@@ -629,6 +631,7 @@ func _populate() -> void:
 
 func _populate_empty_rooms() -> void:
 	## Coletáveis e bichos (novos e antigos) nas câmaras que o mapa mostrava vazias.
+	_build_den()
 	# Formigueiros: um a leste do andar de cima, outro no salão das Profundezas
 	for nest in [["G21", 11, 7, ["G21", "G9", "G8"]], ["P2", 12, 8, ["P2", "P5", "P3"]]]:
 		var spot = _room_spot(nest[0], nest[1], 2.4)
@@ -637,7 +640,7 @@ func _populate_empty_rooms() -> void:
 			hill.position = spot
 			ecosystem.add_child(hill)
 	# Cobras-das-frestas: escondidas em buracos na parede
-	for sn in [["G20", 21], ["G22", 22], ["G16", 26], ["P1", 23], ["P5", 24], ["P6", 25]]:
+	for sn in [["G20", 21], ["G16", 26], ["P1", 23], ["P5", 24], ["P6", 25]]:
 		var flag := "cobra_%s" % sn[0]
 		if GameState.flags.has(flag):
 			continue
@@ -682,7 +685,7 @@ func _populate_empty_rooms() -> void:
 			"(Ainda não dá para subir. Um dia, maior, quem sabe.)",
 		], "papel"))
 	# Bichos antigos onde não tinha ninguém
-	for room in ["G19", "G20", "G7", "G22", "G8", "G10", "P1", "P3", "P5", "P6"]:
+	for room in ["G19", "G20", "G7", "G8", "G10", "P1", "P3", "P5", "P6"]:
 		var lp = _room_spot(room, 80 + room.hash() % 50, 1.0)
 		if lp != null:
 			ecosystem.larva_spawns.append(lp)
@@ -715,6 +718,63 @@ func _populate_empty_rooms() -> void:
 			sis.position = sp + Vector3(0, 0.3, 0)
 			sis.display_name = "Irmã caçadora"
 			ecosystem.add_child(sis)
+
+
+# ---------------------------------------------------------------- toca (G22 Fosso escuro)
+
+const DEN_C := Vector2(28.5, 84.5)    ## centro da toca (um pouco a leste do antigo W2(20, 88): longe da beira do Lago)
+const DEN_IN := 4.6                   ## raio do chão de dentro
+const DEN_OUT := 6.6                  ## até aqui é rocha (menos nas 4 entradas)
+const DEN_NEIGHBORS := ["G5", "G7", "G12", "G19"]
+var den_slots: Array = []
+
+
+func _sculpt_den(g: OrganicCave) -> void:
+	## A G22 vira uma câmara redonda fechada por rocha, com 4 entradas estreitas (~3 m), uma
+	## para cada vizinha. Cada entrada ganha um lugar de porta de teia.
+	den_slots.clear()
+	var ri := int(ceil(DEN_OUT + 1.0))
+	var cc := g.cell_of(DEN_C)
+	for j in range(cc.y - ri, cc.y + ri + 1):
+		for i in range(cc.x - ri, cc.x + ri + 1):
+			if not g.inside(i, j) or g.locked[g.idx(i, j)]:
+				continue
+			var d := g.center_of(i, j).distance_to(DEN_C)
+			if d <= DEN_IN:
+				g.grid[g.idx(i, j)] = 1
+			elif d <= DEN_OUT:
+				g.grid[g.idx(i, j)] = 0
+	for n in DEN_NEIGHBORS:
+		var nc: Vector2 = (_room_shapes(n)[0] as Dictionary)["c"]
+		var dir := (nc - DEN_C).normalized()
+		var reach := DEN_OUT + 1.0
+		while reach < DEN_OUT + 12.0:
+			var q := DEN_C + dir * reach
+			var qc := g.cell_of(q)
+			if g.inside(qc.x, qc.y) and g.grid[g.idx(qc.x, qc.y)] == 1:
+				break
+			reach += 0.5
+		var t := DEN_IN - 1.0
+		while t <= reach + 1.0:
+			g._disk(DEN_C + dir * t, 1.45)
+			t += 0.5
+		var mid := DEN_C + dir * ((DEN_IN + DEN_OUT) * 0.5)
+		den_slots.append({"pos": Vector3(mid.x, 0.0, mid.y), "out": Vector3(dir.x, 0.0, dir.y), "width": 3.4, "to": n})
+
+
+func _build_den() -> void:
+	if den_slots.is_empty():
+		return
+	den = Den.new().setup("G22", Vector3(DEN_C.x, 0.0, DEN_C.y), den_slots, "Fosso escuro")
+	add_child(den)
+	# quatro pilares dentro da toca: para tecer o território a partir do casulo central
+	var k := 0
+	for s in den_slots:
+		var out: Vector3 = s["out"]
+		var side := Vector3(-out.z, 0.0, out.x)
+		var p := Vector3(DEN_C.x, 0.0, DEN_C.y) + (out + side).normalized() * (DEN_IN - 1.1)
+		add_anchor("Toca_%d" % k, p, 3.0, 0.4, STONE)
+		k += 1
 
 
 func _room_spot(room_id: String, seed_: int, min_clear: float = 1.0) -> Variant:
@@ -793,7 +853,7 @@ func _setup_creature(c: Creature) -> void:
 		if q.z > DEEP - 5.0:
 			c.range_rooms = ["P1", "P2", "P4", "P5"] if q.x < 75.0 else ["P2", "P3", "P5", "P6"]
 		elif q.x < W2(58, 0).x and q.z > W2(0, 80).y:
-			c.range_rooms = ["G19", "G22", "G12"]
+			c.range_rooms = ["G19", "G12", "G5"]
 		elif q.x < W2(58, 0).x and q.z < W2(0, 20).y:
 			c.range_rooms = ["G18", "G17", "G1", "G3"]
 		else:

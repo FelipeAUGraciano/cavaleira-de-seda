@@ -36,6 +36,11 @@ var map_system: MapSystem
 var webs: Node3D
 var clock: CaveClock
 var resumed := false
+## Toca da camada (só camadas que têm uma). Só ela salva e cura.
+var den: Den = null
+## Laboratório de testes: casulo em qualquer lugar (no jogo, só o casulo central da toca).
+var free_cocoons := false
+var _autosaved := {}
 var restarting := false        ## morreu: o ato recomeçou do início (permadeath)
 
 
@@ -52,6 +57,9 @@ func _ready() -> void:
 	var k = data.get("knowledge", {})
 	if k is Dictionary and not k.is_empty():
 		GameState.knowledge = k
+	var dn = data.get("dens", {})
+	if dn is Dictionary and not dn.is_empty():
+		GameState.dens = dn
 	if here:
 		var said = data.get("said", {})
 		if said is Dictionary:
@@ -107,7 +115,7 @@ func _ready() -> void:
 		map_system.from_dict(data.get("map", {}))
 		player.from_dict(data.get("player", {}))
 		GameState.act = data.get("act", {})
-		EventBus.message.emit("Save carregado do último casulo.")
+		EventBus.message.emit("Jogo carregado.")
 	elif restarting:
 		GameState.act = data.get("act", {})
 		player.apply_carry(GameState.act.get("player", {}))
@@ -300,6 +308,9 @@ func restart_act() -> void:
 func _on_room_entered(room: Dictionary) -> void:
 	if room.get("checkpoint", false) and player != null and not player.dead and not player.rested_here:
 		player.respawn_pos = player.global_position
+		if not _autosaved.has(room["id"]):
+			_autosaved[room["id"]] = true
+			autosave()   # ponto seguro: salva sem curar (antes de ter uma toca)
 	var hint := String(room.get("hint", ""))
 	if hint != "" and not GameState.said.has("hint_" + String(room["id"])):
 		GameState.said["hint_" + String(room["id"])] = true
@@ -309,7 +320,17 @@ func _on_room_entered(room: Dictionary) -> void:
 		GameState.say_once(String(room.get("line_id", "")), line)
 
 
+func autosave() -> void:
+	## Salva sem curar (chegada na camada e pontos seguros, enquanto não há toca).
+	if player == null or player.dead or restarting:
+		return
+	GameState.save_now()
+	EventBus.message.emit("Jogo salvo (ponto seguro).")
+
+
 func go_to_layer(path: String) -> void:
+	if den != null:
+		den.remember()
 	GameState.carry = player.to_dict()
 	Engine.time_scale = 1.0
 	if player != null:
@@ -330,6 +351,9 @@ func _arrival() -> void:
 		return
 	hud.fade(0.0, 1.6)
 	hud.show_title(layer_name, layer_subtitle)
+	await get_tree().create_timer(2.0).timeout
+	if is_inside_tree() and GameState.current_layer == self:
+		autosave()   # chegou numa camada: salva (sem curar)
 
 
 # ---------------------------------------------------------------- construção

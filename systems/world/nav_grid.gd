@@ -72,6 +72,10 @@ func center_of(c: Vector2i) -> Vector3:
 	return Vector3(origin.x + c.x + 0.5, 0.0, origin.y + c.y + 0.5)
 
 
+func has_cell(c: Vector2i) -> bool:
+	return _inside(c)
+
+
 func _inside(c: Vector2i) -> bool:
 	return c.x >= 0 and c.y >= 0 and c.x < w and c.y < h
 

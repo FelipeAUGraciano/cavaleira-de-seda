@@ -137,6 +137,8 @@ var search_time := 8.0         ## depois de perder você de vista, vasculha a á
 # Interesse na caçada (0-100): sobe vendo/apanhando, cai com o tempo, mais rápido se você
 # some de vista, fica longe, inalcançável (fio, outro andar) ou leva o bicho longe de casa.
 # Zerou = desiste e fica um tempo sem ligar para você (só volta se você encostar ou bater).
+var raid_den: Den = null     ## toca que este bicho foi saquear (o Den escolhe quem vai)
+var raid_t := 0.0
 var uses_interest := true      ## chefes e bichos de território seguem as próprias regras
 var interest := 0.0
 var leash_range := 26.0        ## arrastado assim longe de onde a caçada começou, perde a vontade
@@ -189,6 +191,8 @@ func _ready() -> void:
 	add_child(_web_overlay)
 	_pick_wander_target()
 	brain = _make_brain()
+	if can_raid():
+		brain.add(Behaviors.Raid.new())   # sente a comida guardada na sua toca
 	World.register(self)
 	call_deferred("_setup_grid_move")
 
@@ -311,6 +315,15 @@ func sees_player_as_prey(p: Player) -> bool:
 func on_stalk_start() -> void:
 	if near_player:
 		EventBus.stalked.emit(self)
+
+
+func can_raid() -> bool:
+	## Bichos que podem sentir o cheiro da sua despensa e rasgar as portas da toca.
+	return aggression > 0.0 and size <= Size.M
+
+
+func door_damage() -> float:
+	return maxf(attack_damage, 6.0)
 
 
 func hunting_player() -> bool:
@@ -771,6 +784,7 @@ func die(fell: bool = false) -> void:
 		corpse.energy_bonus = food_energy
 		corpse.acid_bonus = food_acid
 		corpse.skin_bonus = food_skin
+		corpse.big = size >= Size.M
 		get_parent().add_child(corpse)
 		corpse.global_position = Vector3(global_position.x, maxf(global_position.y, 0.0), global_position.z)
 		var killer: Player = null

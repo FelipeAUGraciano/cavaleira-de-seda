@@ -73,12 +73,14 @@ func _run() -> void:
 	await _frames(3)
 	player.silk = 50.0
 	var n := player.wrap_nearby()
-	_check(n == 1 and player.pantry.size() == 1 and is_equal_approx(player.silk, 40.0), "embrulhar a presa: vai para a despensa e custa 10 de Seda")
+	_check(n == 1 and player.bag.size() == 1 and is_equal_approx(player.silk, 40.0), "sem toca: embrulhar vai para a bolsa e custa 10 de Seda")
 	player.satiety = 10.0
-	_check(player.eat_from_pantry(0) and player.satiety > 10.0 and player.pantry.is_empty(), "comer da despensa")
+	player.eat_from_bag()
+	await _seconds(1.5)
+	_check(player.satiety > 10.0 and player.bag.is_empty(), "comer o embrulho da bolsa")
 
 	# save
-	player.pantry = [{"name": "Larva-de-musgo", "sat": 20.0, "silk": 10.0}]
+	player.bag = [{"name": "Larva-de-musgo", "sat": 20.0, "silk": 10.0}]
 	var d := player.to_dict()
 	var fresh := {"level": 5, "form": 0}
 	var q := Player.new()
@@ -86,7 +88,7 @@ func _run() -> void:
 	await _frames(1)
 	GameState.player = player   # o Player novo se registrou como a jogadora; devolve
 	q.from_dict(d)
-	_check(q.has_skill("olhos") and q.skill_points == player.skill_points and q.pantry.size() == 1, "habilidades, pontos e despensa vão para o save")
+	_check(q.has_skill("olhos") and q.skill_points == player.skill_points and q.bag.size() == 1, "habilidades, pontos e bolsa vão para o save")
 	q.skill_points = 0
 	q.skills = {"fiandeira": true}
 	q.from_dict(fresh)
@@ -122,7 +124,7 @@ func _run() -> void:
 	_check(player.has_skill("sangue_frio") and player.skill_points == pts - 2, "selecionar e apertar de novo aprende")
 	m._show_tab("evo")
 	m._show_tab("desp")
-	_check(m._page_btns.size() == 2, "despensa: botão Comer + Embrulhar")
+	_check(m._page_btns.size() == 2 * player.bag.size() + 1, "sem toca: bolsa (Guardar + Comer) e Embrulhar")
 	m.close()
 	await _frames(2)
 	_check(not m.visible and not get_tree().paused and player.hp < 21.0, "Sair (Esc) fecha sem descansar")

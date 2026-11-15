@@ -315,3 +315,66 @@ class Stalk extends Behavior:
 		if Fx.flat_dist(c.global_position, guess) < 1.2:
 			return c.wander(delta, 3.0, 0.4)   # farejando em volta
 		return c.nav_to(guess, c.stalk_speed)
+
+
+class Raid extends Behavior:
+	## Saque: a toca tem comida e o bicho está com fome. Vai até a entrada mais perto, rasga a
+	## porta (se tiver), entra, come um embrulho da despensa e vai embora.
+	var _hit_t := 0.0
+
+	func _init() -> void:
+		id = "raid"
+		label = "Atrás da sua comida"
+
+	func utility(c: Creature) -> float:
+		if c.raid_den == null or not is_instance_valid(c.raid_den):
+			return 0.0
+		return 1.05   # o cheiro da despensa vence a fome comum (medo e luta ainda vencem)
+
+	func start(c: Creature) -> void:
+		_hit_t = 0.0
+		c.activity = label
+
+	func stop(_c: Creature) -> void:
+		pass
+
+	func run(c: Creature, delta: float) -> Vector3:
+		var den: Den = c.raid_den
+		c.raid_t -= delta
+		if c.raid_t <= 0.0 or den.pantry.is_empty() or not den.claimed:
+			c.raid_den = null
+			return Vector3.ZERO
+		if den.is_inside(c.global_position):
+			c.activity = "Comendo da sua despensa"
+			if Fx.flat_dist(c.global_position, den.center) > 1.8:
+				return c.nav_to(den.center, 0.8)
+			den.steal(c)
+			c.raid_den = null
+			if c.brain != null:
+				c.brain.wake_up()
+			return Vector3.ZERO
+		var e := den.entry_for(c)
+		if e.is_empty():
+			c.raid_den = null
+			return Vector3.ZERO
+		var door = e["door"]
+		var outside: Vector3 = e["outside"]
+		if door != null and (door as DenDoor).intact():
+			if Fx.flat_dist(c.global_position, outside) > 1.3:
+				c.activity = "Indo até a sua toca"
+				return c.nav_to(outside, 0.85)
+			c.activity = "Rasgando a porta da toca"
+			c.face_toward((door as DenDoor).global_position)
+			_hit_t -= delta
+			if _hit_t <= 0.0:
+				_hit_t = 1.0
+				(door as DenDoor).take_hit(c.door_damage() * (2.0 if c is Ant else 1.0), c)
+			return Vector3.ZERO
+		# entrada aberta: entra direto
+		c.activity = "Entrando na sua toca"
+		var slot: Dictionary = den.slots[int(e["slot"])]
+		var mouth: Vector3 = slot["pos"]
+		if Fx.flat_dist(c.global_position, mouth) > 1.0 and Fx.flat_dist(c.global_position, den.center) > Fx.flat_dist(mouth, den.center):
+			return c.nav_to(mouth, 0.85)
+		return c.nav_to(den.center, 0.85)
+

@@ -39,6 +39,7 @@ const FUNGI := [
 
 
 func _configure() -> void:
+	free_cocoons = true   # laboratório: casulo em qualquer lugar
 	layer_id = "T"
 	fall_default = "volta"
 	dark_vision = false

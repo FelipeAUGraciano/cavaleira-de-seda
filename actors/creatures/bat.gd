@@ -374,3 +374,7 @@ class Circle extends Behavior:
 		var b := c as Bat
 		b.mode = Bat.Mode.ROOST
 		return b._orbit(b.anchor, 3.0, 0.5, delta)
+
+
+func can_raid() -> bool:
+	return false

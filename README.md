@@ -1,13 +1,15 @@
 # Cavaleira de Seda — v0.8
 
-Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada), com visão curta e quedas para o andar de baixo. Morrer te leva de volta ao último casulo em que você descansou, e o andar continua como você deixou.
+Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada), com visão curta e quedas para o andar de baixo. Morrer te leva de volta à sua toca (ou ao último ponto seguro), e o andar continua como você deixou.
 
 O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design completo fica no GDD (documento do projeto).
 
 ## O que tem hoje
 
 - **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
-- **Menu do casulo:** teia de 17 habilidades (1 ponto por nível), evolução e despensa (presas embrulhadas não apodrecem). Descansar salva, cura e faz a muda; não dá para dormir com um bicho te caçando perto.
+- **Toca:** nas Galerias, a G22 Fosso escuro é a câmara-toca. Você toma posse tecendo o casulo central no ninho velho (C) e fecha as 4 entradas com portas de teia (você passa, os bichos não). Só a toca salva e cura; antes dela o jogo salva sozinho nos pontos seguros, sem curar. Bichos com fome sentem a comida guardada, rasgam as portas e comem da despensa; fios-alarme avisam de longe.
+- **Comida:** a despensa (10 embrulhos) fica na toca. Na viagem você leva 2 na bolsa e come com G em qualquer lugar. Presa pequena você embrulha onde estiver (C); presa grande vai arrastada no fio até a toca.
+- **Menu da toca:** teia de 17 habilidades (1 ponto por nível), evolução, despensa, portas e fios-alarme. Descansar salva, cura, remenda portas e faz a muda; não dá para dormir com um bicho te caçando perto.
 - **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), a Mãe e a Centopeia-blindada, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
 - **Mundo:** Galerias em dois andares geradas como caverna orgânica, ciclo de luz de 5 minutos, território, pilares variados, ganchos de parede nos abismos.
 - **Menus:** 3 espaços de save, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle).
@@ -17,7 +19,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 
 1. Instale o **Godot 4.7.x** (versão padrão, não a .NET): https://godotengine.org/download
 2. Abra o Godot → **Importar** → escolha o arquivo `project.godot` desta pasta.
-3. Aperte **F5** para jogar. Abre o menu inicial: **Novo jogo** escolhe um dos 3 espaços e começa do Berçário, **Continuar** volta ao último casulo, **Carregar** escolhe outro espaço.
+3. Aperte **F5** para jogar. Abre o menu inicial: **Novo jogo** escolhe um dos 3 espaços e começa do Berçário, **Continuar** volta ao último save, **Carregar** escolhe outro espaço.
 
 ## Controles
 
@@ -32,8 +34,9 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 | Lançar fio (puxa bicho / te puxa até a parede) | Q | RB |
 | Modo Tecelagem (segurar) | R | LT |
 | Leitura de criatura (segurar) | Alt ou Tab | RT |
-| Comer / abrir o menu do casulo | E | B |
-| Tecer casulo | C | Direcional para baixo |
+| Comer / abrir o menu da toca | E | B |
+| Tecer: embrulhar, arrastar, porta, casulo da toca | C | Direcional para baixo |
+| Comer embrulho da bolsa | G | Direcional para a esquerda |
 | Apagar / acender runa | F | Clique no analógico direito |
 | Mapa | M | Direcional para cima |
 | Ajuda na tela | H | Back |
@@ -46,7 +49,7 @@ Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tece
 
 **Berçário (início):** B1 eclosão (coma uma irmã menor) → B2 corredor (uma irmã faminta te caça; ou vá pela trilha baixa, mais escura) → B3 salão das teias (primeiro fio-guia sobre o abismo; a fresta ao sul leva ao cristal secreto de B4) → B5 despensa (apague a runa com F e passe pela pata da Mãe) → B6 fuga (corra! teça o fio no segundo abismo) → túnel para as Galerias.
 
-**Galerias Úmidas (dois andares):** caverna orgânica com bolsões de abismo; cair de cima leva ao andar de baixo (P1–P6), de onde se volta pelas passagens. As câmaras principais: G1 entrada → G2 poça (Sapo-de-rocha) ou G3 túnel dos morcegos → G4 Grande Gruta (casulo e território). Do G4: G5 jardim (Lagarto-lanterna) e G12 ninho (três lagartos, cristal de energia) ao sul, G7 lago (cristal na ilha) a sudoeste, G6 ponte quebrada (três fendas) a leste → G8 Galeria do eco (aventureiros ao longe; fresta secreta para G10) → G9 Acampamento (tochas, diário) → G13 Antecâmara (último casulo) → G14 Covil da Centopeia → G15 Borda da Fenda (queda para o Abismo). G11 Poças ácidas liga o jardim à Antecâmara (Resistência a Ácido 3). A parede de cristal da G16 abre no Ato 4.
+**Galerias Úmidas (dois andares):** caverna orgânica com bolsões de abismo; cair de cima leva ao andar de baixo (P1–P6), de onde se volta pelas passagens. As câmaras principais: G1 entrada → G2 poça (Sapo-de-rocha) ou G3 túnel dos morcegos → G4 Grande Gruta. A sudoeste, G22 Fosso escuro: a toca (casulo central, portas, despensa). Do G4: G5 jardim (Lagarto-lanterna) e G12 ninho (três lagartos, cristal de energia) ao sul, G7 lago (cristal na ilha) a sudoeste, G6 ponte quebrada (três fendas) a leste → G8 Galeria do eco (aventureiros ao longe; fresta secreta para G10) → G9 Acampamento (tochas, diário) → G13 Antecâmara (último ponto seguro) → G14 Covil da Centopeia → G15 Borda da Fenda (queda para o Abismo). G11 Poças ácidas liga o jardim à Antecâmara (Resistência a Ácido 3). A parede de cristal da G16 abre no Ato 4.
 
 **Câmara de teste:** a câmara cinza da v0.1 continua no projeto (`world/layers/test_chamber.tscn`) para o teste automático dos sistemas.
 
@@ -141,6 +144,7 @@ godot --headless --path . res://tests/vida_test.tscn        # mundo vivo e desem
 godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evolução, predadores que te caçam
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
+godot --headless --path . res://tests/toca_test.tscn       # toca, portas, bolsa, arrasto, saque e save
 godot --headless --path . res://tests/novos_test.tscn       # formigas, cobra e coletáveis novos
 godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar
 godot --headless --path . res://tests/casulo_test.tscn      # habilidades, despensa e menu do casulo

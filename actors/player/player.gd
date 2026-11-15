@@ -79,8 +79,12 @@ var skills := {"fiandeira": true}   ## habilidades aprendidas no casulo (systems
 var skill_points := 0               ## 1 por nível; a muda não tira
 var rune_shards := 0                ## fragmentos de runa achados; a cada RUNE_SHARDS_PER_POINT, +1 ponto
 const RUNE_SHARDS_PER_POINT := 4
-var pantry: Array = []              ## despensa: presas embrulhadas [{"name", "sat", "silk"}]
-const PANTRY_MAX := 8
+var bag: Array = []                 ## embrulhos na viagem [{"name", "sat", "silk"}] (a despensa fica na toca)
+const BAG_MAX := 2
+var dragged: Corpse = null          ## presa grande arrastada no fio até a toca
+var eating_bag := false
+var _drag_line: SilkLine
+const DRAG_SPEED := 0.62            ## arrastando, anda a 62% (e faz mais barulho)
 const SILK_WRAP := 10.0
 const WRAP_RANGE := 8.0
 var _dash_hit: Array = []
@@ -493,6 +497,7 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_resources(delta)
+	_update_drag(delta)
 	if dead:
 		_death_timer -= delta
 		if _death_timer <= 0.0:
@@ -554,6 +559,10 @@ func _start_state(s: State) -> void:
 		_visual.position.y = 0.0
 		_zip_wait = false
 		_release_silk_later(0.0)
+	if state == State.EAT and s != State.EAT and eating_bag:
+		eating_bag = false
+		if state_time < 1.2:
+			_msg("Interrompida: o embrulho ficou para depois.")
 	state = s
 	state_time = 0.0
 	hit_done = false
@@ -570,6 +579,8 @@ func _state_normal() -> Vector3:
 		spd *= 1.8 if has_skill("passos") else STRAND_SPEED_MULT
 	if satiety <= 0.0:
 		spd *= 0.8
+	if dragged != null:
+		spd *= DRAG_SPEED
 	if move_dir.length() > 0.1:
 		if on_strand:
 			noise = 0.0
@@ -577,6 +588,8 @@ func _state_normal() -> Vector3:
 			noise = 8.0 if running else 2.5
 	else:
 		noise = 0.5
+	if dragged != null:
+		noise += 3.0   # o corpo raspando no chão
 
 	if Input.is_action_just_pressed("dodge"):
 		_try_dodge()
@@ -592,7 +605,9 @@ func _state_normal() -> Vector3:
 	if Input.is_action_just_pressed("rune"):
 		_toggle_rune()
 	if Input.is_action_just_pressed("cocoon"):
-		_weave_cocoon()
+		_context_weave()
+	if Input.is_action_just_pressed("eat"):
+		eat_from_bag()
 	return move_dir * spd
 
 
@@ -759,6 +774,15 @@ func _state_bite() -> Vector3:
 
 func _state_eat() -> Vector3:
 	noise = 1.0
+	if eating_bag:
+		if state_time >= 1.2:
+			eating_bag = false
+			if not bag.is_empty():
+				var it: Dictionary = bag.pop_front()
+				_eat_item(it)
+				_msg("Comeu %s do embrulho: +%d saciedade, +%d seda." % [String(it.get("name", "presa")), int(it.get("sat", 0)), int(it.get("silk", 0))])
+			_start_state(State.NORMAL)
+		return Vector3.ZERO
 	if eat_target == null or not is_instance_valid(eat_target):
 		_start_state(State.NORMAL)
 		return Vector3.ZERO
@@ -1009,6 +1033,9 @@ func _rest(c: Cocoon) -> void:
 	satiety = maxf(0.0, satiety - 15.0)
 	respawn_pos = c.global_position + Vector3(0.0, 0.1, 1.6)
 	rested_here = true
+	var den := current_den()
+	if den != null:
+		den.on_rest()
 	EventBus.rested.emit(c)
 	if can_evolve():
 		evolve()
@@ -1085,7 +1112,7 @@ func wrappable_corpses() -> Array:
 	var out: Array = []
 	for n in get_tree().get_nodes_in_group("corpse"):
 		var c := n as Corpse
-		if c == null or c.is_rotten() or c.reserved_by != null:
+		if c == null or c.is_rotten() or c.reserved_by != null or c == dragged:
 			continue
 		if c.energy_bonus > 0.0 or c.acid_bonus > 0 or c.skin_bonus:
 			continue
@@ -1094,30 +1121,171 @@ func wrappable_corpses() -> Array:
 	return out
 
 
+func current_den() -> Den:
+	var l = GameState.current_layer
+	return l.den if l != null else null
+
+
+func in_den() -> bool:
+	var d := current_den()
+	return d != null and d.claimed and d.is_inside(global_position)
+
+
 func wrap_nearby() -> int:
-	## Embrulha em seda as presas por perto e guarda na despensa (10 de Seda cada).
+	## No menu da toca: embrulha as presas por perto direto na despensa (10 de Seda cada).
+	var d := current_den()
 	var n := 0
 	for c in wrappable_corpses():
-		if pantry.size() >= PANTRY_MAX or silk < SILK_WRAP:
+		if silk < SILK_WRAP:
+			break
+		var item := {"name": c.display_name, "sat": c.satiety, "silk": c.silk}
+		if d != null and d.claimed and d.store(item):
+			pass
+		elif bag.size() < BAG_MAX:
+			bag.append(item)
+		else:
 			break
 		silk -= SILK_WRAP
-		pantry.append({"name": c.display_name, "sat": c.satiety, "silk": c.silk})
 		c.consume()
 		n += 1
 	return n
 
 
-func eat_from_pantry(i: int) -> bool:
-	if i < 0 or i >= pantry.size():
+func wrap_into_bag(c: Corpse) -> bool:
+	## Presa pequena: embrulha onde estiver e leva na bolsa (2 embrulhos).
+	if bag.size() >= BAG_MAX:
+		_msg("A bolsa está cheia (%d embrulhos). Coma (%s) ou guarde na toca." % [BAG_MAX, Settings.text("eat")])
 		return false
-	var p: Dictionary = pantry[i]
-	satiety = minf(max_satiety, satiety + float(p.get("sat", 0.0)))
-	silk = minf(max_silk, silk + float(p.get("silk", 0.0)))
-	pantry.remove_at(i)
+	if c.is_rotten():
+		_msg("Podre demais para embrulhar.")
+		return false
+	if silk < SILK_WRAP:
+		_msg("Seda insuficiente para embrulhar (precisa de %d)." % int(SILK_WRAP))
+		return false
+	silk -= SILK_WRAP
+	bag.append({"name": c.display_name, "sat": c.satiety, "silk": c.silk})
+	c.consume()
+	_msg("Embrulhou %s (%d/%d na bolsa). Coma com %s quando quiser." % [c.display_name, bag.size(), BAG_MAX, Settings.text("eat")])
+	GameState.say_once("primeiro_embrulho", "Lanchinho pra viagem. Embrulhado, não estraga.")
 	return true
 
 
+func eat_from_bag() -> void:
+	if bag.is_empty():
+		_msg("Nenhum embrulho na bolsa.")
+		return
+	if state != State.NORMAL:
+		return
+	eating_bag = true
+	_start_state(State.EAT)
+
+
+func _eat_item(it: Dictionary) -> void:
+	satiety = minf(max_satiety, satiety + float(it.get("sat", 0.0)))
+	silk = minf(max_silk, silk + float(it.get("silk", 0.0)))
+
+
+func eat_from_pantry(i: int) -> bool:
+	## Comer da despensa da toca (pelo menu).
+	var d := current_den()
+	if d == null:
+		return false
+	var it := d.take(i)
+	if it.is_empty():
+		return false
+	_eat_item(it)
+	return true
+
+
+func start_drag(c: Corpse) -> void:
+	if dragged != null:
+		stop_drag()
+	if c.is_rotten():
+		_msg("Podre demais para levar para a toca.")
+		return
+	dragged = c
+	c.reserved_by = self
+	_drag_line = SilkLine.shoot(get_parent(), _mouth_pos, func(): return dragged.global_position + Vector3(0, 0.3, 0) if is_instance_valid(dragged) else global_position)
+	_msg("Arrastando %s no fio. Leve até a toca para guardar (%s solta)." % [c.display_name, Settings.text("cocoon")])
+	GameState.say_once("primeiro_arrasto", "Pesadinho... mas é comida pra uma semana.")
+
+
+func stop_drag() -> void:
+	if is_instance_valid(dragged):
+		dragged.reserved_by = null
+	dragged = null
+	if _drag_line != null and is_instance_valid(_drag_line):
+		_drag_line.release()
+	_drag_line = null
+
+
+func _mouth_pos() -> Vector3:
+	return global_position + Vector3(0, 0.35, 0)
+
+
+func _update_drag(delta: float) -> void:
+	if dragged == null:
+		return
+	if not is_instance_valid(dragged) or dead:
+		stop_drag()
+		return
+	var back := dragged.global_position - global_position
+	back.y = 0.0
+	if back.length() > 1.6:
+		var goal := global_position + back.normalized() * 1.6
+		dragged.global_position = dragged.global_position.lerp(Vector3(goal.x, dragged.global_position.y, goal.z), minf(1.0, delta * 10.0))
+	if back.length() > 6.0:
+		stop_drag()   # ficou preso em algo (pulo, fio, abismo)
+		_msg("O fio arrebentou: a presa ficou para trás.")
+		return
+	var d := current_den()
+	if d != null and d.claimed and d.is_inside(dragged.global_position):
+		var c := dragged
+		var item := {"name": c.display_name, "sat": c.satiety, "silk": c.silk}
+		if d.store(item):
+			stop_drag()
+			c.consume()
+			_msg("%s guardado na despensa da toca (%d/%d)." % [c.display_name, d.pantry.size(), Den.PANTRY_MAX])
+			GameState.say_once("primeira_despensa", "Despensa abastecida. Agora é só proteger as portas.")
+		else:
+			stop_drag()
+			_msg("A despensa está cheia: a presa ficou no chão.")
+
+
+func _context_weave() -> void:
+	## C faz o que faz sentido aqui: soltar o que arrasta, tomar a toca, tecer/remendar uma
+	## porta, embrulhar presa pequena, arrastar presa grande (ou casulo, no laboratório).
+	if dragged != null:
+		stop_drag()
+		_msg("Soltou a presa.")
+		return
+	var d := current_den()
+	if d != null and not d.claimed and Fx.flat_dist(global_position, d.center) <= 3.0:
+		d.claim(self)
+		return
+	if d != null and d.claimed:
+		var i := d.slot_near(global_position, 2.6)
+		if i >= 0 and d.door_cost(i) > 0.0:
+			d.weave_door(i, self)
+			return
+	var corpse := _nearest_corpse(1.9)
+	if corpse != null and corpse.reserved_by == null:
+		if corpse.big:
+			start_drag(corpse)
+		else:
+			wrap_into_bag(corpse)
+		return
+	var l = GameState.current_layer
+	if l != null and l.free_cocoons:
+		_weave_cocoon()
+	elif d != null and not d.claimed:
+		_msg("Casulo só no ninho velho da toca (%s)." % d.title)
+	else:
+		_msg("Nada para tecer aqui. (Perto de uma presa: embrulha ou arrasta. Perto de uma entrada da toca: porta.)")
+
+
 func _weave_cocoon() -> void:
+	## Casulo livre (só no laboratório de testes; no jogo o casulo é o central da toca).
 	if silk < SILK_COCOON:
 		_msg("Seda insuficiente para o casulo (precisa de %d)." % int(SILK_COCOON))
 		return
@@ -1393,6 +1561,7 @@ func _hurt(amount: float) -> void:
 
 
 func _die() -> void:
+	stop_drag()
 	dead = true
 	hp = 0.0
 	state = State.DEAD
@@ -1701,7 +1870,7 @@ func to_dict() -> Dictionary:
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z], "rested": rested_here,
-		"skills": skills.keys(), "sp": skill_points, "pantry": pantry, "shards": rune_shards,
+		"skills": skills.keys(), "sp": skill_points, "bag": bag, "shards": rune_shards,
 	}
 
 
@@ -1742,9 +1911,9 @@ func from_dict(d: Dictionary) -> void:
 		# save de antes das habilidades: devolve os pontos dos níveis já ganhos
 		skill_points = (level - 1) + (EVOLVE_LEVEL - 1 if form == Form.CAVALEIRA else 0)
 	rune_shards = int(d.get("shards", 0))
-	var pa = d.get("pantry", [])
-	if pa is Array:
-		pantry = (pa as Array).duplicate(true)
+	var ba = d.get("bag", d.get("pantry", []))   # save antigo: a despensa vira a bolsa (só cabem 2)
+	if ba is Array:
+		bag = (ba as Array).slice(0, BAG_MAX).duplicate(true)
 	var b: Array = d.get("bonus", [])
 	if b.size() == 3:
 		bonus_hp = float(b[0])

@@ -165,3 +165,7 @@ class Lurk extends Behavior:
 			return c.nav_to(c.den, 0.6)
 		s.facing = s.facing.lerp(s.out_dir, 0.1).normalized()
 		return Vector3.ZERO
+
+
+func can_raid() -> bool:
+	return false

@@ -24,6 +24,8 @@ var act: Dictionary = {}
 ## O que sobrevive à morte: mapa descoberto por camada ({"maps": {cena: {...}}}). As falas
 ## já ditas (said) também ficam.
 var knowledge: Dictionary = {"maps": {}}
+## Tocas de cada camada ({"cena#câmara": Den.to_dict()}): despensa, portas, melhorias.
+var dens: Dictionary = {}
 
 
 func _ready() -> void:
@@ -55,6 +57,8 @@ func save_now() -> void:
 	if player == null:
 		return
 	remember_map()
+	if current_layer != null and current_layer.get("den") != null:
+		current_layer.den.remember()
 	var data := {
 		"version": 3,
 		"checkpoint": true,
@@ -67,6 +71,7 @@ func save_now() -> void:
 		"clock": World.clock.t if World.clock != null else 0.0,
 		"act": act,
 		"knowledge": knowledge,
+		"dens": dens,
 	}
 	_write(data)
 
@@ -176,6 +181,7 @@ func _clear_run() -> void:
 	carry = {}
 	act = {}
 	knowledge = {"maps": {}}
+	dens = {}
 	player = null
 	current_layer = null
 
@@ -201,6 +207,7 @@ func _setup_input() -> void:
 	_add("interact", [_k(KEY_E), _jb(JOY_BUTTON_B)])
 	_add("rune", [_k(KEY_F), _jb(JOY_BUTTON_RIGHT_STICK)])
 	_add("cocoon", [_k(KEY_C), _jb(JOY_BUTTON_DPAD_DOWN)])
+	_add("eat", [_k(KEY_G), _jb(JOY_BUTTON_DPAD_LEFT)])
 	_add("help", [_k(KEY_H), _jb(JOY_BUTTON_BACK)])
 	_add("map", [_k(KEY_M), _jb(JOY_BUTTON_DPAD_UP)])
 	_add("pause", [_k(KEY_ESCAPE), _jb(JOY_BUTTON_START)])

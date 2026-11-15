@@ -2,6 +2,19 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Toca e despensa (15/11)
+
+- **Toca = câmara inteira:** nas Galerias, a **G22 Fosso escuro** virou uma câmara redonda fechada por rocha, com 4 entradas estreitas (~3 m). No meio tem um ninho velho: teça o **casulo central** ali (C, 30 de Seda) e a câmara vira sua toca. No Berçário não tem toca.
+- **Só a toca salva e cura.** Acabou o casulo em qualquer lugar (os da G4 e G13 saíram). Antes de ter toca, o jogo **salva sozinho, sem curar**, ao chegar na camada e nos pontos seguros. A morte volta para a toca (ou para o último ponto seguro). O território agora nasce da toca e dos fios ligados a ela.
+- **Portas de teia:** C perto de cada entrada tece uma porta (15 de Seda). Você atravessa; os bichos não (nem a navegação deles passa).
+- **Saque:** com você longe, um bicho com fome sente o cheiro da despensa, vem até a entrada mais perto, rasga a porta (formigas rasgam o dobro), entra, come o embrulho mais gostoso e vai embora. Descansar remenda portas danificadas; rasgada precisa ser tecida de novo (15). O menu mostra o que aconteceu.
+- **Fios-alarme** (50 de Seda, no menu da toca): avisam onde você estiver quando algo ataca uma porta ou entra. Sem eles, você só sabe se estiver perto.
+- **Despensa na toca** (10 embrulhos, não estragam). **Bolsa de viagem com 2 embrulhos**; **G** come um em qualquer lugar (leva 1,2 s; levar dano interrompe).
+- **Presa pequena** (larva, formiga, morcego, irmã): C embrulha onde você estiver e vai para a bolsa (10 de Seda). **Presa grande** (sapo, lagarto, cobra): C prende no fio e você **arrasta** até a toca (anda a 62% e faz mais barulho); ao entrar na toca, vai para a despensa.
+- Menu da toca: aba "Toca e despensa" com despensa (comer / levar), bolsa (guardar / comer), portas, últimos acontecimentos, embrulhar presas por perto e fios-alarme.
+- Correção: formiga da fila não trava mais quando a da frente morre no meio do passo.
+- Teste novo: `toca_test`. Captura: `tests/screenshot_toca.tscn`.
+
 ## Câmaras cheias: bichos novos e coletáveis (15/11)
 
 - **Formiga-de-seda (nova):** sai do formigueiro em fila, come carniça e **rói os seus fios-guia** pela ponta do pilar. Sozinha é fraca (14 PV, mordida de 6), mas uma que apanha ou te sente chama as vizinhas e o bando cerca; tem um jato de ácido curto. O formigueiro repõe as mortas devagar, só com você longe. Formigueiros na G21 (andam por G21/G9/G8) e no P2 (P2/P5/P3).

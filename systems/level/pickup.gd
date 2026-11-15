@@ -5,7 +5,7 @@ extends Area3D
 ##   cristal_en   cristal de energia: +15 Energia máxima
 ##   cristal_seda cristal de seda: +10 Seda máxima
 ##   fragmento    fragmento de runa: a cada 4, um ponto de habilidade
-##   presa        presa embrulhada antiga: vai para a despensa (ou é comida na hora)
+##   presa        presa embrulhada antiga: vai para a bolsa (ou é comida na hora)
 
 var kind := "cristal_pv"
 var flag_id := ""
@@ -92,9 +92,13 @@ func _on_body_entered(body: Node3D) -> void:
 	elif kind == "fragmento":
 		p.add_rune_shard()
 	elif kind == "presa":
-		if p.pantry.size() < Player.PANTRY_MAX:
-			p.pantry.append({"name": "Presa antiga", "sat": 30.0, "silk": 15.0})
-			EventBus.message.emit("Uma presa embrulhada esquecida! Foi para a despensa (%d/%d)." % [p.pantry.size(), Player.PANTRY_MAX])
+		var item := {"name": "Presa antiga", "sat": 30.0, "silk": 15.0}
+		var den := p.current_den()
+		if p.bag.size() < Player.BAG_MAX:
+			p.bag.append(item)
+			EventBus.message.emit("Uma presa embrulhada esquecida! Foi para a bolsa (%d/%d)." % [p.bag.size(), Player.BAG_MAX])
+		elif den != null and p.in_den() and den.store(item):
+			EventBus.message.emit("Uma presa embrulhada esquecida! Foi para a despensa da toca.")
 		else:
 			p.satiety = minf(p.max_satiety, p.satiety + 30.0)
 			p.silk = minf(p.max_silk, p.silk + 15.0)
