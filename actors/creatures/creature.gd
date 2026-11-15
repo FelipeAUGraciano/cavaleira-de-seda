@@ -1165,6 +1165,8 @@ func attack_tick(delta: float, p: Player) -> Vector3:
 		a.cd_left = a.cooldown * (0.7 if enraged else 1.0)
 		cur_attack = null
 		atk_gap = 0.0 if _forced_next != "" else randf_range(0.2, 0.6) * (0.6 if enraged else 1.0)
+		if uses_interest and interest <= 0.0 and player_memory > 0.0 and _provoked_t <= 0.0:
+			give_up_hunt()   # o interesse acabou no meio da luta: termina o golpe e vai embora
 	return Vector3.ZERO
 
 

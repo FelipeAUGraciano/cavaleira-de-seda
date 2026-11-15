@@ -172,7 +172,7 @@ func _on_player_died() -> void:
 
 func on_player_fell(p: Player) -> void:
 	## A jogadora caiu num abismo. Com andar de baixo: dano grande e ela acorda lá embaixo.
-	## Sem fundo: morte (e o ato recomeça).
+	## Sem fundo: morte (ela volta no último casulo).
 	var c := chasm_at(p.last_safe_pos, p.global_position)
 	var to = c.get("to", null) if not c.is_empty() else null
 	if (c.is_empty() and fall_default == "volta") or String(c.get("mode", "")) == "volta":
@@ -266,6 +266,26 @@ func chasm_at(safe: Vector3, now: Vector3) -> Dictionary:
 	return best
 
 
+func respawn_player(p: Player) -> void:
+	## Morte: escurece, ela acorda no último casulo (ou ponto seguro) e o andar continua
+	## como estava: bichos mortos seguem mortos, fios e casulos ficam.
+	if hud != null:
+		hud.show_title("Você morreu", "Você acorda no último casulo.")
+		await hud.fade(1.0, 0.9)
+	if not is_instance_valid(p):
+		return
+	p._respawn()
+	for c in World.creatures:
+		if is_instance_valid(c) and not c.dead:
+			c.player_memory = 0.0
+			c.search_left = 0.0
+			if c.uses_interest:
+				c.give_up_hunt()   # quem te matou não fica de plantão no casulo
+	if hud != null:
+		await get_tree().create_timer(0.4).timeout
+		await hud.fade(0.0, 0.9)
+
+
 func restart_act() -> void:
 	## Chamado pela jogadora morta (permadeath): escurece e recomeça o ato.
 	if hud != null:
@@ -278,7 +298,7 @@ func restart_act() -> void:
 # ---------------------------------------------------------------- câmaras
 
 func _on_room_entered(room: Dictionary) -> void:
-	if room.get("checkpoint", false) and player != null and not player.dead:
+	if room.get("checkpoint", false) and player != null and not player.dead and not player.rested_here:
 		player.respawn_pos = player.global_position
 	var hint := String(room.get("hint", ""))
 	if hint != "" and not GameState.said.has("hint_" + String(room["id"])):

@@ -1,6 +1,6 @@
 # Cavaleira de Seda — v0.8
 
-Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada), no modo hardcore: morte permanente por ato, visão curta e quedas para o andar de baixo.
+Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada), com visão curta e quedas para o andar de baixo. Morrer te leva de volta ao último casulo em que você descansou, e o andar continua como você deixou.
 
 O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design completo fica no GDD (documento do projeto).
 
@@ -139,7 +139,7 @@ godot --headless --path . res://tests/galerias_test.tscn    # Galerias (os dois 
 godot --headless --path . res://tests/covil_test.tscn       # Antecâmara, Covil e a Centopeia
 godot --headless --path . res://tests/vida_test.tscn        # mundo vivo e desempenho
 godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evolução, predadores que te caçam
-godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte por ato
+godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
 godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar
 godot --headless --path . res://tests/casulo_test.tscn      # habilidades, despensa e menu do casulo
@@ -148,4 +148,4 @@ godot --headless --path . res://tests/models_test.tscn      # modelos 3D e encai
 tools/checar_avisos.sh godot                                # avisos do GDScript (todos os scripts)
 ```
 
-Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, morte por ato, menus e os chefes. As capturas de tela ficam em `tests/screenshot_*.tscn`.
+Os testes jogam sozinhos: fio sobre o abismo, queda, combate, comer, casulo, save, morte, menus e os chefes. `tests/analise_mapa.tscn` + `tools/desenhar_mapa.py` desenham o mapa de cada camada e marcam as câmaras vazias. As capturas de tela ficam em `tests/screenshot_*.tscn`.

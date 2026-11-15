@@ -16,8 +16,9 @@ var current_layer = null
 var flags: Dictionary = {}
 ## Atributos levados de uma camada para a próxima.
 var carry: Dictionary = {}
-## Morte permanente por ato: morreu, o ato recomeça com o que você tinha ao entrar nele.
-var permadeath := true
+## Morte permanente por ato (desligada): morreu, o ato recomeçaria com o que você tinha
+## ao entrar nele. Hoje a morte volta para o último casulo e o andar continua como estava.
+var permadeath := false
 ## Começo do ato atual: {"scene", "player", "flags"}.
 var act: Dictionary = {}
 ## O que sobrevive à morte: mapa descoberto por camada ({"maps": {cena: {...}}}). As falas

@@ -66,13 +66,26 @@ func _run() -> void:
 		hungry.needs.hunger = 85.0   # pode ter comido uma irmã menor antes
 		hungry.brain.wake_up()
 	_teleport(hungry.global_position + Vector3(-2.0, 0.1, 0.0) if hungry != null else Vector3(-25.0, 0.1, -9.0))
-	await _seconds(4.0)
+	for i in 8:
+		await _seconds(0.5)
+		if player.hp < hp0 or hungry == null or not is_instance_valid(hungry):
+			break
+		hungry.needs.hunger = 85.0   # sem matar a fome numa irmã menor no meio do teste
+		if hungry.flat_dist_to(player) > 4.0:
+			_teleport(hungry.global_position + Vector3(-1.5, 0.1, 0.0))
 	_check(player.hp < hp0, "irmã faminta caça e morde (PV %d)" % int(player.hp))
 
 	# B3: fio sobre o abismo (a irmã faminta agora não larga: tira ela do caminho)
 	for s2 in get_tree().get_nodes_in_group("predator"):
 		if s2 is Sister and Fx.flat_dist(s2.global_position, player.global_position) < 20.0:
 			s2.queue_free()
+	for i in 60:   # se a mordida matou a Filhote, espera ela acordar no ponto seguro
+		if not player.dead:
+			break
+		await _seconds(0.1)
+	await _frames(2)
+	if GameState.current_layer.hud != null:
+		GameState.current_layer.hud.fade_alpha = 0.0
 	player.hp = player.max_hp
 	player._slow_time = 0.0
 	_teleport(Vector3(-4.0, 0.1, -3.0))

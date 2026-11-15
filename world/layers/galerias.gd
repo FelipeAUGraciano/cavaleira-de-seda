@@ -350,7 +350,7 @@ func _build_level() -> void:
 			pos = _snap_floor(pos, 0.6)   # pilar que caiu na rocha da caverna gerada: chão mais perto
 			pillars[n] = pos
 		var small := String(n) == "G7_b"
-		add_anchor(n, pos, 2.5 if small else 3.5, 0.4 if small else 0.5, STONE, "estalagmite_" + "abc"[i % 3])
+		add_anchor(n, pos, 2.5 if small else 3.5, 0.4 if small else 0.5, STONE)
 		i += 1
 		if not cave.is_floor(Vector2(pos.x, pos.z), 0.45):
 			push_warning("Pilar %s fora do chão firme em %s" % [n, pos])

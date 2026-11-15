@@ -39,14 +39,10 @@ func _run() -> void:
 	pk.global_position = o + Vector3(0.0, 0, 0.6)
 	layer.add_fungus(o + Vector3(1.4, 0, 0.8), Color(0.75, 0.5, 1.0))
 	layer.add_fungus(o + Vector3(2.1, 0, 0.4))
-	for k in 3:
-		var r := Models.instance("rocha_" + "abc"[k], 1.2, "max")
-		layer.add_child(r)
-		r.global_position = o + Vector3(-3.0 + k * 2.0, 0, 3.2)
 	layer.add_web_decal(o + Vector3(3.6, 0, 2.6), 1.3)
 	layer.add_anchor("Pteia", o + Vector3(-4.5, 0, -3.5), 4.0, 0.55, Color(0.8, 0.8, 0.9), "pilar_teia")
 	for k in 3:
-		layer.add_anchor("Est%d" % k, o + Vector3(-1.5 + k * 2.4, 0, -3.5), 3.5, 0.5, Color(0.3, 0.33, 0.34), "estalagmite_" + "abc"[k])
+		layer.add_anchor("Est%d" % k, o + Vector3(-1.5 + k * 2.4, 0, -3.5), 3.5, 0.5, Color(0.3, 0.33, 0.34))
 	await _frames(3)
 	WebNetwork.create_strand(WebNetwork.anchors["Est0"], WebNetwork.anchors["Est1"])
 	var egg := Models.instance("ovo", 0.9, "height")

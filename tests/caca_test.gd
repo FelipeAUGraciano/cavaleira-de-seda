@@ -90,6 +90,7 @@ func _run() -> void:
 	layer.ecosystem.add_child(larva)
 	await _frames(3)
 	larva.asleep = true
+	larva.set_physics_process(false)   # a larva fica parada (senão ela foge do sapo e sai do alcance)
 	f.needs.hunger = 80.0
 	var switched := false
 	for i in 20:
@@ -102,11 +103,17 @@ func _run() -> void:
 	# 5. Bateu nele enquanto caçava outra coisa: ele revida
 	if is_instance_valid(f) and not f.dead:
 		f.take_damage(1.0, player)
-		await _seconds(0.6)
-		_check(f.brain.current != null and f.brain.current.id == "combat", "apanhou de você: larga a presa e revida")
+		var fought := false
+		for i in 10:
+			await _seconds(0.2)   # se estava no meio da mordida na larva, termina e vira
+			if f.brain.current != null and f.brain.current.id == "combat":
+				fought = true
+				break
+		_check(fought, "apanhou de você: larga a presa e revida")
 
 	# 6. Coleira: já foi longe demais atrás de você, perde a vontade
 	if is_instance_valid(f) and not f.dead:
+		f.player_memory = f.memory_time   # caçando você agora
 		f._hunt_origin = f.global_position + Vector3(40.0, 0, 0)
 		f._provoked_t = 0.0
 		player.global_position = f.global_position + Vector3(0, 0, 4.0)

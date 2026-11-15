@@ -4,12 +4,12 @@ extends StaticBody3D
 ##   kind "pilar"  : estalagmite no chão (forma, altura e inclinação variam pelo nome:
 ##                   o mesmo pilar sai sempre igual, mas nenhum é gêmeo do outro).
 ##   kind "gancho" : saliência de rocha na parede (só perto de abismos: poucos e marcados).
-## Tudo é feito em código; se um modelo "estalagmite_a/b/c" existir, ele substitui a rocha.
+## Tudo é feito em código (os modelos de estalagmite foram tirados: a rocha gerada ficou melhor).
 
 var height := 4.0
 var radius := 0.5
 var color := Color(0.42, 0.42, 0.47)
-var model_name := ""   ## "pilar_teia", "estalagmite_a"... (systems/models.gd)
+var model_name := ""   ## "pilar_teia"... (systems/models.gd)
 var kind := "pilar"
 var wall_normal := Vector3.ZERO   ## gancho: direção que sai da parede para o salão
 var vary := true                  ## false = tamanho exato (salas de teste, puzzles medidos)

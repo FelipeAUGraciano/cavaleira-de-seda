@@ -1,6 +1,6 @@
 extends Node
 ## v0.8 etapa 1: golpes estilo Monster Hunter, perseguição, teia por tamanho, fúria e
-## morte permanente por ato.
+## morte (volta para o último casulo, o andar continua).
 ## Rodar:  godot --headless --path . res://tests/hardcore_test.tscn
 
 var layer
@@ -15,7 +15,6 @@ func _ready() -> void:
 func _run() -> void:
 	reparent(get_tree().root)          # sobrevive à troca de cena do fim (permadeath)
 	get_tree().current_scene = null
-	GameState.permadeath = false
 	GameState.new_game()
 	await _frames(5)
 	get_tree().change_scene_to_file("res://world/layers/galerias.tscn")
@@ -32,7 +31,7 @@ func _run() -> void:
 	await _pursuit()
 	await _webs()
 	await _falls()
-	await _permadeath()
+	await _death_to_cocoon()
 	print("\n==== %s (%d falha(s)) ====" % ["OK" if failures == 0 else "FALHOU", failures])
 	GameState.delete_save()
 	get_tree().quit(1 if failures > 0 else 0)
@@ -48,6 +47,7 @@ func _frog() -> Frog:
 func _combat() -> void:
 	var frog := _frog()
 	_check(frog.attacks.size() >= 4, "sapo tem %d golpes" % frog.attacks.size())
+	frog.uses_interest = false   # aqui o teste força os golpes na mão (sem o medidor de interesse)
 	var bite := frog.find_attack("bote")
 	_check(bite.damage * 2.0 >= player.max_hp, "dois botes matam a Filhote (%.0f x2 vs %.0f PV)" % [bite.damage, player.max_hp])
 
@@ -119,6 +119,7 @@ func _pursuit() -> void:
 	var frog := _frog()
 	frog.hp = frog.max_hp
 	frog.enraged = false
+	frog.uses_interest = true
 	frog.global_position = Galerias.W(Vector3(-2.0, 0.0, 34.0))
 	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
 	player.rune_on = true
@@ -214,32 +215,53 @@ func _falls() -> void:
 	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
 
 
-func _permadeath() -> void:
-	GameState.permadeath = true
-	# o ato começou com a Filhote nível 1; ganhamos níveis, descobrimos o mapa e falamos
-	var lvl0 := int((GameState.act.get("player", {}) as Dictionary).get("level", 1))
+func _death_to_cocoon() -> void:
+	## Morte: volta para o último casulo, o andar NÃO recomeça.
+	player.hp = player.max_hp
+	_teleport(Galerias.W(Vector3(-2.0, 0.1, 30.0)))
+	await _frames(5)
+	var cocoon := WebNetwork.create_cocoon(player.global_position + Vector3(0, 0, 2.0))
+	player._rest(cocoon)
+	var home := player.respawn_pos
+	_check(player.rested_here, "descansar marca o casulo como volta")
+	var lvl := player.level
 	player.gain_xp(500)
-	_check(player.level > lvl0, "subiu de nível durante o ato (%d)" % player.level)
-	layer.map_system.revealed["G7"] = true
-	GameState.say_once("teste_fala", "...")
+	var lvl_up := player.level
+	_check(lvl_up > lvl, "subiu de nível depois do casulo (%d)" % lvl_up)
+	var victim := _frog()
+	victim.hp = 1.0
+	victim.take_damage(50.0, player)
+	var victim_ref: WeakRef = weakref(victim)
+	await _frames(3)
+	_check(victim_ref.get_ref() == null or (victim_ref.get_ref() as Creature).dead, "matou um sapo")
+	var strands0 := WebNetwork.strands.size()
+	var cocoons0 := WebNetwork.cocoons.size()
+	# passa por uma câmara de passagem: não muda o lugar de voltar
+	_teleport(Galerias.W(Vector3(44.0, 0.1, 36.0)))
+	await _frames(10)
+	_check(player.respawn_pos.is_equal_approx(home), "câmara de passagem não troca o casulo de volta")
 	player.hp = 1.0
 	player.invuln = 0.0
 	player.take_damage(10.0, null, false)
 	_check(player.dead, "morreu")
-	for i in 1200:
-		await get_tree().process_frame
-		if get_tree().current_scene != layer and get_tree().current_scene != null and GameState.player != null and GameState.player != player:
+	var back := false
+	for i in 80:
+		await _seconds(0.1)
+		if not player.dead:
+			back = true
 			break
-	await _frames(20)
-	var nl = get_tree().current_scene
-	_check(nl != layer and nl != null and nl.scene_file_path.ends_with("galerias.tscn") and nl.restarting, "morte recomeça o ato (Galerias de novo)")
-	var p2: Player = GameState.player
-	_check(p2 != null and p2.level == lvl0 and not p2.dead, "nível volta ao do começo do ato (%d)" % (p2.level if p2 else -1))
-	_check(nl.map_system.revealed.has("G7"), "o mapa descoberto continua")
-	_check(GameState.said.has("teste_fala"), "falas já ditas não repetem")
-	var data := GameState.load_game()
-	_check(not data.is_empty() and not bool(data.get("checkpoint", true)), "save volta para o começo do ato (Continuar também)")
-	GameState.permadeath = false
+	await _seconds(2.0)
+	_check(back and is_instance_valid(layer) and GameState.current_layer == layer and GameState.player == player, "acorda na mesma camada (o andar não recomeça)")
+	_check(Fx.flat_dist(player.global_position, home) < 1.5, "acorda no casulo (%.1f m)" % Fx.flat_dist(player.global_position, home))
+	_check(player.level == lvl_up, "nível ganho fica (%d)" % player.level)
+	_check(victim_ref.get_ref() == null or (victim_ref.get_ref() as Creature).dead, "o sapo morto continua morto")
+	_check(WebNetwork.strands.size() == strands0 and WebNetwork.cocoons.size() == cocoons0, "fios e casulos ficam")
+	_check(layer.hud.fade_alpha < 0.05, "a tela clareia de novo")
+	var hunting := 0
+	for c in World.creatures:
+		if is_instance_valid(c) and not c.dead and c.hunting_player() and Fx.flat_dist(c.global_position, player.global_position) < 10.0:
+			hunting += 1
+	_check(hunting == 0, "ninguém de plantão no casulo (%d)" % hunting)
 
 
 func _check(ok: bool, label: String) -> void:
@@ -260,3 +282,7 @@ func _teleport(pos: Vector3) -> void:
 func _frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
+
+
+func _seconds(s: float) -> void:
+	await get_tree().create_timer(s).timeout

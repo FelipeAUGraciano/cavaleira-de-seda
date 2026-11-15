@@ -2,6 +2,16 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Morte volta ao casulo, sem pedras 3D (15/11)
+
+- **Morte:** a tela escurece e você acorda no último casulo em que descansou. O andar **não recomeça**: bichos mortos continuam mortos, fios e casulos ficam, nível e habilidades ficam. Perde metade da seda. Antes de descansar em algum casulo da camada, volta para o último ponto seguro (entrada ou câmara de passagem). Quem estava te caçando desiste, para não ficar de plantão no casulo.
+- Depois de descansar, passar por uma câmara de passagem não troca mais o lugar de voltar.
+- Morte permanente por ato desligada (o código continua lá, em `GameState.permadeath`, caso volte como modo opcional).
+- **Sem modelos de pedra:** rochas e estalagmites 3D saíram. Os pilares e os cones das paredes voltaram a ser as rochas feitas em código.
+- Caçador que perde o interesse no meio da luta termina o golpe e vai embora (antes podia emendar golpes com o interesse zerado).
+- Bicho com medo (de algo maior por perto) não sai te caçando.
+- Ferramenta nova: mapa de cada camada com as câmaras vazias marcadas (`tests/analise_mapa` + `tools/desenhar_mapa.py`).
+
 ## IA dos caçadores — eles desistem (13/11)
 
 - **Interesse:** sapos, irmãs e morcegos têm um medidor de interesse em você. Ver você enche; sumir de vista, ficar num fio sobre o abismo (onde ele não alcança), se afastar demais de onde a caça começou (26 m) ou correr atrás sem chegar perto esvaziam. Com fome ele insiste mais; de barriga cheia larga rápido.

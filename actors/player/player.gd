@@ -124,6 +124,9 @@ var eat_target: Corpse = null
 var noise := 2.0
 var last_safe_pos := Vector3.ZERO
 var respawn_pos := Vector3.ZERO
+## Já descansou num casulo desta camada: a morte volta para ele (os pontos de passagem
+## das câmaras não mudam mais o lugar de voltar).
+var rested_here := false
 var using_stick_aim := false
 
 var weaving := false
@@ -491,9 +494,13 @@ func _physics_process(delta: float) -> void:
 	if dead:
 		_death_timer -= delta
 		if _death_timer <= 0.0:
-			if GameState.permadeath and GameState.current_layer != null and GameState.current_layer.has_method("restart_act"):
+			var layer = GameState.current_layer
+			if GameState.permadeath and layer != null and layer.has_method("restart_act"):
 				_death_timer = INF   # uma vez só
-				GameState.current_layer.restart_act()
+				layer.restart_act()
+			elif layer != null and layer.has_method("respawn_player"):
+				_death_timer = INF
+				layer.respawn_player(self)   # escurece, acorda no casulo, clareia
 			else:
 				_respawn()
 		return
@@ -999,6 +1006,7 @@ func _rest(c: Cocoon) -> void:
 	silk = max_silk
 	satiety = maxf(0.0, satiety - 15.0)
 	respawn_pos = c.global_position + Vector3(0.0, 0.1, 1.6)
+	rested_here = true
 	EventBus.rested.emit(c)
 	if can_evolve():
 		evolve()
@@ -1397,8 +1405,9 @@ func _respawn() -> void:
 	external_velocity = Vector3.ZERO
 	_visual.rotation.z = 0.0
 	_visual.position.y = 0.0
+	_death_timer = 0.0
 	snap_camera()
-	_msg("Você acordou no último casulo. Perdeu metade da seda.")
+	_msg("Você acordou no último casulo. Perdeu metade da seda." if rested_here else "Você acordou no último ponto seguro. Perdeu metade da seda.")
 	GameState.say_once("primeira_morte", "...Tá. Aranha teimosa não desiste.")
 
 
@@ -1675,7 +1684,7 @@ func to_dict() -> Dictionary:
 		"level": level, "xp": xp, "resist_rot": resist_rot,
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
-		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z],
+		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z], "rested": rested_here,
 		"skills": skills.keys(), "sp": skill_points, "pantry": pantry,
 	}
 
@@ -1685,6 +1694,7 @@ func apply_carry(d: Dictionary) -> void:
 	var keep := respawn_pos
 	from_dict(d)
 	respawn_pos = keep
+	rested_here = false   # camada nova: ainda sem casulo aqui
 	global_position = keep
 	last_safe_pos = keep
 	snap_camera()
@@ -1727,6 +1737,7 @@ func from_dict(d: Dictionary) -> void:
 		# save de antes das formas (v0.6 ou anterior): recalcula pela forma de Filhote
 		recompute_stats(false)
 	_apply_form_visual()
+	rested_here = bool(d.get("rested", false))
 	var r: Array = d.get("respawn", [])
 	if r.size() == 3:
 		respawn_pos = Vector3(float(r[0]), float(r[1]), float(r[2]))

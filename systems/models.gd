@@ -20,12 +20,6 @@ const TUNING := {
 	"lagarto": {"rot_y": 0.0, "legs": true},       # veio olhando para -Z
 	"morcego": {"legs": true},
 	"ovo": {"emission": 0.2},          # o ovo novo brilha inteiro; no escuro virava bola branca
-	"estalagmite_a": {"albedo": 1.9},  # pedra escura demais: some no escuro da caverna
-	"estalagmite_b": {"albedo": 1.9},
-	"estalagmite_c": {"albedo": 1.9},
-	"rocha_a": {"albedo": 1.7},
-	"rocha_b": {"albedo": 1.7},
-	"rocha_c": {"albedo": 1.7},
 
 }
 

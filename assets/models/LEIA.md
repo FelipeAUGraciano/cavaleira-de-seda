@@ -26,8 +26,6 @@ A lista de nomes e os pedidos para a IA estão na aba "Modelos 3D" do GDD.
 | Presa embrulhada | presa/presa_v01.glb | 11,7 mil → 3 mil (cadáveres) |
 | Cristal | cristal/cristal_v01.glb | 108 triângulos (cristais de PV/Energia) |
 | Pilar de teia | pilar_teia/pilar_teia_v01.glb | 14,6 mil → 6 mil (Berçário) |
-| Estalagmites A, B, C | estalagmite_*/..._v01.glb | ~2,5 mil cada; pilares das Galerias e enfeite das cavernas (clareadas no TUNING) |
-| Rochas A, B, C | rocha_*/..._v01.glb | 2 mil cada (clareadas no TUNING) |
 | Fungos roxo e verde | fungo_*/..._v01.glb | 8,5 mil → 1,5 mil cada |
 | Teia de canto | teia_canto/teia_canto_v01.glb | 1,6 mil; deitada no chão como teia decorativa |
 

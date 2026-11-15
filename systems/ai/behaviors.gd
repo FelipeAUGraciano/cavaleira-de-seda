@@ -284,6 +284,8 @@ class Stalk extends Behavior:
 			return 0.0   # já sabe onde você está: quem manda é o Combate
 		if c.bored_of_player():
 			return 0.0   # desistiu há pouco (foi longe demais ou perdeu o interesse)
+		if c.needs.fear >= 40.0:
+			return 0.0   # com medo de algo maior ninguém sai caçando
 		var p := GameState.player as Player
 		if p == null or p.dead or not c.sees_player_as_prey(p):
 			return 0.0
