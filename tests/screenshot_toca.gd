@@ -25,10 +25,19 @@ func _run() -> void:
 	var den: Den = layer.den
 	World.clock.paused = true
 	World.clock.set_phase(CaveClock.Phase.BRILHO)
+	p.global_position = den.center + Vector3(0.0, 0.1, 3.0)
+	p.rune_on = true
+	await _frames(40)
+	p.snap_camera()
+	await _frames(10)
+	await _shot("toca_0_abandonada")
 	p.global_position = den.center + Vector3(0.3, 0.1, 0.3)
 	await _frames(3)
 	p.silk = p.max_silk
 	den.claim(p)
+	p.global_position = den.center + Vector3(0.0, 0.1, 3.0)
+	await _frames(20)
+	await _shot("toca_1_tomada")
 	for i in den.slots.size():
 		p.silk = p.max_silk
 		den.weave_door(i, p)
@@ -37,18 +46,26 @@ func _run() -> void:
 		{"name": "Larva-de-musgo", "sat": 20, "silk": 10}, {"name": "Formiga-de-seda", "sat": 8, "silk": 12}, {"name": "Presa antiga", "sat": 30, "silk": 15}]
 	den.log_lines = ["Sapo-de-rocha invadiu e comeu Larva-de-musgo.", "A porta sudeste foi rasgada."]
 	p.bag = [{"name": "Larva-de-musgo", "sat": 20, "silk": 10}]
+	den.growth = 5.0
+	den._refresh_decor()
+	den.changed.emit()
 	p.global_position = den.center + Vector3(0.0, 0.1, 3.0)
-	p.rune_on = true
-	await _frames(60)
+	await _frames(30)
 	p.snap_camera()
 	await _frames(10)
-	await _shot("toca_1_portas")
+	await _shot("toca_2_cheia")
+	var s0: Dictionary = den.slots[0]
+	p.global_position = (s0["pos"] as Vector3) - (s0["out"] as Vector3) * 2.0 + Vector3(0, 0.1, 0)
+	await _frames(20)
+	p.snap_camera()
+	await _frames(10)
+	await _shot("toca_3_porta")
 	layer.hud.visible = true
 	layer.hud.open_cocoon(den.cocoon)
 	var m: CocoonMenu = layer.hud.cocoon_menu
 	m._show_tab("desp")
 	await _frames(10)
-	await _shot("toca_2_menu")
+	await _shot("toca_4_menu")
 	print("captura: toca")
 	get_tree().quit()
 

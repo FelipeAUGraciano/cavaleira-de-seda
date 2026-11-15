@@ -45,6 +45,7 @@ func _run() -> void:
 			gaps += 1
 		was_open = open
 	_check(gaps == 4, "a toca é fechada por rocha com 4 entradas estreitas (%d)" % gaps)
+	_check(den.decor != null and den.decor.stage == 0, "antes de ser tomada: ninho abandonado (teia velha)")
 	# casulo livre não existe mais
 	_teleport(Galerias.W(Vector3(44, 0.1, 36)))
 	await _frames(3)
@@ -60,6 +61,7 @@ func _run() -> void:
 	await _frames(3)
 	_check(den.claimed and den.cocoon != null and is_instance_valid(den.cocoon), "C no ninho velho: casulo central e a câmara vira toca")
 	_check(player.rested_here and Fx.flat_dist(player.respawn_pos, center) < 2.5, "a morte agora volta para a toca")
+	_check(den.decor.stage == 1 and den.cocoon.position.y > 0.3, "tomada: o tapete de seda começa e o casulo sobe para a rede")
 	var saved := GameState.load_game()
 	_check((saved.get("dens", {}) as Dictionary).size() == 1, "a toca vai para o save")
 	# portas
@@ -200,7 +202,10 @@ func _run() -> void:
 		if c.uses_interest:
 			c.give_up_hunt()
 	await _frames(2)
+	var st0 := den.decor.stage
 	player._rest(den.cocoon)
+	_check(den.decor.stage > st0, "a teia da toca cresce com o tempo (estágio %d → %d)" % [st0, den.decor.stage])
+	_check(den.decor._pantry.get_child_count() > 0, "a despensa aparece pendurada nas paredes")
 	var ti: int = door.get_meta("slot")
 	var di := (ti + 1) % 4
 	_check(den.door_state(di) == "inteira" and den.door_state(ti) == "rasgada", "descansar remenda a danificada; a rasgada continua rasgada")

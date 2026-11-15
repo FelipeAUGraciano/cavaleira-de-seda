@@ -28,6 +28,8 @@ var log_lines: Array = []         ## últimos acontecimentos (aparecem no menu d
 var doors: Array = []             ## DenDoor ou null, um por entrada
 var cocoon: Cocoon
 var raider: Creature = null
+var growth := 0.0                 ## quanto a teia da toca já cresceu (1 a 5); só visual
+var decor: DenDecor
 var _raid_t := 40.0
 var _alarm_t := 0.0
 var _marker: Node3D
@@ -46,6 +48,9 @@ func _ready() -> void:
 	global_position = Vector3(center.x, 0.0, center.z)
 	doors.resize(slots.size())
 	_build_marker()
+	decor = DenDecor.new().setup(self)
+	add_child(decor)
+	changed.connect(func(): decor.refresh_pantry())
 	from_dict(GameState.dens.get(_key(), {}))
 
 
@@ -95,6 +100,7 @@ func claim(p: Player) -> bool:
 		return false
 	p.silk -= CLAIM_COST
 	claimed = true
+	growth = 1.0
 	_ensure_cocoon()
 	p.respawn_pos = center + Vector3(0.0, 0.1, 1.6)
 	p.rested_here = true
@@ -107,15 +113,29 @@ func claim(p: Player) -> bool:
 	return true
 
 
+func grow(amount: float) -> void:
+	## A teia da toca cresce (tomar posse, portas, descansos, comida guardada).
+	growth = clampf(growth + amount, 1.0, 5.0)
+	_refresh_decor()
+
+
+func _refresh_decor() -> void:
+	if decor != null and decor.is_inside_tree():
+		decor.set_stage(clampi(int(growth), 1, 5) if claimed else 0)
+
+
 func _ensure_cocoon() -> void:
 	_marker.visible = not claimed
 	if not claimed:
+		_refresh_decor()
 		return
 	for c in WebNetwork.cocoons:
 		if is_instance_valid(c) and Fx.flat_dist(c.global_position, center) < 2.0:
 			cocoon = c
+			_refresh_decor()
 			return
 	cocoon = WebNetwork.create_cocoon(Vector3(center.x, 0.0, center.z))
+	_refresh_decor()
 
 
 func is_inside(pos: Vector3) -> bool:
@@ -169,6 +189,8 @@ func weave_door(i: int, p: Player) -> bool:
 		EventBus.message.emit("Seda insuficiente (precisa de %d)." % int(cost))
 		return false
 	p.silk -= cost
+	if cost >= DOOR_COST:
+		grow(0.5)
 	_make_door(i, DenDoor.MAX_HP)
 	EventBus.message.emit("Porta %s tecida. Você passa por ela; os bichos não." % dir_name(i))
 	GameState.say_once("primeira_porta", "Fechadinho. Quem quiser entrar vai ter que rasgar. E eu vou sentir.")
@@ -258,6 +280,7 @@ func on_rest() -> void:
 	for i in doors.size():
 		if doors[i] != null and (doors[i] as DenDoor).intact():
 			(doors[i] as DenDoor).hp = DenDoor.MAX_HP
+	grow(1.0)
 
 
 # ---------------------------------------------------------------- despensa
@@ -266,7 +289,9 @@ func store(item: Dictionary) -> bool:
 	if pantry.size() >= PANTRY_MAX:
 		return false
 	pantry.append(item)
+	growth = minf(5.0, growth + 0.25)
 	changed.emit()
+	_refresh_decor()
 	return true
 
 
@@ -364,11 +389,12 @@ func to_dict() -> Dictionary:
 	var dh: Array = []
 	for d in doors:
 		dh.append(-1.0 if d == null else (d as DenDoor).hp)
-	return {"claimed": claimed, "pantry": pantry.duplicate(true), "alarm": alarm, "doors": dh, "log": log_lines.duplicate()}
+	return {"claimed": claimed, "pantry": pantry.duplicate(true), "alarm": alarm, "doors": dh, "log": log_lines.duplicate(), "growth": growth}
 
 
 func from_dict(d: Dictionary) -> void:
 	claimed = bool(d.get("claimed", false))
+	growth = float(d.get("growth", 1.0 if claimed else 0.0))
 	var pa = d.get("pantry", [])
 	pantry = (pa as Array).duplicate(true) if pa is Array else []
 	alarm = bool(d.get("alarm", false))

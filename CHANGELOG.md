@@ -2,6 +2,15 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## A toca com cara de toca (15/11)
+
+- **Interior no estilo da casa da Kumoko:** chão forrado de seda trançada (raios e anéis com véu), paredes cobertas de teia (postes, fios que cedem, zigue-zague, fios soltos e véu como lençol), teias redondas encostadas na pedra, fios em leque do chão até o alto da parede e fios atravessando por cima. Seda branca com alguns fios no ciano do território e gotas de orvalho.
+- **A teia cresce:** tomar a toca começa com um tapete pequeno e a rede do casulo; cada porta tecida, cada descanso e cada embrulho guardado fazem crescer, em 5 estágios, até a toca ficar toda forrada. Só visual.
+- **Antes de tomar:** a G22 é um ninho abandonado, com teia velha, cinza e rasgada nas paredes e o ninho no meio.
+- **Casulo na rede:** o casulo central fica suspenso numa rede de seda presa nas paredes.
+- **Despensa à vista:** cada embrulho guardado aparece pendurado na parede de teia; o saque tira um da parede.
+- **Portas como as pontes:** cortina trançada, uma ponte de teia em pé (cabos torcidos, trama em zigue-zague, fio do meio, véu, orvalho e amarras até a rocha). Rasgada, sobra só o pé da cortina, fiapos pendurados e restos no chão; balança quando apanha.
+
 ## Toca e despensa (15/11)
 
 - **Toca = câmara inteira:** nas Galerias, a **G22 Fosso escuro** virou uma câmara redonda fechada por rocha, com 4 entradas estreitas (~3 m). No meio tem um ninho velho: teça o **casulo central** ali (C, 30 de Seda) e a câmara vira sua toca. No Berçário não tem toca.
