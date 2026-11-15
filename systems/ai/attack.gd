@@ -2,8 +2,9 @@ class_name Attack
 extends RefCounted
 ## Um golpe de criatura, no estilo Monster Hunter: aviso → golpe → recuperação.
 ##
-## - Aviso (windup): a criatura gira atrás de você (track, rad/s) e mira onde você VAI estar
-##   (lead, segundos de previsão). Uma marca no chão mostra a área e enche até o golpe.
+## - Aviso (windup): a criatura mira UMA vez, onde você está quando o golpe começa, vira para
+##   lá e trava. Durante o aviso ela não acompanha você: sair da marca é o jeito de escapar.
+##   Uma marca no chão mostra a área e enche até o golpe.
 ## - Golpe (active): a área machuca enquanto durar. O golpe vai até o fim mesmo que você
 ##   saia do alcance: sair andando não cancela, só esquivar (i-frames) ou estar fora da área.
 ## - Recuperação (recover): a criatura fica parada — é a sua janela de punir.
@@ -28,8 +29,8 @@ var width := 1.2               ## largura da linha
 var lunge := 0.0               ## m/s para a frente durante o golpe (bote, investida)
 var leap := false              ## pula até o ponto mirado; a área é um círculo no pouso
 var at_point := false          ## a área é um círculo no ponto mirado, sem sair do lugar (cuspe)
-var track := 6.0               ## quanto gira atrás de você durante o aviso (rad/s)
-var lead := 0.0                ## previsão: mira onde você estará daqui a `lead` segundos
+var track := 6.0               ## (sem uso desde 15/11: a mira trava no começo do golpe)
+var lead := 0.0                ## (sem uso desde 15/11: mira onde você está, sem prever)
 var knockback := true
 var needs_sight := false       ## só começa vendo a jogadora (cuspe, língua)
 var only_enraged := false

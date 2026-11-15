@@ -2,6 +2,11 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Mira travada e ligações novas no mapa (15/11)
+
+- **Mira travada:** todo golpe de inimigo mira **uma vez**, onde você está quando o golpe começa, vira para lá e trava. Durante o aviso ele não gira mais atrás de você (a língua do sapo não te acompanha). Vale para sapo, lagarto, irmãs, morcego (o mergulho vai para o ponto mirado, sem perseguir) e Centopeia (investida e mordida; a mordida só pega quem está na frente da cabeça). Os golpes também não preveem mais para onde você vai: miram onde você está.
+- **22 ligações novas** nas Galerias, nos lugares circulados pelo criador: 11 no andar de cima (G1↔G3, G18↔G2, G18↔G4, duas G4↔G5, G5↔G7, G22↔G7, dentro da G20, da G9 e da G21, e G21↔G15) e 11 nas Profundezas (P1, P1↔P4, P2↔P5, duas P2↔P3, P3, P3↔P6, P6 e duas no P5).
+
 ## Morte volta ao casulo, sem pedras 3D (15/11)
 
 - **Morte:** a tela escurece e você acorda no último casulo em que descansou. O andar **não recomeça**: bichos mortos continuam mortos, fios e casulos ficam, nível e habilidades ficam. Perde metade da seda. Antes de descansar em algum casulo da camada, volta para o último ponto seguro (entrada ou câmara de passagem). Quem estava te caçando desiste, para não ficar de plantão no casulo.

@@ -16,11 +16,9 @@ const ROOST_Y := 2.6
 const ALERT_Y := 2.3
 const DIVE_Y := 0.45
 const DIVE_SPEED := 9.5
-const DIVE_HOMING := 3.5        ## m/s que o alvo do mergulho segue o alvo (esquiva ainda escapa)
 const BITE_DAMAGE := 10.0        ## cinco mergulhos matam uma Filhote — e o bando mergulha junto
 const PREY_DAMAGE := 9.0
 const MAX_DIVERS := 3
-const DIVE_LEAD := 0.35          ## mira onde você vai estar
 const SCREECH_RANGE := 7.0
 
 var _tele_dive := Attack.make("mergulho", "", {"shape": Attack.Shape.CIRCLE, "reach": 0.9, "at_point": true})   ## marca no chão do mergulho
@@ -194,29 +192,23 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 				mode = Mode.WINDUP
 				mode_time = 0.0
 				telegraph = true
+				dive_target = target.global_position   # mira uma vez: o mergulho vai para cá
+				dive_target.y = 0.0
+				face_toward(dive_target)
 				return Vector3.ZERO
 			return _orbit(target.global_position if heard else last_player_pos, 3.2, 1.0, delta)
 		Mode.WINDUP:
 			hover_y = ALERT_Y + 0.3
-			face_toward(target.global_position)
-			show_marker(_tele_dive, target.global_position, mode_time / 0.45)
+			show_marker(_tele_dive, dive_target, mode_time / 0.45)
 			if mode_time >= 0.45:
 				hide_marker()
 				telegraph = false
-				var pv := Vector3.ZERO
-				if target is CharacterBody3D:
-					pv = (target as CharacterBody3D).velocity
-					pv.y = 0.0
-				dive_target = target.global_position + pv * DIVE_LEAD
 				mode = Mode.DIVE
 				mode_time = 0.0
 				bit = false
 			return Vector3.ZERO
 		Mode.DIVE:
 			hover_y = DIVE_Y
-			var follow := target.global_position - dive_target
-			follow.y = 0.0
-			dive_target += follow.limit_length(DIVE_HOMING * delta)
 			if not bit and Fx.flat_dist(global_position, target.global_position) < 1.0 and global_position.y < 1.4:
 				var p := target as Player
 				if p != null:

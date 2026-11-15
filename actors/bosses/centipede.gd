@@ -280,14 +280,14 @@ func combat_tick(delta: float) -> Vector3:
 			var d := Fx.flat_dist(global_position, last_heard)
 			if p != null and not p.dead and flat_dist_to(p) < 2.6:
 				_begin(Mode.BITE)
+				face_toward(p.global_position)   # mira uma vez e trava
 				return Vector3.ZERO
 			if d > 3.5 and d < 12.0 and mode_time > 0.7 and p != null and has_line_of_sight(p):
 				_begin(Mode.WINDUP)
+				face_toward(p.global_position)   # a investida vai para onde você estava agora
 				return Vector3.ZERO
 			return nav_to(last_heard, 1.0 * mult)
 		Mode.WINDUP:
-			if player_memory > 0.0:
-				face_toward(last_heard)
 			show_marker(_tele_charge, global_position, mode_time / windup)
 			if mode_time >= windup:
 				hide_marker()
@@ -312,21 +312,28 @@ func combat_tick(delta: float) -> Vector3:
 			mode_time = 0.0
 			return Vector3.ZERO
 		Mode.BITE:
-			if p != null:
-				face_toward(p.global_position)
 			if not attack_done:
 				show_marker(_tele_bite, global_position, mode_time / 0.5)
 			if not attack_done and mode_time >= 0.5:
 				attack_done = true
 				hide_marker()
 				telegraph = false
-				if p != null and not p.dead and flat_dist_to(p) <= 3.0:
+				if p != null and not p.dead and flat_dist_to(p) <= 3.0 and _in_front(p.global_position, 50.0):
 					p.take_damage(BITE_DAMAGE, self)
 			if mode_time >= 0.9:
 				mode = Mode.HUNT
 				mode_time = 0.0
 			return Vector3.ZERO
 	return Vector3.ZERO
+
+
+func _in_front(pos: Vector3, half_angle_deg: float) -> bool:
+	## A mordida acerta só quem está na frente da cabeça (a mira travou no começo).
+	var to := pos - global_position
+	to.y = 0.0
+	if to.length() < body_radius * 0.6:
+		return true
+	return facing.angle_to(to.normalized()) <= deg_to_rad(half_angle_deg)
 
 
 func _begin(m: Mode) -> void:

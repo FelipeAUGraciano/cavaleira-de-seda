@@ -910,8 +910,7 @@ func fight(target: Node3D, delta: float) -> Vector3:
 		_strike_t = -1.0
 		return Vector3.ZERO
 	if _strike_t >= 0.0:
-		_strike_t += delta
-		face_toward(target.global_position)
+		_strike_t += delta   # a direção travou quando o bote começou
 		if _strike_t >= 0.4:
 			_strike_t = -1.0
 			telegraph = false
@@ -1018,8 +1017,8 @@ func _wind_mult() -> float:
 
 
 func _predict(p: Player, a: Attack) -> Vector3:
-	var v := Vector3(p.velocity.x, 0.0, p.velocity.z)
-	var goal := p.global_position + v * a.lead
+	## Ponto mirado: onde você está agora (a mira trava aqui até o fim do golpe).
+	var goal := p.global_position
 	goal.y = 0.0
 	if a.leap or a.at_point:
 		var to := goal - global_position
@@ -1105,6 +1104,8 @@ func start_attack(a: Attack, p: Player) -> void:
 	atk_phase = 0
 	atk_hit = false
 	atk_point = _predict(p, a)
+	if a.shape != Attack.Shape.RING:
+		face_toward(atk_point)   # mira uma vez e trava: o aviso não acompanha você
 	telegraph = true
 	activity = a.label
 	if _marker == null:
@@ -1119,9 +1120,6 @@ func attack_tick(delta: float, p: Player) -> Vector3:
 	var alive := p != null and not p.dead
 	if atk_phase == 0:
 		var wu := a.windup * _wind_mult()
-		if alive and not (a.leap and atk_t > wu * 0.8):
-			atk_point = _predict(p, a)
-		_turn_toward(atk_point, a.track * delta * (1.3 if enraged else 1.0))
 		if near_player:
 			_marker.draw_attack(a, global_position, facing, atk_point, atk_t / wu, enraged)
 		if atk_t >= wu:

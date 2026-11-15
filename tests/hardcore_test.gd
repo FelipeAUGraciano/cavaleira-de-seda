@@ -73,10 +73,24 @@ func _combat() -> void:
 	_check(frog._marker != null and frog._marker.visible, "aviso aparece no chão")
 	frog.cancel_attack()
 
-	# Previsão: mira onde você vai estar
+	# Mira travada: o golpe mira uma vez onde você está e não te acompanha no aviso
+	var tongue := frog.find_attack("lingua") if frog.find_attack("lingua") != null else bite
+	frog.global_position = player.global_position + Vector3(0, 0, 3.0)
+	frog.facing = Vector3(1, 0, 0)
+	frog.cur_attack = null
+	frog.start_attack(tongue, player)
+	var aim0 := frog.atk_point
+	var face0 := frog.facing
+	_check(face0.dot((player.global_position - frog.global_position).normalized() * Vector3(1, 0, 1)) > 0.95, "vira para você na hora em que começa o golpe")
+	_teleport(player.global_position + Vector3(3.0, 0.0, 0.0))   # sai de lado durante o aviso
+	await _frames(8)
+	_check(frog.atk_point.is_equal_approx(aim0) and frog.facing.dot(face0) > 0.999, "durante o aviso a mira não acompanha (%.3f)" % frog.facing.dot(face0))
+	frog.cancel_attack()
+	player.velocity = Vector3.ZERO
+	var still := frog._predict(player, frog.find_attack("salto"))
 	player.velocity = Vector3(5.0, 0.0, 0.0)
 	var pt := frog._predict(player, frog.find_attack("salto"))
-	_check(pt.x > player.global_position.x + 1.0, "salto mira à frente de quem corre (%.1f m)" % (pt.x - player.global_position.x))
+	_check(Fx.flat_dist(pt, still) < 0.05, "salto mira onde você está, sem prever a corrida (%.1f m)" % Fx.flat_dist(pt, still))
 	player.velocity = Vector3.ZERO
 
 	# Quem fica rodando do lado leva o giro

@@ -306,6 +306,33 @@ func _build_level() -> void:
 		CaveBuilder.blob(WL(5, 70.5), 1.4, 0.15),    # pedrinha no meio do caminho
 	]
 	_generate_organic()
+	# Ligações pedidas pelo criador (círculos rosa no mapa de 15/11), em coordenadas do mundo.
+	const LINKS := [
+		[Vector2(13.6, 160.0), Vector2(20.4, 156.0)],   # P-a P1
+		[Vector2(28.7, 177.5), Vector2(27.3, 171.5)],   # P-b P1
+		[Vector2(51.8, 194.2), Vector2(55.2, 190.8)],   # P-c P1/P4
+		[Vector2(87.8, 189.8), Vector2(90.2, 192.2)],   # P-d P2/P5
+		[Vector2(99.8, 153.8), Vector2(102.2, 156.2)],   # P-e P2/P3
+		[Vector2(105.2, 170.8), Vector2(101.8, 174.2)],   # P-f P2/P3
+		[Vector2(113.8, 152.8), Vector2(117.2, 156.2)],   # P-g P3
+		[Vector2(128.6, 189.1), Vector2(134.4, 191.9)],   # P-h P3/P6
+		[Vector2(112.2, 213.4), Vector2(113.8, 208.6)],   # P-i P6
+		[Vector2(99.8, 213.6), Vector2(98.2, 218.4)],   # P-j P5
+		[Vector2(68.5, 224.5), Vector2(74.5, 224.5)],   # P-k P5
+		[Vector2(22.4, 10.9), Vector2(16.6, 8.1)],   # C-a G1/G3
+		[Vector2(20.2, 28.8), Vector2(16.8, 32.2)],   # C-b G18/G2
+		[Vector2(30.5, 43.5), Vector2(30.5, 48.5)],   # C-c G18/G4
+		[Vector2(31.5, 57.5), Vector2(37.5, 57.5)],   # C-d G4/G5
+		[Vector2(38.5, 62.5), Vector2(38.5, 58.5)],   # C-e G4/G5
+		[Vector2(37.5, 71.7), Vector2(30.5, 70.3)],   # C-f G5/G7
+		[Vector2(27.5, 80.5), Vector2(31.5, 80.5)],   # C-g G22/G7
+		[Vector2(143.5, 10.5), Vector2(143.5, 14.5)],   # C-h G20
+		[Vector2(141.7, 59.9), Vector2(146.3, 63.1)],   # C-i G9
+		[Vector2(126.5, 71.5), Vector2(126.5, 76.5)],   # C-j G21
+		[Vector2(133.9, 92.4), Vector2(130.1, 83.6)],   # C-k G15/G21
+	]
+	for l in LINKS:
+		cave.tunnels.append(CaveBuilder.path([l[0], l[1]], 3.4, 0.3))
 	map_grid = cave.build(self)
 	cave.scatter_decor(self, 23)
 	# Quedas: os abismos do andar de cima levam às Profundezas (bem embaixo de onde você caiu);
