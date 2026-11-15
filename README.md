@@ -8,7 +8,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 
 - **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
 - **Menu do casulo:** teia de 17 habilidades (1 ponto por nível), evolução e despensa (presas embrulhadas não apodrecem). Descansar salva, cura e faz a muda; não dá para dormir com um bicho te caçando perto.
-- **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, a Mãe e a Centopeia-blindada, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
+- **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), a Mãe e a Centopeia-blindada, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
 - **Mundo:** Galerias em dois andares geradas como caverna orgânica, ciclo de luz de 5 minutos, território, pilares variados, ganchos de parede nos abismos.
 - **Menus:** 3 espaços de save, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle).
 - **Arte:** modelos 3D da protagonista, de todas as criaturas, da Mãe e dos props; o chão e as paredes são gerados em código.
@@ -141,6 +141,7 @@ godot --headless --path . res://tests/vida_test.tscn        # mundo vivo e desem
 godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evolução, predadores que te caçam
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
+godot --headless --path . res://tests/novos_test.tscn       # formigas, cobra e coletáveis novos
 godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar
 godot --headless --path . res://tests/casulo_test.tscn      # habilidades, despensa e menu do casulo
 godot --headless --path . res://tests/menu_test.tscn        # menu inicial, espaços de save, Opções e pausa

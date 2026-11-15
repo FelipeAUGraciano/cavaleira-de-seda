@@ -147,6 +147,7 @@ func _run() -> void:
 		frog.needs.fatigue = 0.0
 		frog.needs.fear = 0.0
 		frog.needs.restless = 0.0
+		frog._bored_t = 0.0   # o casulo acima fez todo mundo desistir; aqui ele volta a caçar
 		frog.facing = Vector3(0, 0, -1)
 		frog.global_position = Vector3(-12.0, 0.3, 11.0)   # lugar aberto, sem pedra no caminho
 		frog.velocity = Vector3.ZERO

@@ -34,11 +34,11 @@ func _run() -> void:
 	_check(layer.map_system.current_room == "G1", "começa na Entrada (G1)")
 	var bats := _alive("bat")
 	var g3 := bats.filter(func(b): return String(b.flock).begins_with("g3_"))
-	_check(g3.size() == 5 and bats.size() == 12, "bando de 5 morcegos no túnel, 12 no mapa (%d/%d)" % [g3.size(), bats.size()])
+	_check(g3.size() == 5 and bats.size() == 15, "bando de 5 morcegos no túnel, 15 no mapa (%d/%d)" % [g3.size(), bats.size()])
 	var lizards := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Lizard and not c.has_meta("nest_id") and not c.has_meta("flag"))
 	_check(lizards.size() == 1, "um Lagarto-lanterna no jardim")
 	var frogs := get_tree().get_nodes_in_group("creature").filter(func(c): return c is Frog)
-	_check(frogs.size() == 8, "oito Sapos-de-rocha nos dois andares (%d)" % frogs.size())
+	_check(frogs.size() == 12, "doze Sapos-de-rocha nos dois andares (%d)" % frogs.size())
 	_check(World.creatures.size() >= 50, "mapa cheio: %d criaturas" % World.creatures.size())
 
 	# Caminhos: a caverna gerada liga as câmaras com nome (rota a pé, sem cair em buraco)

@@ -618,10 +618,149 @@ func _populate() -> void:
 		ecosystem.add_child(centipede)
 	else:
 		_open_door_out()
+	_populate_empty_rooms()
 	add_trigger(WR(165, 104, 10, 12), _on_edge)
 	EventBus.rested.connect(_on_rested)
 	EventBus.territory_changed.connect(_on_territory_changed)
 	EventBus.creature_died.connect(_on_creature_died)
+
+
+# ---------------------------------------------------------------- câmaras que estavam vazias (15/11)
+
+func _populate_empty_rooms() -> void:
+	## Coletáveis e bichos (novos e antigos) nas câmaras que o mapa mostrava vazias.
+	# Formigueiros: um a leste do andar de cima, outro no salão das Profundezas
+	for nest in [["G21", 11, 7, ["G21", "G9", "G8"]], ["P2", 12, 8, ["P2", "P5", "P3"]]]:
+		var spot = _room_spot(nest[0], nest[1], 2.4)
+		if spot != null:
+			var hill := Anthill.new(nest[2], nest[3])
+			hill.position = spot
+			ecosystem.add_child(hill)
+	# Cobras-das-frestas: escondidas em buracos na parede
+	for sn in [["G20", 21], ["G22", 22], ["G16", 26], ["P1", 23], ["P5", 24], ["P6", 25]]:
+		var flag := "cobra_%s" % sn[0]
+		if GameState.flags.has(flag):
+			continue
+		var w = _wall_spot(sn[0], sn[1])
+		if w == null:
+			continue
+		var cobra := Snake.new()
+		cobra.position = (w["pos"] as Vector3) + Vector3(0, 0.3, 0)
+		cobra.den = w["pos"]
+		cobra.out_dir = w["out"]
+		cobra.set_meta("flag", flag)
+		ecosystem.add_child(cobra)
+	# Coletáveis: fragmentos de runa (4 = 1 ponto), cristais de seda e presas esquecidas
+	var items := [
+		["fragmento", "G16", 31], ["fragmento", "G10", 32], ["fragmento", "G19", 33], ["fragmento", "G7", 34],
+		["fragmento", "G20", 35], ["fragmento", "G22", 36], ["fragmento", "P1", 37], ["fragmento", "P2", 38],
+		["fragmento", "P3", 39], ["fragmento", "P4", 40], ["fragmento", "P5", 41], ["fragmento", "P6", 42],
+		["cristal_seda", "G8", 51], ["cristal_seda", "G19", 52], ["cristal_seda", "P2", 53],
+		["presa", "G20", 61], ["presa", "G19", 62], ["presa", "G7", 63], ["presa", "P2", 64], ["presa", "P3", 65], ["presa", "P5", 66],
+	]
+	for it in items:
+		var flag := "%s_%s" % [it[0], String(it[1]).to_lower()]
+		if GameState.flags.has(flag):
+			continue
+		var pos = _room_spot(it[1], it[2], 1.0)
+		if pos == null:
+			continue
+		var pk := Pickup.new(it[0], flag)
+		pk.position = pos
+		add_child(pk)
+	# Luz fria de fungos nos salões grandes e escuros (as larvas pastam perto deles)
+	for fz in [["P1", 3], ["P5", 3], ["P6", 3], ["P2", 2], ["P4", 2], ["P3", 2], ["G19", 1], ["G20", 1], ["G22", 1], ["G10", 1], ["G21", 1]]:
+		for k in int(fz[1]):
+			var fpos = _room_spot(fz[0], 200 + k * 17 + String(fz[0]).hash() % 97, 1.4)
+			if fpos != null:
+				add_fungus(fpos, Color(0.45, 1.0, 0.6) if k % 2 == 0 else Color(0.75, 0.5, 1.0))
+	var g16 = _room_spot("G16", 71, 1.2)
+	if g16 != null:
+		add_child(_note(g16, "g16_subida", [
+			"Marcas de garras na pedra, em fila, subindo a parede. Alguém escalava por aqui.",
+			"Um pedaço de corda podre, de gente. Lá em cima, a parede brilha como cristal.",
+			"(Ainda não dá para subir. Um dia, maior, quem sabe.)",
+		], "papel"))
+	# Bichos antigos onde não tinha ninguém
+	for room in ["G19", "G20", "G7", "G22", "G8", "G10", "P1", "P3", "P5", "P6"]:
+		var lp = _room_spot(room, 80 + room.hash() % 50, 1.0)
+		if lp != null:
+			ecosystem.larva_spawns.append(lp)
+			ecosystem.spawn_larva(lp)
+	for room in ["G19", "P3", "P3", "P1"]:
+		var fp = _room_spot(room, 130 + ecosystem.frog_spawns.size(), 1.5)
+		if fp != null:
+			ecosystem.frog_spawns.append(fp)
+			ecosystem.spawn_frog(fp)
+	ecosystem.larva_target += 10
+	ecosystem.frog_target += 4
+	for lzd in [["G7", "g7_lagarto", 141], ["P5", "p5_lagarto", 142]]:
+		if GameState.flags.has(lzd[1]):
+			continue
+		var zp = _room_spot(lzd[0], lzd[2], 1.6)
+		if zp != null:
+			var lz := Lizard.new()
+			lz.position = zp + Vector3(0, 0.3, 0)
+			lz.territory_radius = 6.0
+			lz.set_meta("flag", lzd[1])
+			ecosystem.add_child(lz)
+	var g8_flock = _room_spot("G8", 151, 2.0)
+	if g8_flock != null:
+		for k in 3:
+			_spawn_bat(g8_flock, ["G8", "G20", "G10"], "g8")
+	for room in ["G19", "P5"]:
+		var sp = _room_spot(room, 160 + room.length(), 1.2)
+		if sp != null:
+			var sis := Sister.new(true)
+			sis.position = sp + Vector3(0, 0.3, 0)
+			sis.display_name = "Irmã caçadora"
+			ecosystem.add_child(sis)
+
+
+func _room_spot(room_id: String, seed_: int, min_clear: float = 1.0) -> Variant:
+	## Ponto de chão dentro da câmara, longe das bordas (sempre o mesmo para a mesma semente).
+	if World.nav == null:
+		return null
+	var cells: Array = World.nav.room_cells.get(room_id, [])
+	var ok: Array = []
+	for c in cells:
+		var p := World.nav.center_of(c)
+		if cave.floor_value(Vector2(p.x, p.z)) >= min_clear:
+			ok.append(p)
+	if ok.is_empty():
+		ok = cells.map(func(c): return World.nav.center_of(c))
+	if ok.is_empty():
+		return null
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_
+	var p: Vector3 = ok[r.randi() % ok.size()]
+	return Vector3(p.x, 0.0, p.z)
+
+
+func _wall_spot(room_id: String, seed_: int) -> Variant:
+	## Buraco na parede da câmara: chão encostado na rocha e a direção que sai dela.
+	if World.nav == null:
+		return null
+	var cells: Array = World.nav.room_cells.get(room_id, [])
+	var ok: Array = []
+	for c in cells:
+		var p := World.nav.center_of(c)
+		var q := Vector2(p.x, p.z)
+		var o := cave.open_value(q)
+		if o > 0.5 and o < 1.3 and cave.floor_value(q) > 0.5:
+			ok.append(q)
+	if ok.is_empty():
+		return null
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_
+	var q: Vector2 = ok[r.randi() % ok.size()]
+	var e := 0.6
+	var g := Vector2(cave.open_value(q + Vector2(e, 0)) - cave.open_value(q - Vector2(e, 0)),
+		cave.open_value(q + Vector2(0, e)) - cave.open_value(q - Vector2(0, e)))
+	if g.length() < 0.001:
+		g = Vector2(0, 1)
+	g = g.normalized()
+	return {"pos": Vector3(q.x, 0.0, q.y), "out": Vector3(g.x, 0.0, g.y)}
 
 
 func _deep_spots(n: int, seed_: int) -> Array:
@@ -692,6 +831,8 @@ func _on_creature_died(c: Node) -> void:
 		EventBus.big_message.emit("Centopeia-blindada derrotada!")
 		EventBus.message.emit("Coma a carapaça (E) para ganhar a Pele de Cristal. A passagem a leste se abriu.")
 		GameState.say_once("centopeia_vitoria", "Eu. Venci. AQUILO. ...Alguém viu? Ninguém viu. Típico.")
+	elif c is Snake and c.has_meta("flag"):
+		GameState.flags[String(c.get_meta("flag"))] = true
 	elif c is Lizard:
 		if c.has_meta("flag"):
 			GameState.flags[String(c.get_meta("flag"))] = true

@@ -1,6 +1,11 @@
 class_name Pickup
 extends Area3D
-## Item coletável único (ex.: cristal de pedra-da-lua). Some para sempre depois de pego (fica salvo).
+## Item coletável único. Some para sempre depois de pego (fica salvo pelo flag_id).
+##   cristal_pv   cristal de pedra-da-lua: +10 PV máximo
+##   cristal_en   cristal de energia: +15 Energia máxima
+##   cristal_seda cristal de seda: +10 Seda máxima
+##   fragmento    fragmento de runa: a cada 4, um ponto de habilidade
+##   presa        presa embrulhada antiga: vai para a despensa (ou é comida na hora)
 
 var kind := "cristal_pv"
 var flag_id := ""
@@ -13,6 +18,7 @@ func _init(kind_: String = "cristal_pv", flag: String = "") -> void:
 
 
 func _ready() -> void:
+	add_to_group("pickup")
 	collision_layer = 0
 	collision_mask = 2
 	var cs := CollisionShape3D.new()
@@ -21,26 +27,52 @@ func _ready() -> void:
 	cs.shape = shape
 	cs.position.y = 0.6
 	add_child(cs)
-	var col := Color(0.4, 1.0, 0.85) if kind == "cristal_en" else Color(0.7, 0.75, 1.0)
-	_crystal = Fx.box(Vector3(0.35, 0.6, 0.35), Fx.mat(col, 2.0))
-	_crystal.position.y = 0.7
-	_crystal.rotation = Vector3(0.6, 0.0, 0.6)
-	add_child(_crystal)
-	var m := Models.swap(self, "cristal", 0.8, [_crystal], "height")
-	if m != null:
-		m.position.y = 0.3
-		_crystal = m
+	var col := Color(0.7, 0.75, 1.0)
+	match kind:
+		"cristal_en":
+			col = Color(0.4, 1.0, 0.85)
+		"cristal_seda":
+			col = Color(0.95, 0.95, 1.0)
+		"fragmento":
+			col = Color(0.75, 0.45, 1.0)
+		"presa":
+			col = Color(0.85, 0.82, 0.7)
+	if kind == "presa":
+		_crystal = Fx.sphere(0.35, Fx.mat(col, 0.15))
+		_crystal.scale = Vector3(0.8, 0.7, 1.3)
+		_crystal.position.y = 0.3
+		add_child(_crystal)
+		var pm := Models.swap(self, "presa", 0.8, [_crystal], "max")
+		if pm != null:
+			_crystal = pm
+	elif kind == "fragmento":
+		_crystal = Fx.box(Vector3(0.14, 0.32, 0.08), Fx.mat(col, 2.5))
+		_crystal.position.y = 0.45
+		_crystal.rotation = Vector3(0.3, 0.0, 0.4)
+		add_child(_crystal)
+	else:
+		_crystal = Fx.box(Vector3(0.35, 0.6, 0.35), Fx.mat(col, 2.0))
+		_crystal.position.y = 0.7
+		_crystal.rotation = Vector3(0.6, 0.0, 0.6)
+		add_child(_crystal)
+		var m := Models.swap(self, "cristal", 0.8, [_crystal], "height")
+		if m != null:
+			m.position.y = 0.3
+			_crystal = m
+			if kind != "cristal_pv":
+				Models.tint(m, col)
 	var light := OmniLight3D.new()
 	light.light_color = col
-	light.omni_range = 3.0
-	light.light_energy = 1.0
+	light.omni_range = 3.0 if kind != "presa" else 1.5
+	light.light_energy = 1.0 if kind != "presa" else 0.3
 	light.position.y = 1.0
 	add_child(light)
 	body_entered.connect(_on_body_entered)
 
 
 func _process(delta: float) -> void:
-	_crystal.rotate_y(delta * 1.5)
+	if kind != "presa":
+		_crystal.rotate_y(delta * 1.5)
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -54,6 +86,19 @@ func _on_body_entered(body: Node3D) -> void:
 		p.add_bonus(0.0, 15.0)
 		EventBus.message.emit("Cristal de energia! +15 Energia máxima.")
 		GameState.say_once("cristal_lago", "Valeu cada fio. E eu nem molhei as patas.")
+	elif kind == "cristal_seda":
+		p.add_bonus(0.0, 0.0, 10.0)
+		EventBus.message.emit("Cristal de seda! +10 Seda máxima.")
+	elif kind == "fragmento":
+		p.add_rune_shard()
+	elif kind == "presa":
+		if p.pantry.size() < Player.PANTRY_MAX:
+			p.pantry.append({"name": "Presa antiga", "sat": 30.0, "silk": 15.0})
+			EventBus.message.emit("Uma presa embrulhada esquecida! Foi para a despensa (%d/%d)." % [p.pantry.size(), Player.PANTRY_MAX])
+		else:
+			p.satiety = minf(p.max_satiety, p.satiety + 30.0)
+			p.silk = minf(p.max_silk, p.silk + 15.0)
+			EventBus.message.emit("Despensa cheia: você comeu a presa antiga na hora.")
 	if flag_id != "":
 		GameState.flags[flag_id] = true
 	queue_free()

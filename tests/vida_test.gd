@@ -108,7 +108,7 @@ func _run() -> void:
 	# Território: lagarto expulsa um sapo do jardim
 	var lz: Lizard = null
 	for c in World.creatures:
-		if c is Lizard and not c.has_meta("nest_id"):
+		if c is Lizard and not c.has_meta("nest_id") and not c.has_meta("flag"):
 			lz = c
 	var intruder := Frog.new()
 	intruder.position = lz.home + Vector3(3.0, 0.3, 0.0)

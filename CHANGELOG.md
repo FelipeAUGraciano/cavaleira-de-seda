@@ -2,6 +2,15 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Câmaras cheias: bichos novos e coletáveis (15/11)
+
+- **Formiga-de-seda (nova):** sai do formigueiro em fila, come carniça e **rói os seus fios-guia** pela ponta do pilar. Sozinha é fraca (14 PV, mordida de 6), mas uma que apanha ou te sente chama as vizinhas e o bando cerca; tem um jato de ácido curto. O formigueiro repõe as mortas devagar, só com você longe. Formigueiros na G21 (andam por G21/G9/G8) e no P2 (P2/P5/P3).
+- **Cobra-das-frestas (nova):** mora num buraco na parede e não sai dele. Escondida, só os olhos brilham. Sente quem **anda** perto (parada, ou devagar com a runa apagada, você passa; fio esticado vibra muito). Dá um bote longo em linha com marca no chão, fica exposta uns segundos (hora de bater) e volta. O bote arrebenta fio-guia no caminho. Na G20, G22, G16, P1, P5 e P6. Morta, não volta.
+- **Coletáveis novos:** 12 **fragmentos de runa** (a cada 4, +1 ponto de habilidade), 3 **cristais de seda** (+10 Seda máxima) e 6 **presas esquecidas** (vão para a despensa). Todos ficam salvos depois de pegos.
+- **Bichos antigos** nas câmaras vazias: larvas em 10 câmaras, 4 sapos (G19, P3, P1), lagartos no Lago (G7) e no P5, um bando de morcegos na Galeria do eco, irmãs caçadoras na G19 e no P5. Fungos de luz nos salões escuros das Profundezas.
+- Uma anotação nova na Subida antiga (G16).
+- Teste novo: `novos_test`. Captura: `tests/screenshot_bichos_novos.tscn`.
+
 ## Mira travada e ligações novas no mapa (15/11)
 
 - **Mira travada:** todo golpe de inimigo mira **uma vez**, onde você está quando o golpe começa, vira para lá e trava. Durante o aviso ele não gira mais atrás de você (a língua do sapo não te acompanha). Vale para sapo, lagarto, irmãs, morcego (o mergulho vai para o ponto mirado, sem perseguir) e Centopeia (investida e mordida; a mordida só pega quem está na frente da cabeça). Os golpes também não preveem mais para onde você vai: miram onde você está.

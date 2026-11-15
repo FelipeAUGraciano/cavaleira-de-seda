@@ -68,12 +68,16 @@ def render(layer, title, sel, out):
         if not (x0 <= i < x1 and y0 <= j < y1): continue
         a = px(i, j); a = (a[0], a[1])
         if kind == 'bicho':
-            c = (240,90,90) if ('Centopeia' in name or 'Lagarto' in name) else (250,210,80) if 'Sapo' in name else (200,140,255) if 'Irmã' in name else (255,120,210) if 'Morcego' in name else (120,230,120)
+            c = (240,90,90) if ('Centopeia' in name or 'Lagarto' in name) else (250,210,80) if 'Sapo' in name else (200,140,255) if 'Irmã' in name else (255,120,210) if 'Morcego' in name else (170,60,40) if 'Formiga' in name else (60,200,200) if 'Cobra' in name else (120,230,120)
             d.ellipse([a[0]-5, a[1]-5, a[0]+5, a[1]+5], fill=c, outline=(0,0,0))
         elif kind == 'anchor':
             d.rectangle([a[0]-3, a[1]-3, a[0]+3, a[1]+3], fill=(210,210,220))
         elif kind == 'fungus_light':
             d.ellipse([a[0]-3, a[1]-3, a[0]+3, a[1]+3], fill=(90,255,170))
+        elif kind == 'pickup':
+            d.polygon([(a[0], a[1]-7), (a[0]+5, a[1]), (a[0], a[1]+7), (a[0]-5, a[1])], fill=(200,120,255), outline=(255,255,255))
+        elif kind == 'nest':
+            d.ellipse([a[0]-9, a[1]-9, a[0]+9, a[1]+9], fill=(110,70,45), outline=(220,150,90), width=2)
         elif kind == 'fire':
             d.polygon([(a[0], a[1]-6), (a[0]-5, a[1]+4), (a[0]+5, a[1]+4)], fill=(255,140,40))
         else:
@@ -90,7 +94,7 @@ def render(layer, title, sel, out):
     # legenda
     lx = img.width - LEG + 10; ly = M + 60
     items = [((235,70,60),'borda vermelha = câmara vazia'),((240,170,50),'borda laranja = pouca coisa'),
-             ((250,210,80),'Sapo'),((200,140,255),'Irmã'),((255,120,210),'Morcego'),((120,230,120),'Larva'),((240,90,90),'Lagarto / Centopeia'),
+             ((250,210,80),'Sapo'),((200,140,255),'Irmã'),((255,120,210),'Morcego'),((120,230,120),'Larva'),((240,90,90),'Lagarto / Centopeia'),((170,60,40),'Formiga (novo)'),((60,200,200),'Cobra (novo)'),((110,70,45),'formigueiro'),((200,120,255),'coletável'),
              ((210,210,220),'pilar / gancho (âncora)'),((90,255,170),'fungo de luz'),((255,140,40),'tocha'),((255,180,60),'isca / item / outro'),((38,38,48),'chão fora de câmara')]
     for c, t in items:
         d.rectangle([lx, ly, lx+16, ly+16], fill=c); d.text((lx+24, ly), t, font=FS, fill=(220,220,230)); ly += 26

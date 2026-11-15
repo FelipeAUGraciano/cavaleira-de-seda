@@ -2,7 +2,7 @@ extends Node
 ## Quanto tem em cada câmara (bichos, pilares, luz, itens) por área de chão.
 ## Uso: godot --headless --path . res://tests/analise_mapa.tscn
 
-const GROUPS := ["anchor", "fungus_light", "interactable", "lure", "hazard", "fire", "cocoon", "adventurer"]
+const GROUPS := ["anchor", "fungus_light", "interactable", "lure", "hazard", "fire", "cocoon", "adventurer", "pickup", "nest"]
 
 
 func _ready() -> void:

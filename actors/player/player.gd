@@ -77,6 +77,8 @@ var resist_acid := 0            ## sobe comendo Sapo-de-rocha; 3 = atravessa as 
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
 var skills := {"fiandeira": true}   ## habilidades aprendidas no casulo (systems/skills.gd)
 var skill_points := 0               ## 1 por nível; a muda não tira
+var rune_shards := 0                ## fragmentos de runa achados; a cada RUNE_SHARDS_PER_POINT, +1 ponto
+const RUNE_SHARDS_PER_POINT := 4
 var pantry: Array = []              ## despensa: presas embrulhadas [{"name", "sat", "silk"}]
 const PANTRY_MAX := 8
 const SILK_WRAP := 10.0
@@ -1049,6 +1051,20 @@ func skill_block(id: String) -> String:
 	return ""
 
 
+func add_rune_shard() -> void:
+	## Fragmento de runa: a cada 4, um ponto de habilidade para gastar no casulo.
+	rune_shards += 1
+	var have := rune_shards % RUNE_SHARDS_PER_POINT
+	if have == 0:
+		skill_points += 1
+		EventBus.big_message.emit("Runa completa! +1 ponto de habilidade")
+		_msg("Os %d fragmentos se juntam na sua runa. Gaste o ponto no casulo." % RUNE_SHARDS_PER_POINT)
+		GameState.say_once("runa_completa", "A runa... ficou mais forte. Eu sinto. Hora de aprender algo novo.")
+	else:
+		_msg("Fragmento de runa (%d/%d para um ponto de habilidade)." % [have, RUNE_SHARDS_PER_POINT])
+		GameState.say_once("primeiro_fragmento", "Um caco que brilha igual à minha runa. Deve ter mais por aí.")
+
+
 func learn(id: String) -> bool:
 	if skill_block(id) != "":
 		return false
@@ -1685,7 +1701,7 @@ func to_dict() -> Dictionary:
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z], "rested": rested_here,
-		"skills": skills.keys(), "sp": skill_points, "pantry": pantry,
+		"skills": skills.keys(), "sp": skill_points, "pantry": pantry, "shards": rune_shards,
 	}
 
 
@@ -1725,6 +1741,7 @@ func from_dict(d: Dictionary) -> void:
 	elif d.has("level"):
 		# save de antes das habilidades: devolve os pontos dos níveis já ganhos
 		skill_points = (level - 1) + (EVOLVE_LEVEL - 1 if form == Form.CAVALEIRA else 0)
+	rune_shards = int(d.get("shards", 0))
 	var pa = d.get("pantry", [])
 	if pa is Array:
 		pantry = (pa as Array).duplicate(true)
