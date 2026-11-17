@@ -74,6 +74,11 @@ var bonus_energy := 0.0
 var bonus_silk := 0.0
 var resist_rot := 0
 var resist_acid := 0            ## sobe comendo Sapo-de-rocha; 3 = atravessa as Poças ácidas
+var resist_poison := 0          ## sobe comendo Escorpião-de-obsidiana; corta o veneno 25% por ponto
+var poison_t := 0.0             ## envenenada: segundos de veneno ainda correndo
+var dark_sight := 0.0           ## Resistência a Escuridão (Lago negro): + metros de visão no escuro
+var weave_xp := 0               ## Tecelagem sobe tecendo fios: fios mais longos
+const WEAVE_STEPS := [0, 8, 20, 36, 56]   ## fios tecidos para chegar em cada nível de Tecelagem (1 a 5)
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
 var skills := {"fiandeira": true}   ## habilidades aprendidas no casulo (systems/skills.gd)
 var skill_points := 0               ## 1 por nível; a muda não tira
@@ -1014,6 +1019,12 @@ func _eat(c: Corpse) -> void:
 		resist_acid += c.acid_bonus
 		_msg("Resistência a Ácido %d%s" % [resist_acid, " — as Poças ácidas não queimam mais!" if resist_acid == 3 else ""])
 		GameState.say_once("acido_%d" % mini(resist_acid, 3), ["", "Gosto de pedra molhada... e de bateria.", "Minha boca formiga. Acho que estou me acostumando.", "Pronto. Ácido agora é só tempero."][mini(resist_acid, 3)])
+	if c.poison_bonus > 0:
+		resist_poison += c.poison_bonus
+		if resist_poison < 2:
+			apply_poison(4.0)
+		_msg("Carne venenosa! Resistência a Veneno %d" % resist_poison)
+		GameState.say_once("veneno_%d" % mini(resist_poison, 3), ["", "Formiga na língua... e no estômago. Ugh.", "Já não arde tanto.", "Veneno? Tempero."][mini(resist_poison, 3)])
 	if c.skin_bonus:
 		crystal_skin = true
 		add_bonus(20.0, 0.0)
@@ -1126,7 +1137,7 @@ func wrappable_corpses() -> Array:
 		var c := n as Corpse
 		if c == null or c.is_rotten() or c.reserved_by != null or c == dragged:
 			continue
-		if c.energy_bonus > 0.0 or c.acid_bonus > 0 or c.skin_bonus:
+		if c.energy_bonus > 0.0 or c.acid_bonus > 0 or c.skin_bonus or c.poison_bonus > 0:
 			continue
 		if Fx.flat_dist(c.global_position, global_position) <= WRAP_RANGE:
 			out.append(c)
@@ -1345,6 +1356,7 @@ func _rune_pulse() -> void:
 	var tw := ring.create_tween()
 	tw.tween_property(ring, "scale", Vector3.ONE * 4.5, 0.35)
 	tw.tween_callback(ring.queue_free)
+	EventBus.rune_pulsed.emit(global_position)
 	for n in get_tree().get_nodes_in_group("creature"):
 		var c := n as Creature
 		if c == null or c.dead or c is Centipede:
@@ -1431,15 +1443,49 @@ func _weave_click() -> void:
 	silk -= strand_cost()
 	WebNetwork.create_strand(weave_first, hovered_anchor)
 	_msg("Fio-guia tecido (-%d seda)." % int(strand_cost()))
+	_gain_weave()
 	GameState.say_once("primeiro_fio", "Um fio! Andar nele é rápido e silencioso. Isso muda tudo.")
 	weave_first = hovered_anchor
 	_refresh_anchor_highlights()
 
 
+func weave_level() -> int:
+	var lv := 1
+	for i in WEAVE_STEPS.size():
+		if weave_xp >= int(WEAVE_STEPS[i]):
+			lv = i + 1
+	return lv
+
+
+func strand_range() -> float:
+	## Tecelagem 1: 12 m; cada nível +1,5 m (Tecelagem 5: 18 m, o Abismo duplo).
+	return STRAND_RANGE + (weave_level() - 1) * 1.5
+
+
+func _gain_weave() -> void:
+	var before := weave_level()
+	weave_xp += 1
+	if weave_level() > before:
+		EventBus.big_message.emit("Tecelagem %d" % weave_level())
+		_msg("Tecelagem %d: fio-guia até %.1f m." % [weave_level(), strand_range()])
+		GameState.say_once("tecelagem_%d" % weave_level(), ["", "", "Meus fios estão saindo mais firmes.", "Mais longe... e mais longe.", "Dá pra sentir a seda esticando sem arrebentar.", "Dezoito metros. Agora nenhum buraco me segura."][weave_level()])
+
+
+func apply_poison(secs: float) -> void:
+	## Ferrão de escorpião, carne venenosa: perde vida aos poucos (Resistência a Veneno corta).
+	if dead:
+		return
+	var k := maxf(0.0, 1.0 - 0.25 * resist_poison)
+	if k <= 0.0:
+		return
+	poison_t = maxf(poison_t, secs * k)
+	_msg("Envenenada!")
+
+
 func _strand_error(a: WebAnchor, b: WebAnchor) -> String:
 	var d := Fx.flat_dist(a.global_position, b.global_position)
-	if d > STRAND_RANGE:
-		return "Longe demais: %.1f m (máximo %d m)." % [d, int(STRAND_RANGE)]
+	if d > strand_range():
+		return "Longe demais: %.1f m (máximo %.1f m, Tecelagem %d)." % [d, strand_range(), weave_level()]
 	if WebNetwork.has_strand(String(a.name), String(b.name)):
 		return "Esses pilares já estão ligados."
 	if silk < strand_cost():
@@ -1481,7 +1527,7 @@ func _update_preview() -> void:
 		target = hovered_anchor.global_position
 		ok = _strand_error(weave_first, hovered_anchor) == ""
 	var b := Vector3(target.x, 0.1, target.z)
-	if Fx.flat_dist(a, b) > STRAND_RANGE:
+	if Fx.flat_dist(a, b) > strand_range():
 		ok = false
 	var length := a.distance_to(b)
 	_preview.visible = length > 0.1
@@ -1504,6 +1550,9 @@ func _update_resources(delta: float) -> void:
 		in_territory = WebNetwork.is_in_territory(global_position)
 		if in_territory and not was:
 			GameState.say_once("territorio", "Sinto cada fio vibrando. Aqui é seguro... mais ou menos.")
+	if poison_t > 0.0:
+		poison_t -= delta
+		_hurt(3.0 * delta)
 	satiety = maxf(0.0, satiety - SATIETY_DECAY * (0.75 if has_skill("estomago") else 1.0) * delta)
 	if satiety <= 0.0:
 		_starve_msg_timer -= delta
@@ -1590,6 +1639,7 @@ func _die() -> void:
 func _respawn() -> void:
 	dead = false
 	falling = false
+	poison_t = 0.0
 	state = State.NORMAL
 	hp = max_hp
 	energy = max_energy
@@ -1704,9 +1754,14 @@ func noise_radius() -> float:
 	return noise
 
 
+func refresh_sight() -> void:
+	if _sight_light != null:
+		_sight_light.omni_range = sight_radius()
+
+
 func sight_radius() -> float:
 	## Até onde ela enxerga no escuro (cresce com a evolução; runa acesa ajuda).
-	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0)
+	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0) + dark_sight
 
 
 func visibility_mult() -> float:
@@ -1892,6 +1947,7 @@ func to_dict() -> Dictionary:
 		"satiety": satiety,
 		"level": level, "xp": xp, "resist_rot": resist_rot,
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
+		"resist_poison": resist_poison, "dark_sight": dark_sight, "weave_xp": weave_xp,
 		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z], "rested": rested_here,
 		"skills": skills.keys(), "sp": skill_points, "bag": bag, "shards": rune_shards,
@@ -1921,6 +1977,9 @@ func from_dict(d: Dictionary) -> void:
 	xp = int(d.get("xp", xp))
 	resist_rot = int(d.get("resist_rot", resist_rot))
 	resist_acid = int(d.get("resist_acid", resist_acid))
+	resist_poison = int(d.get("resist_poison", resist_poison))
+	dark_sight = float(d.get("dark_sight", dark_sight))
+	weave_xp = int(d.get("weave_xp", weave_xp))
 	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
 	form = int(d.get("form", form)) as Form
 	if d.has("skills"):

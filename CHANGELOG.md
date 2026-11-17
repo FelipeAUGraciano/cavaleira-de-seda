@@ -2,6 +2,29 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## O Abismo inteiro: caverna gerada, A5–A19 e a Serpente-cega (17/11)
+
+- **Mesma pegada das Galerias:** o Abismo virou uma caverna orgânica de um andar (autômato celular, semente fixa) com as câmaras de trava e de chefe feitas à mão. Faixas de rocha em volta da Trilha, da Cortina viva, do Abismo duplo e da arena garantem que nenhum salão gerado vire atalho. ~180 × 120 m, 19 câmaras com nome.
+- **Câmaras novas:**
+  - **A5 Lago negro:** água preta com uma sombra enorme passando embaixo (e anéis na água). Corrente de fios margem → pedrinha → ilha; na ilha, a **pérola negra**: Resistência a Escuridão (+1,5 m de visão no escuro).
+  - **A6 Floresta de estalagmites:** dezenas de pilares (o lugar para subir a Tecelagem).
+  - **A7 Ninho dos escorpiões:** 3 escorpiões e o ninho com ovos.
+  - **A8 Cortina viva:** túnel coberto de morcegos gigantes, da ponta leste da Trilha até a Câmara de cristal.
+  - **A9 Abismo duplo:** fenda de 16 m com pilares a 17,6 m nas bordas: só com Tecelagem 5. Cair é morte.
+  - **A10 Câmara de cristal:** lâminas de cristal nas paredes (encostar corta, -8 PV); fresta secreta de volta para a toca; cristal de pedra-da-lua no meio.
+  - **A11 Santuário afundado:** colunas quebradas, a espiral da runa brilhando no chão e duas pedras para ler (E). Ponto seguro.
+  - **A12 Toca da Serpente-cega**, **A13 Poço de vapor** (jatos de vapor a cada 3,5 s, -10 PV) e **A14 Rampa quente** (no topo: "Fim do Ato 2"; o Rio de Brasa vem na próxima versão).
+  - Partes geradas com nome: A15 Galeria dos ecos mortos, A16 Fosso das raízes, A17 Raízes negras, A18 Fosso dos besouros e A19 Beco sem volta (só se chega por uma rachadura da Trilha).
+- **A toca do Abismo (A4) tem 4 frestas:** Trilha, Floresta, Lago negro e a fresta secreta da Câmara de cristal.
+- **Tecelagem (nova):** cada fio-guia tecido conta. Tecelagem 2/3/4/5 com 8/20/36/56 fios; o fio-guia vai de 12 m até 18 m. Aparece no HUD.
+- **Escorpião-de-obsidiana (novo, M, nível 7):** sente o chão (andando 7 m, correndo 11 m; parada ou num fio, não), enxerga 5 m. Pinças em cone que emendam, ferrão em linha que **envenena** e, furioso, giro de cauda. Comer a carne envenena um pouco e sobe a **Resistência a Veneno** (cada ponto corta 25% do veneno).
+- **Veneno na jogadora (novo):** perde 3 PV por segundo enquanto durar; aparece "ENVENENADA" no HUD.
+- **Cortina viva (nova trava):** runa acesa ou correr por baixo acorda a cortina: ela se fecha, empurra você para trás e machuca até você sair. Runa apagada e andando devagar, você passa. **Pulso Espiral** derruba os morcegos por 9 s.
+- **Serpente-cega (chefe novo, G, nível 13, 300 PV):** cega, caça só por vibração. Sente quem anda no chão (andando 9 m, correndo 16 m), fios e teias que vibram (22 m) e uma **teia de captura nova** (tecer faz a teia tremer). Vai sempre na vibração mais nova e dá o **bote** (linha no chão). Se o bote acaba numa teia de captura, ela morde a teia e fica **enredada 5,5 s** com as escamas abertas (dano cheio). Fora disso as escamas seguram 70% do dano. De perto: mordida em cone; furiosa: chicote de cauda em volta. A cauda dela tapa o Poço de vapor; vencida, o caminho abre.
+- Besouros também no Fosso dos besouros e nas Raízes negras; larvas perto dos fungos do norte.
+- Mapa do Abismo: `tools/desenhar_mapa.py` agora desenha também o Abismo (`/tmp/mapout/mapa_abismo.png`).
+- Teste `abismo_test` ampliado (caminhos, travas, Tecelagem, pérola, escorpião, Cortina viva, Serpente, vapor, fim do ato).
+
 ## Ato 2 começa: a queda da Fenda e o Abismo A1–A4 (17/11)
 
 - **A queda:** depois da Centopeia, na Borda da Fenda (G15), o chão racha (faixas pretas, tremor crescente), a borda se desfaz e ela escorrega para dentro. Dentro da Fenda a caverna some da tela: só ela, as pedras caindo e riscos de vento passando, com a câmera descendo junto. Ela atira um fio para cima, ele pega e arrebenta; atira outro, arrebenta de novo. Escurece, vem a tela de carregamento com "Fim do Ato 1".

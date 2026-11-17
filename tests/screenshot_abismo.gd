@@ -83,6 +83,31 @@ func _run() -> void:
 	p.snap_camera()
 	await get_tree().create_timer(1.2).timeout
 	await _shot("abismo_8_refugio")
+	p.rune_on = true
+	for sh in [["abismo_9_lago", Vector3(48.5, 0.1, -34.0), 0.0], ["abismo_10_floresta", Vector3(87.0, 0.1, -40.0), 22.0],
+			["abismo_11_ninho", Vector3(62.0, 0.1, -50.5), 0.0], ["abismo_12_cristal", Vector3(104.0, 0.1, -7.0), 0.0],
+			["abismo_13_fenda", Vector3(108.0, 0.1, -38.0), 22.0], ["abismo_14_santuario", Vector3(152.0, 0.1, -36.0), 0.0],
+			["abismo_16_poco", Vector3(160.0, 0.1, 29.0), 0.0]]:
+		a.hud._area_time = 0.0
+		p.global_position = sh[1]
+		p.cam_zoom = float(sh[2])
+		p.snap_camera()
+		await get_tree().create_timer(1.3).timeout
+		await _shot(sh[0])
+		if sh[0] == "abismo_12_cristal":
+			p.global_position = Vector3(128.5, 0.1, -2.0)
+			p.cam_zoom = 0.0
+			p.snap_camera()
+			await get_tree().create_timer(1.2).timeout
+			await _shot("abismo_12b_cortina")
+	p.cam_zoom = 18.0
+	p.global_position = Vector3(150.0, 0.1, -6.0)
+	p.snap_camera()
+	await get_tree().create_timer(1.5).timeout
+	a.serpent.global_position = Vector3(156, 0.3, 0)
+	a.serpent._vibrate(p.global_position, false)
+	await get_tree().create_timer(1.0).timeout
+	await _shot("abismo_15_serpente")
 	print("captura: abismo")
 	get_tree().quit()
 

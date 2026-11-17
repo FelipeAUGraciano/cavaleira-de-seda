@@ -23,3 +23,5 @@ signal player_died
 signal stalked(creature: Node)          ## um predador começou a seguir a jogadora
 @warning_ignore("unused_signal")
 signal rested(cocoon: Node)
+@warning_ignore("unused_signal")
+signal rune_pulsed(position: Vector3)    ## Pulso Espiral (atordoa; a Cortina viva se abre)

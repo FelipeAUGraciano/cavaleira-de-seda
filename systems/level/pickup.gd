@@ -6,6 +6,7 @@ extends Area3D
 ##   cristal_seda cristal de seda: +10 Seda máxima
 ##   fragmento    fragmento de runa: a cada 4, um ponto de habilidade
 ##   presa        presa embrulhada antiga: vai para a bolsa (ou é comida na hora)
+##   olho_escuro  pérola do Lago negro: Resistência a Escuridão (+1,5 m de visão no escuro)
 
 var kind := "cristal_pv"
 var flag_id := ""
@@ -37,6 +38,8 @@ func _ready() -> void:
 			col = Color(0.75, 0.45, 1.0)
 		"presa":
 			col = Color(0.85, 0.82, 0.7)
+		"olho_escuro":
+			col = Color(0.55, 0.45, 1.0)
 	if kind == "presa":
 		_crystal = Fx.sphere(0.35, Fx.mat(col, 0.15))
 		_crystal.scale = Vector3(0.8, 0.7, 1.3)
@@ -91,6 +94,12 @@ func _on_body_entered(body: Node3D) -> void:
 		EventBus.message.emit("Cristal de seda! +10 Seda máxima.")
 	elif kind == "fragmento":
 		p.add_rune_shard()
+	elif kind == "olho_escuro":
+		p.dark_sight += 1.5
+		p.refresh_sight()
+		EventBus.big_message.emit("Resistência a Escuridão")
+		EventBus.message.emit("Pérola negra do lago: +1,5 m de visão no escuro.")
+		GameState.say_once("perola_negra", "O escuro ficou... menos escuro. Ou eu fiquei mais escura.")
 	elif kind == "presa":
 		var item := {"name": "Presa antiga", "sat": 30.0, "silk": 15.0}
 		var den := p.current_den()

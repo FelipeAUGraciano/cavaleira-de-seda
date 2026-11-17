@@ -31,6 +31,7 @@ var senses_text := "?"
 var food_energy := 0.0       ## bônus permanente de Energia máx. ao comer (Lagarto-lanterna)
 var food_acid := 0           ## + Resistência a Ácido ao comer (Sapo-de-rocha)
 var food_skin := false       ## Pele de Cristal ao comer (Centopeia-blindada)
+var food_poison := 0          ## + Resistência a Veneno ao comer (Escorpião-de-obsidiana)
 
 # Modelo 3D (systems/models.gd): troca as formas cinza quando o .glb existir
 var model_name := ""
@@ -807,6 +808,7 @@ func die(fell: bool = false) -> void:
 		corpse.energy_bonus = food_energy
 		corpse.acid_bonus = food_acid
 		corpse.skin_bonus = food_skin
+		corpse.poison_bonus = food_poison
 		corpse.big = size >= Size.M
 		get_parent().add_child(corpse)
 		corpse.global_position = Vector3(global_position.x, maxf(global_position.y, 0.0), global_position.z)
@@ -1047,6 +1049,8 @@ func on_attack_hit(a: Attack, p: Player) -> void:
 			p.pull_toward(global_position, a.effect_power if a.effect_power > 0.0 else 12.0)
 		"slow":
 			p.apply_slow(0.5, a.effect_power if a.effect_power > 0.0 else 2.0)
+		"poison":
+			p.apply_poison(a.effect_power if a.effect_power > 0.0 else 5.0)
 
 
 func _wind_mult() -> float:

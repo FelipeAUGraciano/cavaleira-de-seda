@@ -15,6 +15,7 @@ var preserved := false         ## embrulhada em seda: não apodrece
 var energy_bonus := 0.0        ## + Energia máx. para quem comer
 var acid_bonus := 0            ## + Resistência a Ácido (Sapo-de-rocha)
 var skin_bonus := false        ## Pele de Cristal (Centopeia-blindada)
+var poison_bonus := 0          ## + Resistência a Veneno (Escorpião-de-obsidiana)
 var big := false               ## presa grande (M ou maior): não cabe na bolsa, vai arrastada no fio
 var _color := Color.GRAY
 var _radius := 0.4

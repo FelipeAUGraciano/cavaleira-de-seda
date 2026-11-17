@@ -82,14 +82,38 @@ func _run() -> void:
 	for n in a.niche_spots:
 		var pr: Vector2 = a.colossus.project(n)
 		_check(a.cave.is_floor(Vector2(n.x, n.z)) and pr.y > Colossus.REACH + 0.5, "rachadura a %.1f m do meio da trilha (fora do alcance)" % pr.y)
-	for seal in [a.SEAL_EAST, a.SEAL_SOUTH]:
-		var q: PackedVector3Array = World.nav.path(a.spawn_point, Vector3(seal.x, 0, seal.y) + Vector3(2.5, 0, 0) if seal == a.SEAL_EAST else Vector3(seal.x, 0, seal.y + 2.5))
-		_check(q.is_empty() or Fx.flat_dist(q[q.size() - 1], Vector3(seal.x, 0, seal.y)) > 1.2, "desabamento tapa a passagem (%s)" % str(seal))
+	for pair in [[a.spawn_point, Vector3(87, 0, -40), "A1 → Floresta (pela toca)"], [Vector3(87, 0, -40), Vector3(62, 0, -55), "Floresta → Ninho"],
+			[a.spawn_point, Vector3(106, 0, -7), "A1 → Câmara de cristal"], [a.spawn_point, Vector3(90, 0, 45), "A1 → Fosso dos besouros (rachadura)"],
+			[Vector3(152, 0, -40), Vector3(156, 0, 0), "Santuário → arena"], [Vector3(112, 0, -7), Vector3(126, 0, 8), "Cortina viva liga a Trilha"]]:
+		_check(_reach(pair[0], pair[1]), "dá para andar: %s" % pair[2])
+	_check(not _reach(Vector3(106, 0, -38), Vector3(130, 0, -38)), "o Abismo duplo não se atravessa a pé")
+	_check(not _reach(Vector3(87, 0, -40), Vector3(152, 0, -40)), "sem atalho do norte para o Santuário")
+	_check(not _reach(Vector3(156, 0, 0), Vector3(160, 0, 26)), "o corpo da Serpente tapa o Poço de vapor")
+	_check(not _reach(Vector3(126, 0, 8), Vector3(156, 0, 0)), "sem atalho da Trilha para a arena")
+	var big := 0
+	for id in ["A1", "A2", "A5", "A6", "A11", "A12", "A15", "A18"]:
+		big += (World.nav.room_cells.get(id, []) as Array).size()
+	_check(big > 3500, "caverna gerada grande como as Galerias (%d m² nessas câmaras)" % big)
+
+	# Tecelagem: o Abismo duplo pede 17,6 m de fio
+	var wa: WebAnchor = WebNetwork.anchors["A9_o_-41"]
+	var wb: WebAnchor = WebNetwork.anchors["A9_l_-41"]
+	player.silk = player.max_silk
+	_check(player._strand_error(wa, wb).begins_with("Longe demais"), "Tecelagem 1: o fio não alcança o outro lado (%.1f m)" % Fx.flat_dist(wa.global_position, wb.global_position))
+	player.weave_xp = 55
+	player._gain_weave()
+	_check(player.weave_level() == 5 and is_equal_approx(player.strand_range(), 18.0), "56 fios tecidos: Tecelagem 5, fio de 18 m")
+	_check(player._strand_error(wa, wb) == "", "com Tecelagem 5 o fio atravessa o Abismo duplo")
+	var anchors_a6 := 0
+	for n in WebNetwork.anchors:
+		if String(n).begins_with("A6_"):
+			anchors_a6 += 1
+	_check(anchors_a6 >= 20, "Floresta de estalagmites com dezenas de pilares (%d)" % anchors_a6)
 
 	# Ossário: besouros
 	var beetles: Array = []
 	for c in World.creatures:
-		if c is Beetle:
+		if c is Beetle and String(c.get_meta("grupo", "")).begins_with("A2"):
 			beetles.append(c)
 	_check(beetles.size() == 7, "7 besouros carniceiros no Ossário (%d)" % beetles.size())
 	var b: Beetle = beetles[0]
@@ -108,6 +132,7 @@ func _run() -> void:
 			corpse = c
 	_check(corpse != null, "besouro morto vira comida")
 	if corpse != null:
+		player.silk = 0.0
 		var s0 := player.silk
 		player._eat(corpse)
 		await _seconds(3.0)
@@ -207,10 +232,129 @@ func _run() -> void:
 
 	# A4: a toca do Abismo
 	_check(a.den != null and a.den.is_inside(Vector3(84, 0, -6)), "a Fenda do refúgio é uma toca")
-	_check(a.den.slots.size() == 1, "uma entrada só (a rachadura)")
+	_check(a.den.slots.size() == 4, "quatro frestas (Trilha, Floresta, Lago, Cristal)")
 	var far: float = col.project(Vector3(84, 0, -6)).y
 	_check(far > 12.0, "a toca fica longe do caminho do Colosso (%.0f m)" % far)
+	# A5: a pérola do Lago negro
+	var pearl: Pickup = null
+	for n in get_tree().get_nodes_in_group("pickup"):
+		if (n as Pickup).kind == "olho_escuro":
+			pearl = n
+	_check(pearl != null and a.cave.is_floor(Vector2(pearl.global_position.x, pearl.global_position.z)), "a pérola está na ilha do Lago negro")
+	var sight0 := player.sight_radius()
+	if pearl != null:
+		player.invuln = 999.0
+		player.global_position = pearl.global_position + Vector3(0, 0.1, 0)
+		await _seconds(0.4)
+	_check(player.sight_radius() > sight0 + 1.4, "Resistência a Escuridão: +1,5 m de visão (%.1f → %.1f)" % [sight0, player.sight_radius()])
+
+	# A7: escorpiões
+	var sc: Scorpion = null
+	for c in World.creatures:
+		if c is Scorpion:
+			sc = c
+	_check(sc != null, "escorpiões no Ninho")
+	if sc != null:
+		player.invuln = 0.0
+		player.hp = player.max_hp
+		player.global_position = sc.global_position + Vector3(2.5, 0.1, 0)
+		sc.on_attack_hit(sc.find_attack("ferrao"), player)
+		_check(player.poison_t > 0.0, "o ferrão envenena")
+		var hp0 := player.hp
+		await _seconds(1.0)
+		_check(player.hp < hp0 - 1.5, "veneno tira vida aos poucos (%.1f)" % (hp0 - player.hp))
+		player.poison_t = 0.0
+		player.invuln = 999.0
+		sc.take_damage(999.0, player)
+		await _seconds(0.3)
+		var sk: Corpse = null
+		for c in get_tree().get_nodes_in_group("corpse"):
+			if (c as Corpse).display_name == "Escorpião-de-obsidiana":
+				sk = c
+		if sk != null:
+			player._eat(sk)
+		_check(player.resist_poison == 1, "comer escorpião: Resistência a Veneno 1")
+
+	# A8: a Cortina viva
+	var cur: BatCurtain = a.curtain
+	cur.mode = BatCurtain.Mode.SLEEP
+	player.invuln = 999.0
+	player.rune_on = false
+	player.global_position = cur.global_position + Vector3(0, 0.1, 0)
+	player.velocity = Vector3.ZERO
+	await _seconds(0.4)
+	_check(cur.mode == BatCurtain.Mode.SLEEP, "runa apagada e devagar: a Cortina viva não acorda")
+	player.rune_on = true
+	await _seconds(0.3)
+	_check(cur.mode == BatCurtain.Mode.AWAKE, "runa acesa embaixo dela: a cortina se fecha")
+	_check(player.external_velocity.length() > 3.0, "e empurra você para fora")
+	EventBus.rune_pulsed.emit(player.global_position)
+	await _frames(2)
+	_check(cur.mode == BatCurtain.Mode.STUNNED, "Pulso Espiral: os morcegos caem atordoados")
+	player.rune_on = false
+
+	# A12: a Serpente-cega
+	var sp: Serpent = a.serpent
+	player.invuln = 999.0
+	player.global_position = Vector3(156, 0.1, -7)
+	await _seconds(0.5)
+	_check(sp.awake, "entrar na arena acorda a Serpente-cega")
+	player.global_position = Vector3(147, 0.1, -3)
+	player.velocity = Vector3.ZERO
+	await _frames(3)
+	_check(not sp.feels(player), "parada, ela não te sente")
+	var hp_s := sp.hp
+	sp.take_damage(20.0, player)
+	_check(absf((hp_s - sp.hp) - 6.0) < 0.5, "escamas seguram 70%% do dano (%.1f)" % (hp_s - sp.hp))
+	sp.global_position = Vector3(156, 0.3, 0)
+	sp.mode = Serpent.Mode.PROWL
+	var trap_pos := Vector3(156, 0, -6)
+	var trap := WebNetwork.create_trap(trap_pos)
+	var caught := false
+	for i in 300:
+		await get_tree().physics_frame
+		player.global_position = Vector3(147, 0.1, -3)
+		player.velocity = Vector3.ZERO
+		if sp.is_entangled():
+			caught = true
+			break
+	_check(caught, "teia nova vibra, ela dá o bote nela e fica enredada")
+	_check(not is_instance_valid(trap) or not WebNetwork.traps.has(trap), "a teia é mordida e some")
+	if caught:
+		hp_s = sp.hp
+		sp.take_damage(20.0, player)
+		_check(absf((hp_s - sp.hp) - 20.0) < 0.5, "enredada, as escamas abrem: dano cheio")
+	sp.take_damage(9999.0, player)
+	await _seconds(0.5)
+	_check(GameState.flags.has("a12_serpente"), "a Serpente-cega cai")
+	_check(a._plug == null, "o corpo dela sai do poço")
+	player.global_position = Vector3(159, 0.1, 18)
+	await _seconds(0.3)
+	_check(Fx.flat_dist(player.global_position, Vector3(159, 0, 18)) < 1.0, "dá para passar para o Poço de vapor")
+
+	# A13 e A14
+	player.invuln = 0.0
+	player.hp = player.max_hp
+	var vent: Node3D = a._vents[0]
+	var burnt := false
+	for i in 50:
+		player.global_position = vent.global_position + Vector3(0, 0.1, 0)
+		await _seconds(0.1)
+		if player.hp < player.max_hp:
+			burnt = true
+			break
+	_check(burnt, "jato de vapor queima")
+	player.invuln = 999.0
+	player.global_position = Vector3(162, 0.1, 55)
+	await _seconds(0.5)
+	_check(GameState.flags.has("ato2_fim") and a.hud.cinematic, "topo da Rampa quente: Fim do Ato 2")
+
 	_end()
+
+
+func _reach(from: Vector3, to: Vector3) -> bool:
+	var p: PackedVector3Array = World.nav.path(from, to)
+	return p.size() > 0 and Fx.flat_dist(p[p.size() - 1], to) < 2.5
 
 
 func _side_off(col: Colossus, at: float, dist: float) -> Vector3:
