@@ -1,11 +1,15 @@
 class_name CaptureWeb
 extends Area3D
-## Teia de captura: área de ~3x3 m. P fica presa; M fica presa uns 2 s e rasga a teia; G arrebenta.
+## Teia de captura: área de ~3x3 m. Aguenta 3 de peso no total (3 presas pequenas; M pesa 2):
+## quem passar do limite arrebenta a teia e solta quem estava preso. G arrebenta na hora.
 
 const RADIUS := 1.6
 const ENTANGLE_TIME := 4.0
 
-var charges := 2
+const CAPACITY := 3
+var used := 0                 ## peso que ela já segurou (gasta: 3 presas pequenas e acabou)
+var held: Array = []
+var _torn := false
 var _disc_mat: StandardMaterial3D
 
 
@@ -35,24 +39,45 @@ func _ready() -> void:
 
 
 func _on_body_entered(body: Node3D) -> void:
-	if charges <= 0:
+	if _torn:
 		return
 	var c := body as Creature
-	if c == null or c.dead:
+	if c == null or c.dead or c._web_immune > 0.0:
 		return
-	# Teia por tamanho (Creature.entangle): P fica presa; M rasga e se solta logo; G arrebenta.
-	c.entangle(ENTANGLE_TIME)
+	var w := c.web_weight()
+	if used + w > CAPACITY:
+		_rip(c)
+		return
+	var t := c.entangle(ENTANGLE_TIME)
+	if t <= 0.0:
+		return
 	var pl = GameState.player
 	if pl != null and is_instance_valid(pl) and pl.has_skill("teia_veneno"):
 		c.add_poison()   # Teia Venenosa
-	if c.size >= Creature.Size.M:
-		charges = 1   # quem rasga a teia acaba com ela
-		if c.size >= Creature.Size.G:
-			EventBus.message.emit("O %s arrebentou a teia de captura!" % c.display_name)
-	charges -= 1
-	_disc_mat.albedo_color.a = 0.12 if charges <= 0 else 0.22
+	used += w
+	held.append(c)
+	_disc_mat.albedo_color.a = lerpf(0.3, 0.1, float(used) / CAPACITY)
 	EventBus.web_touched.emit(global_position, c)
-	if charges <= 0:
+	if used >= CAPACITY:
+		EventBus.message.emit("A teia de captura está no limite (%d/%d)." % [used, CAPACITY])
 		await get_tree().create_timer(ENTANGLE_TIME).timeout
-		WebNetwork.remove_trap(self)
-		queue_free()
+		if is_instance_valid(self) and not _torn:
+			_remove()
+
+
+func _rip(by: Creature) -> void:
+	## Peso demais (ou bicho grande): a teia arrebenta e solta todo mundo.
+	_torn = true
+	for h in held:
+		if is_instance_valid(h):
+			(h as Creature).release_web()
+	held.clear()
+	by.slow(0.55, 1.0)
+	EventBus.web_touched.emit(global_position, by)
+	EventBus.message.emit("O %s arrebentou a teia de captura! (aguenta %d presas pequenas)" % [by.display_name, CAPACITY])
+	_remove()
+
+
+func _remove() -> void:
+	WebNetwork.remove_trap(self)
+	queue_free()

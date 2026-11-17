@@ -172,8 +172,8 @@ func to_dict() -> Dictionary:
 			s.append([st.anchor_a, st.anchor_b])
 	var t := []
 	for trp in traps:
-		if is_instance_valid(trp) and trp.charges > 0:
-			t.append([trp.position.x, trp.position.z, trp.charges])
+		if is_instance_valid(trp) and trp.used < CaptureWeb.CAPACITY:
+			t.append([trp.position.x, trp.position.z, CaptureWeb.CAPACITY - trp.used])   # quanto ainda aguenta
 	var c := []
 	for co in cocoons:
 		if is_instance_valid(co):
@@ -191,4 +191,4 @@ func load_from(d: Dictionary) -> void:
 			create_strand(anchors[a_name], anchors[b_name])
 	for t in d.get("traps", []):
 		var trap := create_trap(Vector3(float(t[0]), 0.0, float(t[1])))
-		trap.charges = int(t[2])
+		trap.used = clampi(CaptureWeb.CAPACITY - int(t[2]), 0, CaptureWeb.CAPACITY - 1)

@@ -38,7 +38,7 @@ func _run() -> void:
 
 	# Filhote: pequena e frágil
 	_check(player.form == Player.Form.FILHOTE and player.form_name() == "Filhote de Seda", "jogo novo começa como Filhote de Seda")
-	_check(is_equal_approx(player.max_hp, 50.0), "Filhote tem 50 PV (%.0f)" % player.max_hp)
+	_check(is_equal_approx(player.max_hp, 40.0) and is_equal_approx(player.max_silk, 40.0), "Filhote tem 40 PV e 40 de Seda (%.0f, %.0f)" % [player.max_hp, player.max_silk])
 	_check(absf(player._visual.scale.x - 0.7) < 0.01 and absf(player._leg_rig.size - 0.7) < 0.01, "Filhote é menor (corpo %.2f, patas %.2f)" % [player._visual.scale.x, player._leg_rig.size])
 	var frog: Frog = null
 	for c in World.creatures:
@@ -103,7 +103,7 @@ func _run() -> void:
 	var cocoon := WebNetwork.create_cocoon(Galerias.W(Vector3(44, 0, 36)))
 	player._rest(cocoon)
 	_check(player.form == Player.Form.CAVALEIRA and player.level == 1, "no nível %d o casulo faz a muda: Cavaleira de Seda, nível 1" % Player.EVOLVE_LEVEL)
-	_check(is_equal_approx(player.max_hp, 120.0) and is_equal_approx(player.max_energy, 125.0), "Cavaleira: 110 PV de base + os bônus de cristal guardados (%.0f PV, %.0f energia)" % [player.max_hp, player.max_energy])
+	_check(is_equal_approx(player.max_hp, 100.0) and is_equal_approx(player.max_energy, 105.0), "Cavaleira: 90 PV de base + os bônus de cristal guardados (%.0f PV, %.0f energia)" % [player.max_hp, player.max_energy])
 	await _seconds(1.8)
 	_check(absf(player._visual.scale.x - 1.0) < 0.05 and absf(player._leg_rig.size - 1.0) < 0.01, "ela cresce (corpo e patas no tamanho cheio)")
 	var data := player.to_dict()

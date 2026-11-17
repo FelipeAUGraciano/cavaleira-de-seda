@@ -10,6 +10,9 @@ var anchor_b := ""
 var a_pos := Vector3.ZERO
 var b_pos := Vector3.ZERO
 var in_territory := false
+## Peso que o fio aguenta preso nele ao mesmo tempo (3 presas pequenas; M pesa 2).
+const CAPACITY := 3
+var held: Array = []
 var _mat: StandardMaterial3D
 var _mem_mat: StandardMaterial3D
 var _dew_mat: StandardMaterial3D
@@ -273,3 +276,20 @@ func distance_to(p: Vector3) -> float:
 	var ab := b - a
 	var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
 	return q.distance_to(a + ab * t)
+
+
+func load_now() -> int:
+	## Peso preso agora (só quem ainda está enroscado e vivo).
+	held = held.filter(func(c): return is_instance_valid(c) and not c.dead and c.is_entangled())
+	var w := 0
+	for c in held:
+		w += (c as Creature).web_weight()
+	return w
+
+
+func release_all() -> void:
+	for c in held:
+		if is_instance_valid(c):
+			(c as Creature).release_web()
+	held.clear()
+

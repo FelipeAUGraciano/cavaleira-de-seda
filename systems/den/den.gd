@@ -5,7 +5,7 @@ extends Node3D
 ## cura, guarda a despensa (10 embrulhos) e é o coração do território.
 ## Cada entrada recebe uma porta de teia (C perto dela, 15 de Seda). Bicho com fome sente o
 ## cheiro da comida guardada, rasga a porta, entra, come um embrulho e vai embora.
-## Fios-alarme (melhoria, 50 de Seda) avisam onde você estiver.
+## Fios-alarme (melhoria, 30 de Seda) avisam onde você estiver.
 
 signal changed
 
@@ -13,7 +13,7 @@ const PANTRY_MAX := 10
 const CLAIM_COST := 30.0
 const DOOR_COST := 15.0
 const REPAIR_COST := 6.0
-const ALARM_COST := 50.0
+const ALARM_COST := 30.0
 const SAFE_R := 14.0              ## você por perto: ninguém tenta saquear
 
 var room_id := ""

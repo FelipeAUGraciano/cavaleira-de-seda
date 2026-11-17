@@ -149,7 +149,7 @@ func _run() -> void:
 	await _frames(3)
 	player.silk = player.max_silk
 	den.buy_alarm(player)
-	_check(den.alarm, "fios-alarme comprados (50 de Seda)")
+	_check(den.alarm, "fios-alarme comprados (30 de Seda)")
 	for c in World.creatures.duplicate():   # ninguém por perto para comer o sapo do teste
 		if is_instance_valid(c) and Fx.flat_dist(c.global_position, den.center) < 22.0:
 			c.queue_free()

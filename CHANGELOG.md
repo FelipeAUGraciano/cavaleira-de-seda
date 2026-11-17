@@ -2,6 +2,14 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Mais difícil: menos status, seda contada, teias com limite e seta de vibração (17/11)
+
+- **Status base menores:** Filhote 40 PV / 60 Energia / 40 Seda (era 50/80/80), +4/+3/+2 por nível (era +5/+4/+4). Cavaleira 90 PV / 90 Energia / 60 Seda (era 110/110/110), +8/+4/+3 por nível.
+- **Seda não regenera sozinha:** acabou o +1 por segundo com a barriga cheia. Seda volta comendo (presa, embrulho, despensa) ou descansando na toca. Os fios-alarme passaram a custar 30 (antes 50, mais que a Seda máxima do começo).
+- **Seta de vibração:** quando algo toca sua teia, aparece uma seta em volta da aranha apontando de onde veio, com a distância, como o indicador de dano dos jogos de tiro. Branca para bicho pequeno, laranja para médio, vermelha para grande e ciano para a toca; some em ~2,5 s; o mesmo bicho de novo renova a seta em vez de empilhar.
+- **Limite de peso nas teias:** cada fio e cada teia de captura aguentam 3 de peso (presa pequena 1, média 2, grande arrebenta na hora). No fio, a 4ª presa pequena arrebenta e solta as outras. A teia de captura segura 3 presas pequenas no total; quem passar do limite rasga a teia e solta todo mundo (antes ela pegava 2 bichos de qualquer tamanho).
+- Testes novos em `novos_test`; captura `tests/screenshot_vibracao.tscn`.
+
 ## A toca com cara de toca (15/11)
 
 - **Interior no estilo da casa da Kumoko:** chão forrado de seda trançada (raios e anéis com véu), paredes cobertas de teia (postes, fios que cedem, zigue-zague, fios soltos e véu como lençol), teias redondas encostadas na pedra, fios em leque do chão até o alto da parede e fios atravessando por cima. Seda branca com alguns fios no ciano do território e gotas de orvalho.

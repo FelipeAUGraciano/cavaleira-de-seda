@@ -613,9 +613,20 @@ func _walk_into_strands() -> void:
 		return
 	for s in WebNetwork.strands:
 		if is_instance_valid(s) and s.crossing_distance(global_position, body_radius * 2.0 + 0.2) < body_radius + 0.15:
+			if size == Size.P and s.load_now() + web_weight() > WebStrand.CAPACITY:
+				# peso demais: o fio não aguenta e arrebenta, soltando todo mundo
+				var was_mine: bool = s.in_territory
+				s.release_all()
+				WebNetwork.remove_strand(s)
+				EventBus.web_touched.emit(global_position, self)
+				_web_immune = 1.0
+				if was_mine:
+					EventBus.message.emit("Peso demais! O fio arrebentou e soltou as presas (aguenta %d pequenas)." % WebStrand.CAPACITY)
+				return
 			var held := entangle(3.0 if size == Size.P else 1.2)
 			if held <= 0.0:
 				return
+			s.held.append(self)
 			EventBus.web_touched.emit(global_position, self)
 			if size == Size.M:
 				var mine: bool = s.in_territory
@@ -695,6 +706,18 @@ func _apply_damage(amount: float) -> void:
 func add_poison() -> void:
 	poison_stacks = mini(poison_stacks + 1, MAX_POISON)
 	poison_time = POISON_DURATION
+
+
+func web_weight() -> int:
+	## Quanto pesa numa teia: P 1, M 2, G arrebenta qualquer uma.
+	return [1, 2, 99, 99][clampi(int(size), 0, 3)]
+
+
+func release_web() -> void:
+	## A teia arrebentou: solta na hora (fica um tempinho imune para não enroscar de novo).
+	entangled_time = 0.0
+	_web_overlay.visible = false
+	_web_immune = 1.0
 
 
 func entangle(duration: float) -> float:

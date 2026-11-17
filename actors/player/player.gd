@@ -48,10 +48,10 @@ const FALL_DAMAGE := 25.0
 enum Form { FILHOTE, CAVALEIRA }
 const EVOLVE_LEVEL := 8
 const FORMS := {
-	Form.FILHOTE: {"name": "Filhote de Seda", "scale": 0.7, "size": 0, "hp": 50.0, "energy": 80.0, "silk": 80.0,
-		"per_level": [5.0, 4.0, 4.0], "combo": [4.0, 4.0, 7.0], "bite": 3.0, "speed": 1.06, "hide": 0.8, "sight": 3.5},
-	Form.CAVALEIRA: {"name": "Cavaleira de Seda", "scale": 1.0, "size": 1, "hp": 110.0, "energy": 110.0, "silk": 110.0,
-		"per_level": [10.0, 5.0, 5.0], "combo": [8.0, 8.0, 14.0], "bite": 5.0, "speed": 1.0, "hide": 1.0, "sight": 5.5},
+	Form.FILHOTE: {"name": "Filhote de Seda", "scale": 0.7, "size": 0, "hp": 40.0, "energy": 60.0, "silk": 40.0,
+		"per_level": [4.0, 3.0, 2.0], "combo": [4.0, 4.0, 7.0], "bite": 3.0, "speed": 1.06, "hide": 0.8, "sight": 3.5},
+	Form.CAVALEIRA: {"name": "Cavaleira de Seda", "scale": 1.0, "size": 1, "hp": 90.0, "energy": 90.0, "silk": 60.0,
+		"per_level": [8.0, 4.0, 3.0], "combo": [8.0, 8.0, 14.0], "bite": 5.0, "speed": 1.0, "hide": 1.0, "sight": 5.5},
 }
 
 enum State { NORMAL, DODGE, BACKSTEP, ATTACK, BITE, ZIP, EAT, DEAD }
@@ -1503,8 +1503,7 @@ func _update_resources(delta: float) -> void:
 	energy_delay = maxf(0.0, energy_delay - delta)
 	if energy_delay <= 0.0 and (rune_on or has_skill("runa_oculta")) and not weaving:
 		energy = minf(max_energy, energy + ENERGY_REGEN * delta * (1.5 if in_territory else 1.0) * (1.0 if rune_on else 0.5))
-	if satiety > 30.0:
-		silk = minf(max_silk, silk + delta)
+	# seda não volta sozinha: só comendo (presa, embrulho) ou descansando na toca
 	if satiety > 60.0:
 		hp = minf(max_hp, hp + (0.15 if form == Form.FILHOTE else 0.4) * (2.0 if has_skill("sangue_frio") else 1.0) * delta)
 

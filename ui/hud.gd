@@ -49,6 +49,9 @@ const TITLE_SECS := 5.0   ## (capturas/depuração) mostra todas as criaturas no
 var _pause_box: MenuBox
 var _options: OptionsMenu
 var cocoon_menu: CocoonMenu
+var vibes: Array = []           ## setas de vibração: {pos, t, col, big, who}
+const VIBE_TIME := 2.6
+const VIBE_RING := 150.0         ## distância (px) da seta até a aranha
 var _hint_text := ""
 var _hint_time := 0.0
 var _last_us := 0
@@ -107,6 +110,9 @@ func _process(_delta: float) -> void:
 	_big_time = maxf(0.0, _big_time - dt)
 	_hint_time = maxf(0.0, _hint_time - dt)
 	_title_time = maxf(0.0, _title_time - dt)
+	for v in vibes:
+		v["t"] -= dt
+	vibes = vibes.filter(func(v): return v["t"] > 0.0)
 	if Settings.input_blocked() or _options.visible or (cocoon_menu != null and cocoon_menu.visible):
 		pass   # Opções abertas ou trocando tecla: as teclas do jogo esperam
 	else:
@@ -212,7 +218,52 @@ func _on_web_touched(pos: Vector3, by: Node) -> void:
 	if c != null:
 		who = c.display_name
 	var d := pos - player.global_position
-	_on_message("Vibração! %s tocou sua teia (%s, %d m)." % [who, _direction_name(d), int(Vector2(d.x, d.z).length())])
+	_on_message("Vibração! %s tocou sua teia (%d m)." % [who, int(Vector2(d.x, d.z).length())])
+	# seta como nos jogos de tiro: aponta de onde veio; cor pelo tamanho de quem tocou
+	var col := Color(0.6, 0.95, 1.0)
+	var big := 0
+	if c != null:
+		big = int(c.size)
+		col = [Color(0.8, 0.95, 1.0), Color(1.0, 0.68, 0.25), Color(1.0, 0.3, 0.25)][clampi(big, 0, 2)]
+	for v in vibes:   # o mesmo bicho de novo: renova a seta em vez de empilhar
+		if v["who"] == by and by != null:
+			v["pos"] = pos
+			v["t"] = VIBE_TIME
+			return
+	vibes.append({"pos": pos, "t": VIBE_TIME, "col": col, "big": big, "who": by})
+	if vibes.size() > 6:
+		vibes.pop_front()
+
+
+func _draw_vibes() -> void:
+	## Setas em volta da aranha apontando para onde a teia vibrou (some em ~2,5 s).
+	var cam := _root.get_viewport().get_camera_3d()
+	if cam == null or vibes.is_empty():
+		return
+	var me := cam.unproject_position(player.global_position + Vector3(0, 0.4, 0))
+	for v in vibes:
+		var there := cam.unproject_position(v["pos"] as Vector3)
+		var dir := there - me
+		if dir.length() < 1.0:
+			continue
+		dir = dir.normalized()
+		var a := clampf(float(v["t"]) / 0.6, 0.0, 1.0) * clampf((VIBE_TIME - float(v["t"])) / 0.12 + 0.3, 0.0, 1.0)
+		var col: Color = v["col"]
+		var pulse := 1.0 + 0.12 * sin(float(v["t"]) * 18.0)
+		var size := (14.0 + 5.0 * int(v["big"])) * pulse
+		var tip := me + dir * (VIBE_RING + size)
+		var base := me + dir * VIBE_RING
+		var side := Vector2(-dir.y, dir.x)
+		# arco fino no anel (de onde veio) + a seta
+		var ang := dir.angle()
+		_cv.draw_arc(me, VIBE_RING - 6.0, ang - 0.32, ang + 0.32, 12, Color(col, 0.55 * a), 4.0, true)
+		var tri := PackedVector2Array([tip, base + side * size * 0.75, base - side * size * 0.75])
+		_cv.draw_colored_polygon(tri, Color(col, 0.9 * a))
+		_cv.draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), Color(0, 0, 0, 0.5 * a), 1.5, true)
+		var dist := int(Vector2(v["pos"].x - player.global_position.x, v["pos"].z - player.global_position.z).length())
+		var lab := "%d m" % dist
+		var lp := tip + dir * 16.0 - Vector2(_font.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x * 0.5, -5.0)
+		_cv.draw_string(_font, lp, lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(col, 0.85 * a))
 
 
 func _direction_name(d: Vector3) -> String:
@@ -233,6 +284,7 @@ func _on_draw() -> void:
 		_draw_status(vp)
 		_draw_boss(vp)
 		_draw_danger(vp)
+		_draw_vibes()
 		if player.weaving:
 			_draw_weave_hint(vp)
 		var ms = _map_system()

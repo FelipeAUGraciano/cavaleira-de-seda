@@ -43,7 +43,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 | Pausa, Opções e menu | Esc | Start |
 | Testes: +1 nível / novo jogo direto | F1 / F8 | — |
 
-Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tecelagem** o tempo cai para 25%. Clique em um pilar e depois em outro (até 12 m) para esticar um **fio-guia**. Andar no fio é 1,5× mais rápido, silencioso, e é o único jeito de cruzar o abismo. O botão direito arma uma **teia de captura** (a partir do nível 3).
+Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tecelagem** o tempo cai para 25%. Clique em um pilar e depois em outro (até 12 m) para esticar um **fio-guia**. Andar no fio é 1,5× mais rápido, silencioso, e é o único jeito de cruzar o abismo. O botão direito arma uma **teia de captura** (a partir do nível 3). Fio e teia de captura aguentam **3 de peso** (3 presas pequenas; um bicho médio pesa 2): passou disso, arrebentam e soltam todo mundo. A **Seda não volta sozinha**: só comendo ou descansando na toca. Quando algo toca sua teia, uma **seta** em volta da aranha aponta de onde veio (branca = pequeno, laranja = médio, vermelha = grande).
 
 ## O que tem em cada camada
 
@@ -53,7 +53,7 @@ Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tece
 
 **Câmara de teste:** a câmara cinza da v0.1 continua no projeto (`world/layers/test_chamber.tscn`) para o teste automático dos sistemas.
 
-Sistemas: 4 recursos que aparecem no corpo da aranha (placas = PV, runa = Energia, cachecol = Seda, abdômen = Saciedade), fome, território, vibração nos fios, casulo com save, veneno, Enredado com crítico ×2, furtividade por luz e barulho, e um ecossistema básico (o sapo caça e come larvas).
+Sistemas: 4 recursos que aparecem no corpo da aranha (placas = PV, runa = Energia, cachecol = Seda, abdômen = Saciedade), fome, território, vibração nos fios (com seta na tela), toca com save, veneno, Enredado com crítico ×2, furtividade por luz e barulho, e um ecossistema básico (o sapo caça e come larvas).
 
 ## Roteiro de teste (20 min)
 

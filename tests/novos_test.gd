@@ -21,6 +21,7 @@ func _ready() -> void:
 	await _pickups()
 	await _ants()
 	await _snake()
+	await _dificuldade()
 	print("\n==== %s (%d falha(s)) ====" % ["OK" if failures == 0 else "FALHOU", failures])
 	GameState.delete_save()
 	get_tree().quit(1 if failures > 0 else 0)
@@ -155,6 +156,71 @@ func _snake() -> void:
 			cross = true
 	sn.on_attack_active(a)
 	_check(cross and not WebNetwork.strands.has(s2), "o bote arrebenta o fio no caminho (cruzava: %s)" % cross)
+
+
+func _dificuldade() -> void:
+	## 17/11: status menores, seda sem regenerar sozinha, limite de peso nas teias, seta de vibração.
+	_check(player.max_silk <= 50.0 and player.max_hp <= 45.0, "Filhote mais fraca (%.0f PV, %.0f Seda)" % [player.max_hp, player.max_silk])
+	player.silk = 10.0
+	player.satiety = 100.0
+	await _seconds(2.0)
+	_check(is_equal_approx(player.silk, 10.0), "seda não volta sozinha (%.1f)" % player.silk)
+	# fio: 3 presas pequenas presas, a quarta arrebenta
+	var st := WebNetwork.create_strand(WebNetwork.anchors["Pilar_07"], WebNetwork.anchors["Pilar_08"])
+	await _frames(2)
+	var mid := st.a_pos.lerp(st.b_pos, 0.5)
+	mid.y -= 0.6   # o corpo na altura do fio (como um bicho subindo por ele)
+	var larvas: Array = []
+	for k in 4:
+		var l := Larva.new()
+		l.position = mid + Vector3(0.0, 0.3, 0.0)
+		layer.ecosystem.add_child(l)
+		l.set_physics_process(false)   # parada no fio (sem cair nem andar)
+		larvas.append(l)
+	await _frames(2)
+	for k in 3:
+		(larvas[k] as Larva).global_position = mid
+		(larvas[k] as Larva)._web_immune = 0.0
+		(larvas[k] as Larva)._walk_into_strands()
+	_check(st.load_now() == 3 and WebNetwork.strands.has(st), "o fio segura 3 presas pequenas (%d)" % st.load_now())
+	var l4: Larva = larvas[3]
+	l4.global_position = mid
+	l4._web_immune = 0.0
+	l4._walk_into_strands()
+	_check(not WebNetwork.strands.has(st), "a quarta arrebenta o fio")
+	_check(not (larvas[0] as Larva).is_entangled() and not (larvas[1] as Larva).is_entangled(), "e solta as que estavam presas")
+	for l in larvas:
+		l.queue_free()
+	await _frames(2)
+	# teia de captura: 2 pequenas + um sapo (peso 2) = passou do limite, arrebenta
+	var trap := WebNetwork.create_trap(Vector3(-14, 0, -8))
+	await _frames(2)
+	var a := Larva.new()
+	var b := Larva.new()
+	for l in [a, b]:
+		l.position = Vector3(-14, 0.3, -8)
+		layer.ecosystem.add_child(l)
+	await _frames(2)
+	trap._on_body_entered(a)
+	trap._on_body_entered(b)
+	_check(trap.used == 2 and a.is_entangled() and b.is_entangled(), "a teia de captura prende 2 larvas (peso %d/3)" % trap.used)
+	var fr := Frog.new()
+	fr.position = Vector3(-14, 0.3, -8)
+	layer.ecosystem.add_child(fr)
+	await _frames(2)
+	if is_instance_valid(trap):   # pode já ter arrebentado sozinha quando o sapo pisou nela
+		trap._on_body_entered(fr)
+	await _frames(2)
+	_check(not is_instance_valid(trap) and not a.is_entangled() and not fr.is_entangled(), "o sapo passa do limite: a teia arrebenta e solta todo mundo")
+	for l in [a, b, fr]:
+		l.queue_free()
+	# seta de vibração
+	var hud = layer.hud
+	hud.vibes.clear()
+	EventBus.web_touched.emit(player.global_position + Vector3(6, 0, 0), null)
+	_check(hud.vibes.size() == 1, "vibração mostra uma seta")
+	await _seconds(3.0)
+	_check(hud.vibes.is_empty(), "e a seta some sozinha")
 
 
 func _check(ok: bool, label: String) -> void:
