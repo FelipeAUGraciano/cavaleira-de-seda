@@ -124,6 +124,24 @@ func begin() -> void:
 	EventBus.big_message.emit("A MÃE ACORDOU!")
 
 
+func slam() -> void:
+	## Fim da fuga: ela chega na boca do túnel, não cabe e bate com o corpo na entrada.
+	active = false
+	finished = true
+	visible = true
+	progress = _length
+	_place(progress)
+	var base := position
+	var fwd := Vector3(cos(-rotation.y), 0.0, sin(-rotation.y))
+	var tw := create_tween()
+	for k in 2:
+		tw.tween_property(self, "position", base + fwd * 1.6, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(self, "rotation:z", -0.22, 0.18)
+		tw.tween_property(self, "position", base, 0.45).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(self, "rotation:z", 0.0, 0.45)
+		tw.tween_interval(0.25)
+
+
 func reset() -> void:
 	active = false
 	finished = false

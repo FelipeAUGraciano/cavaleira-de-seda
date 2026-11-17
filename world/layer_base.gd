@@ -41,6 +41,7 @@ var den: Den = null
 ## Laboratório de testes: casulo em qualquer lugar (no jogo, só o casulo central da toca).
 var free_cocoons := false
 var _autosaved := {}
+var _walk_in := false            ## chegou de outra camada: entra andando, com o nome da área
 var restarting := false        ## morreu: o ato recomeçou do início (permadeath)
 
 
@@ -123,6 +124,7 @@ func _ready() -> void:
 	elif not GameState.carry.is_empty():
 		player.apply_carry(GameState.carry)
 		GameState.carry = {}
+		_walk_in = true
 	if GameState.act.is_empty() or String(GameState.act.get("scene", "")) != scene_file_path:
 		GameState.act = {"scene": scene_file_path, "player": player.to_dict(), "flags": GameState.flags.duplicate(true)}
 		GameState.save_act_start()
@@ -320,6 +322,62 @@ func _on_room_entered(room: Dictionary) -> void:
 		GameState.say_once(String(room.get("line_id", "")), line)
 
 
+func _walk_in_scene() -> void:
+	## Chegada à la Elden Ring: ela entra correndo pela borda da câmara, a câmera chega perto,
+	## o nome da área aparece numa faixa escura e o controle volta.
+	var from := _entry_point()
+	player.global_position = from
+	player.autopilot = true
+	player.auto_target = spawn_point
+	player.auto_run = true
+	player.cam_zoom = 12.0
+	player.snap_camera()
+	hud.cinematic = true
+	hud.fade(0.0, 1.4)
+	await get_tree().create_timer(0.9).timeout
+	if not is_inside_tree():
+		return
+	hud.show_area_title(layer_name, layer_subtitle)
+	var t := 0.0
+	while t < 3.0 and is_inside_tree() and Fx.flat_dist(player.global_position, spawn_point) > 0.5:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	if not is_inside_tree():
+		return
+	player.auto_run = false
+	await get_tree().create_timer(1.6).timeout   # para, olha em volta, o nome ainda na tela
+	if not is_inside_tree():
+		return
+	player.autopilot = false
+	player.cam_zoom = 0.0
+	hud.cinematic = false
+
+
+func _entry_point() -> Vector3:
+	## De onde ela entra: um ponto a ~5 m do início, em chão firme, de preferência ao norte.
+	var cave_builder = get("cave") if "cave" in self else null
+	if cave_builder == null:
+		return spawn_point
+	var best := spawn_point
+	var best_score := -INF
+	for k in 16:
+		var a := k * TAU / 16.0
+		var dir := Vector2(sin(a), -cos(a))   # k = 0 é norte (z negativo)
+		var ok := true
+		for step in range(1, 11):
+			var q := Vector2(spawn_point.x, spawn_point.z) + dir * step * 0.5
+			if cave_builder.floor_value(q) < 0.5:
+				ok = false
+				break
+		if not ok:
+			continue
+		var score: float = cos(a) * 0.5 + cave_builder.floor_value(Vector2(spawn_point.x, spawn_point.z) + dir * 5.0)
+		if score > best_score:
+			best_score = score
+			best = spawn_point + Vector3(dir.x, 0.0, dir.y) * 5.0
+	return best
+
+
 func autosave() -> void:
 	## Salva sem curar (chegada na camada e pontos seguros, enquanto não há toca).
 	if player == null or player.dead or restarting:
@@ -328,7 +386,8 @@ func autosave() -> void:
 	EventBus.message.emit("Jogo salvo (ponto seguro).")
 
 
-func go_to_layer(path: String) -> void:
+func go_to_layer(path: String, header: String = "", sub: String = "") -> void:
+	## Troca de camada: escurece, tela de carregamento (a teia sendo tecida) e a camada nova.
 	if den != null:
 		den.remember()
 	GameState.carry = player.to_dict()
@@ -336,9 +395,9 @@ func go_to_layer(path: String) -> void:
 	if player != null:
 		player.velocity = Vector3.ZERO
 		player.set_physics_process(false)
-	if hud != null:
+	if hud != null and hud.fade_alpha < 0.99:
 		await hud.fade(1.0, 1.0)
-	get_tree().change_scene_to_file.call_deferred(path)
+	get_tree().root.add_child(LoadingScreen.new().setup(path, header, sub))
 
 
 func _arrival() -> void:
@@ -349,9 +408,12 @@ func _arrival() -> void:
 	if resumed:
 		hud.fade(0.0, 0.6)
 		return
-	hud.fade(0.0, 1.6)
-	hud.show_title(layer_name, layer_subtitle)
-	await get_tree().create_timer(2.0).timeout
+	if _walk_in:
+		await _walk_in_scene()
+	else:
+		hud.fade(0.0, 1.6)
+		hud.show_area_title(layer_name, layer_subtitle)
+		await get_tree().create_timer(2.0).timeout
 	if is_inside_tree() and GameState.current_layer == self:
 		autosave()   # chegou numa camada: salva (sem curar)
 

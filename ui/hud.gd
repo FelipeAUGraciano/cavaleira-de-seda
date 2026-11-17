@@ -42,6 +42,16 @@ var _show_help := true
 var _show_map := false
 var show_all_creatures := false
 var fade_alpha := 0.0             ## tela preta das transições (0 = some)
+## Nome de área à la Elden Ring (chegada numa camada): faixa escura, letras serifadas.
+const AREA_SECS := 6.5
+const AREA_GOLD := Color(0.93, 0.86, 0.68)
+var _area := ""
+var _area_sub := ""
+var _area_time := 0.0
+var _serif: Font = preload("res://ui/fonts/Cinzel-Medium.woff2")
+## Cena (fuga, chegada): faixas pretas em cima e embaixo e a interface some.
+var cinematic := false
+var _cine := 0.0
 var _title := ""
 var _subtitle := ""
 var _title_time := 0.0
@@ -110,6 +120,8 @@ func _process(_delta: float) -> void:
 	_big_time = maxf(0.0, _big_time - dt)
 	_hint_time = maxf(0.0, _hint_time - dt)
 	_title_time = maxf(0.0, _title_time - dt)
+	_area_time = maxf(0.0, _area_time - dt)
+	_cine = move_toward(_cine, 1.0 if cinematic else 0.0, dt * 1.6)
 	for v in vibes:
 		v["t"] -= dt
 	vibes = vibes.filter(func(v): return v["t"] > 0.0)
@@ -131,7 +143,7 @@ func _process(_delta: float) -> void:
 	var vp := _root.get_viewport_rect().size
 	_mini.position = Vector2(vp.x - 254.0, 20.0)
 	_mini.size = Vector2(230.0, 160.0)
-	_mini.visible = _map_system() != null and not _show_map and player != null
+	_mini.visible = _map_system() != null and not _show_map and player != null and _cine < 0.3
 	_root.queue_redraw()
 	_mini.queue_redraw()
 
@@ -279,7 +291,7 @@ func _direction_name(d: Vector3) -> String:
 func _on_draw() -> void:
 	_cv = _root
 	var vp := _root.get_viewport_rect().size
-	if player != null and is_instance_valid(player):
+	if player != null and is_instance_valid(player) and _cine < 0.3:   # em cena, a interface some
 		_draw_bars(vp)
 		_draw_status(vp)
 		_draw_boss(vp)
@@ -296,8 +308,9 @@ func _on_draw() -> void:
 			_draw_help(vp)
 		if _show_map and ms != null:
 			_draw_full_map(ms, vp)
-	_draw_messages()
-	if _hint_time > 0.0 and not _show_map:
+	if _cine < 0.3:
+		_draw_messages()
+	if _hint_time > 0.0 and not _show_map and _cine < 0.3:
 		var alpha_h := clampf(_hint_time, 0.0, 1.0)
 		var tw := _font.get_string_size(_hint_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 		_cv.draw_rect(Rect2(vp.x * 0.5 - tw * 0.5 - 18.0, 92.0, tw + 36.0, 38.0), Color(0.05, 0.12, 0.16, 0.8 * alpha_h))
@@ -306,7 +319,7 @@ func _on_draw() -> void:
 		var alpha := clampf(_mono_time, 0.0, 1.0)
 		var mono_y := vp.y - 240.0 if (player != null and player.weaving) else vp.y - 200.0
 		_text_center(vp.x, mono_y, "Cavaleira: \"%s\"" % _mono_text, 20, Color(0.75, 0.92, 1.0, alpha))
-	if _big_time > 0.0:
+	if _big_time > 0.0 and _cine < 0.3:
 		_text_center(vp.x, vp.y * 0.42, _big_text, 34, Color(1, 1, 1, clampf(_big_time, 0.0, 1.0)))
 	if get_tree().paused:
 		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.65))
@@ -332,6 +345,61 @@ func fade(to: float, secs: float) -> Signal:
 	return tw.finished
 
 
+func show_area_title(area: String, subtitle: String = "") -> void:
+	_area = area
+	_area_sub = subtitle
+	_area_time = AREA_SECS
+
+
+func _draw_area_title(vp: Vector2) -> void:
+	## Faixa escura que some nas bordas, nome em letras serifadas espaçadas, um fio fino com
+	## um losango no meio e o subtítulo pequeno embaixo. Entra devagar e sai devagar.
+	var el := AREA_SECS - _area_time
+	var a := clampf(el / 1.4, 0.0, 1.0) * clampf(_area_time / 1.8, 0.0, 1.0)
+	a = a * a * (3.0 - 2.0 * a)
+	var cy := vp.y * 0.36
+	var band := 92.0
+	var dark := Color(0, 0, 0, 0.62 * a)
+	var clear := Color(0, 0, 0, 0.0)
+	_cv.draw_polygon(PackedVector2Array([Vector2(0, cy - band), Vector2(vp.x, cy - band), Vector2(vp.x, cy), Vector2(0, cy)]),
+		PackedColorArray([clear, clear, dark, dark]))
+	_cv.draw_polygon(PackedVector2Array([Vector2(0, cy), Vector2(vp.x, cy), Vector2(vp.x, cy + band), Vector2(0, cy + band)]),
+		PackedColorArray([dark, dark, clear, clear]))
+	var size := 58
+	var spacing := 6.0 + el * 0.5   # as letras se afastam devagar enquanto o nome está na tela
+	var text := _area.to_upper()
+	var w := 0.0
+	for ch in text:
+		w += _serif.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + spacing
+	w -= spacing
+	var x := vp.x * 0.5 - w * 0.5
+	var base := cy + size * 0.32
+	for ch in text:
+		_cv.draw_string(_serif, Vector2(x + 2, base + 3), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0, 0, 0, 0.7 * a))
+		_cv.draw_string(_serif, Vector2(x, base), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(AREA_GOLD, a))
+		x += _serif.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + spacing
+	# fio fino que some nas pontas, com um losango no meio
+	var ly := cy + size * 0.62
+	var half := maxf(w * 0.55, 260.0)
+	var steps := 24
+	for i in steps:
+		var t0 := float(i) / steps
+		var t1 := float(i + 1) / steps
+		var fade := 1.0 - absf((t0 + t1) - 1.0)
+		_cv.draw_line(Vector2(vp.x * 0.5 - half + t0 * half * 2.0, ly), Vector2(vp.x * 0.5 - half + t1 * half * 2.0, ly), Color(AREA_GOLD, 0.75 * a * fade), 1.4, true)
+	var d := 5.0
+	_cv.draw_colored_polygon(PackedVector2Array([Vector2(vp.x * 0.5, ly - d), Vector2(vp.x * 0.5 + d, ly), Vector2(vp.x * 0.5, ly + d), Vector2(vp.x * 0.5 - d, ly)]), Color(AREA_GOLD, 0.9 * a))
+	if _area_sub != "":
+		var sw := _serif.get_string_size(_area_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+		_cv.draw_string(_serif, Vector2(vp.x * 0.5 - sw * 0.5, ly + 34), _area_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.85, 0.83, 0.78, 0.8 * a))
+
+
+func _draw_cinematic(vp: Vector2) -> void:
+	var h := vp.y * 0.11 * _cine
+	_cv.draw_rect(Rect2(0, 0, vp.x, h), Color(0, 0, 0, 1))
+	_cv.draw_rect(Rect2(0, vp.y - h, vp.x, h), Color(0, 0, 0, 1))
+
+
 func show_title(title: String, subtitle: String) -> void:
 	_title = title
 	_subtitle = subtitle
@@ -339,8 +407,12 @@ func show_title(title: String, subtitle: String) -> void:
 
 
 func _draw_transition(vp: Vector2) -> void:
+	if _cine > 0.001:
+		_draw_cinematic(vp)
 	if fade_alpha > 0.001:
 		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, fade_alpha))
+	if _area_time > 0.0:
+		_draw_area_title(vp)
 	if _title_time > 0.0:
 		var a := clampf(minf(_title_time, TITLE_SECS - _title_time) / 0.8, 0.0, 1.0)
 		_text_center(vp.x, vp.y * 0.42, _title, 46, Color(TEXT.r, TEXT.g, TEXT.b, a))

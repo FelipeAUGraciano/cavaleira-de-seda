@@ -140,6 +140,12 @@ var weave_first: WebAnchor = null
 var hovered_anchor: WebAnchor = null
 
 var camera: Camera3D
+## Cena: o jogo anda por você até auto_target (fuga do Berçário, chegada numa camada).
+var autopilot := false
+var auto_target := Vector3.ZERO
+var auto_run := true
+var cam_zoom := 0.0               ## > 0: tamanho de câmera forçado (cena)
+var _shake := 0.0
 var cam_focus := Vector3.ZERO      ## ponto que a câmera olha numa cena (aventureiros ao longe...)
 var cam_focus_time := 0.0          ## segundos restantes olhando para cam_focus
 var _preview: MeshInstance3D
@@ -516,6 +522,10 @@ func _physics_process(delta: float) -> void:
 	state_time += delta
 
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if autopilot:
+		var to := auto_target - global_position
+		to.y = 0.0
+		input = Vector2(to.x, to.z).normalized() if to.length() > 0.35 else Vector2.ZERO
 	move_dir = Vector3(input.x, 0.0, input.y)
 	if move_dir.length() > 1.0:
 		move_dir = move_dir.normalized()
@@ -571,7 +581,7 @@ func _start_state(s: State) -> void:
 # ================================================================= estados
 
 func _state_normal() -> Vector3:
-	var running := Input.is_action_pressed("run") and move_dir.length() > 0.1
+	var running := (auto_run if autopilot else Input.is_action_pressed("run")) and move_dir.length() > 0.1
 	var spd := (RUN_SPEED if running else WALK_SPEED) * float(form_data()["speed"])
 	if _slow_time > 0.0:
 		spd *= _slow_mult
@@ -590,6 +600,8 @@ func _state_normal() -> Vector3:
 		noise = 0.5
 	if dragged != null:
 		noise += 3.0   # o corpo raspando no chão
+	if autopilot:
+		return move_dir * spd   # cena: sem golpes nem teclas
 
 	if Input.is_action_just_pressed("dodge"):
 		_try_dodge()
@@ -1703,7 +1715,17 @@ func visibility_mult() -> float:
 
 # ================================================================= mira, câmera, visual
 
+func shake(amount: float) -> void:
+	## Tremor de câmera (a Mãe batendo no túnel, desabamento).
+	_shake = maxf(_shake, amount)
+
+
 func _update_aim() -> void:
+	if autopilot:
+		if move_dir.length() > 0.1:
+			aim_dir = move_dir.normalized()
+		aim_point = global_position + aim_dir * 3.0
+		return
 	var stick := Input.get_vector("aim_left", "aim_right", "aim_up", "aim_down")
 	if stick.length() > 0.3:
 		using_stick_aim = true
@@ -1741,8 +1763,11 @@ func _update_camera(real_dt: float, snap: bool) -> void:
 		camera.global_position = target
 	else:
 		camera.global_position = camera.global_position.lerp(target, clampf(real_dt * 6.0, 0.0, 1.0))
-	var want_size := 28.0 if weaving else 18.0
-	camera.size = lerpf(camera.size, want_size, clampf(real_dt * 4.0, 0.0, 1.0))
+	if _shake > 0.0:
+		_shake = maxf(0.0, _shake - real_dt * 1.8)
+		camera.global_position += Vector3(randf_range(-1, 1), 0.0, randf_range(-1, 1)) * _shake * 0.6
+	var want_size := cam_zoom if cam_zoom > 0.0 else (28.0 if weaving else 18.0)
+	camera.size = lerpf(camera.size, want_size, clampf(real_dt * (1.5 if cam_zoom > 0.0 else 4.0), 0.0, 1.0))
 
 
 func _update_visual(delta: float) -> void:

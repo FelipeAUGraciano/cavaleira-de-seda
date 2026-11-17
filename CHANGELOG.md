@@ -2,6 +2,14 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Fim do prólogo com cena, tela de carregamento e chegada à la Elden Ring (17/11)
+
+- **Fuga até o fim:** ao chegar na saída do Berçário ela não para mais. Faixas pretas entram, a interface some, ela dispara túnel adentro sozinha, a câmera olha para trás e a Mãe bate com o corpo na entrada. Um clarão vermelho, tremor de câmera, pedras despencando e poeira fecham o túnel atrás dela. O túnel agora segue escuro até um brilho verde lá no fundo (o musgo das Galerias).
+- **Tela de carregamento:** fundo preto, uma teia sendo tecida no meio (ela é a barra de progresso; uma aranhinha vai na ponta do fio), "Fim do prólogo" em cima com a frase de antes, a porcentagem e dicas que trocam a cada 5 s. A camada carrega em segundo plano e a tela fica pelo menos 3 s. Vale para toda troca de camada.
+- **Chegada:** nas Galerias ela entra correndo pela borda da câmara, a câmera chega perto e o nome da área aparece em letras serifadas douradas numa faixa escura, com um fio fino e um losango no meio, como em Elden Ring. Ela para, o nome some devagar e o controle volta. O Berçário também mostra o nome assim ao começar.
+- Fonte nova: Cinzel (OFL), em `ui/fonts`.
+- Teste novo: `fuga_test`. Captura: `tests/screenshot_fuga.tscn`.
+
 ## Mais difícil: menos status, seda contada, teias com limite e seta de vibração (17/11)
 
 - **Status base menores:** Filhote 40 PV / 60 Energia / 40 Seda (era 50/80/80), +4/+3/+2 por nível (era +5/+4/+4). Cavaleira 90 PV / 90 Energia / 60 Seda (era 110/110/110), +8/+4/+3 por nível.

@@ -32,7 +32,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	# Transição: a camada começa no escuro, clareia e mostra o nome
-	_check(layer.hud._title == "Galerias Úmidas" and layer.hud._title_time > 0.0, "título da camada aparece ao chegar")
+	_check(layer.hud._area == "Galerias Úmidas" and layer.hud._area_time > 0.0, "nome da área aparece ao chegar (faixa à la Elden Ring)")
 	await _seconds(2.0)
 	_check(layer.hud.fade_alpha < 0.05, "a tela clareia depois da chegada")
 

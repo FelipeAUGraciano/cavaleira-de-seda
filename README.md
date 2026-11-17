@@ -47,7 +47,7 @@ Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tece
 
 ## O que tem em cada camada
 
-**Berçário (início):** B1 eclosão (coma uma irmã menor) → B2 corredor (uma irmã faminta te caça; ou vá pela trilha baixa, mais escura) → B3 salão das teias (primeiro fio-guia sobre o abismo; a fresta ao sul leva ao cristal secreto de B4) → B5 despensa (apague a runa com F e passe pela pata da Mãe) → B6 fuga (corra! teça o fio no segundo abismo) → túnel para as Galerias.
+**Berçário (início):** B1 eclosão (coma uma irmã menor) → B2 corredor (uma irmã faminta te caça; ou vá pela trilha baixa, mais escura) → B3 salão das teias (primeiro fio-guia sobre o abismo; a fresta ao sul leva ao cristal secreto de B4) → B5 despensa (apague a runa com F e passe pela pata da Mãe) → B6 fuga (corra! teça o fio no segundo abismo) → túnel para as Galerias. Na saída começa a cena final: ela dispara túnel adentro, a Mãe bate na entrada e a pedra desaba atrás; depois vem a tela de carregamento (uma teia sendo tecida, com o "Fim do prólogo" e dicas) e a chegada nas Galerias, ela entrando correndo e o nome da área numa faixa escura, à la Elden Ring.
 
 **Galerias Úmidas (dois andares):** caverna orgânica com bolsões de abismo; cair de cima leva ao andar de baixo (P1–P6), de onde se volta pelas passagens. As câmaras principais: G1 entrada → G2 poça (Sapo-de-rocha) ou G3 túnel dos morcegos → G4 Grande Gruta. A sudoeste, G22 Fosso escuro: a toca (casulo central, portas, despensa). Do G4: G5 jardim (Lagarto-lanterna) e G12 ninho (três lagartos, cristal de energia) ao sul, G7 lago (cristal na ilha) a sudoeste, G6 ponte quebrada (três fendas) a leste → G8 Galeria do eco (aventureiros ao longe; fresta secreta para G10) → G9 Acampamento (tochas, diário) → G13 Antecâmara (último ponto seguro) → G14 Covil da Centopeia → G15 Borda da Fenda (queda para o Abismo). G11 Poças ácidas liga o jardim à Antecâmara (Resistência a Ácido 3). A parede de cristal da G16 abre no Ato 4.
 
@@ -133,6 +133,10 @@ tools/preparar_modelo.sh ~/Downloads/modelo.glb sapo 20000
 
 Ele reduz a malha para ~20 mil triângulos e as texturas para 1024 px (uns 2,5 MB) e salva como a próxima versão. Ajustes finos (girar, subir, escalar, "já veio com patas") ficam na tabela `TUNING` de `systems/models.gd`.
 
+## Fonte
+
+Os nomes de área e a tela de carregamento usam a **Cinzel** (Natanael Gama / The Cinzel Project Authors), sob a SIL Open Font License 1.1 — licença em `ui/fonts/Cinzel-OFL.txt`.
+
 ## Testes automáticos
 
 ```
@@ -144,6 +148,7 @@ godot --headless --path . res://tests/vida_test.tscn        # mundo vivo e desem
 godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evolução, predadores que te caçam
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
+godot --headless --path . res://tests/fuga_test.tscn       # fim do prólogo: fuga, carregamento, chegada
 godot --headless --path . res://tests/toca_test.tscn       # toca, portas, bolsa, arrasto, saque e save
 godot --headless --path . res://tests/novos_test.tscn       # formigas, cobra e coletáveis novos
 godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar

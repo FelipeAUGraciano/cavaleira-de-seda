@@ -68,7 +68,7 @@ func _build_level() -> void:
 		CaveBuilder.path([Vector2(15, 12), Vector2(19, 18), Vector2(18, 24)], 1.15, 0.0),              # fresta B3 → B4
 		CaveBuilder.path([Vector2(20, -3), Vector2(28, -7), Vector2(33, -6)], 4.5, 0.4),               # B3 → B5
 		CaveBuilder.path([Vector2(55, -2), Vector2(61, 2)], 4.5, 0.4),                                 # B5 → B6
-		CaveBuilder.path([Vector2(110, 1), Vector2(119, 1)], 2.2, 0.0),                                # saída
+		CaveBuilder.path([Vector2(110, 1), Vector2(119, 1), Vector2(127, 0.4), Vector2(134, 1.0)], 2.2, 0.0),  # saída (o túnel segue escuro)
 	]
 	cave.chasms = [
 		CaveBuilder.path([Vector2(1, -16), Vector2(4, -2), Vector2(8, 9), Vector2(7, 20)], 6.0, 0.5),  # fenda do Salão
@@ -125,6 +125,12 @@ func _build_level() -> void:
 	exit_light.light_energy = 1.5
 	exit_light.position = Vector3(117, 2, 1)
 	add_child(exit_light)
+	var deep_light := OmniLight3D.new()   # lá no fundo: o verde do musgo das Galerias
+	deep_light.light_color = Color(0.45, 0.95, 0.6)
+	deep_light.omni_range = 6.0
+	deep_light.light_energy = 0.9
+	deep_light.position = Vector3(131, 1.6, 0.8)
+	add_child(deep_light)
 
 
 func _populate() -> void:
@@ -195,16 +201,66 @@ func _on_player_died() -> void:
 
 
 func _on_exit(body: Node3D) -> void:
+	## Fim do prólogo: ela dispara túnel adentro, a Mãe bate na entrada e a pedra desaba atrás.
+	## Depois, a tela de carregamento e a chegada nas Galerias.
 	if _leaving or not (body is Player):
 		return
 	_leaving = true
-	player.velocity = Vector3.ZERO
-	player.set_physics_process(false)
-	GameState.say_once("b_saida", "Ela não cabe no túnel... Consegui. Acho.")
-	EventBus.big_message.emit("Você escapou do ninho!")
-	await get_tree().create_timer(2.6).timeout
-	await hud.fade(0.85, 1.0)
-	hud.show_title("Fim do prólogo", "Lá fora tudo é maior que você. Coma, cresça, teça um território... e evolua.")
+	player.invuln = 999.0
+	player.autopilot = true
+	player.auto_target = Vector3(131.0, 0.1, 0.8)
+	player.auto_run = true
+	player.cam_zoom = 13.0
+	hud.cinematic = true
+	GameState.say_once("b_saida", "Ela não cabe no túnel... CORRE!")
+	chase.slam()
+	player.cam_focus = Vector3(113.0, 0.0, 1.0)   # a câmera olha para trás: a Mãe e o desabamento
+	player.cam_focus_time = 1.6
+	await get_tree().create_timer(0.5).timeout
+	player.shake(1.4)
+	_cave_in(Vector3(113.0, 0.0, 1.0))
+	await get_tree().create_timer(0.75).timeout
+	player.shake(0.9)
+	await get_tree().create_timer(0.6).timeout
 	GameState.say_once("b_epilogo", "Irmãs, Mãe, ninho... tudo pra trás. Agora é só eu. E eu tô com FOME.")
-	await get_tree().create_timer(4.5).timeout
-	go_to_layer(NEXT_LAYER)
+	var t := 0.0
+	while t < 3.5 and player.global_position.x < 127.5:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	await hud.fade(1.0, 1.1)
+	go_to_layer(NEXT_LAYER, "Fim do prólogo", "Lá fora tudo é maior que você. Coma, cresça, teça um território... e evolua.")
+
+
+func _cave_in(at: Vector3) -> void:
+	## Desabamento na boca do túnel: pedras caem e levantam poeira.
+	var rock := Fx.mat(cave.rock_color.lightened(0.35), 0.15)
+	for k in 9:
+		var r := randf_range(0.35, 0.8)
+		var stone := Fx.sphere(r, rock)
+		stone.scale = Vector3(1.0, randf_range(0.6, 0.9), randf_range(0.8, 1.2))
+		var land := at + Vector3(randf_range(-1.4, 1.4), r * 0.6, randf_range(-1.2, 1.2))
+		stone.position = land + Vector3(0, randf_range(5.0, 8.0), 0)
+		add_child(stone)
+		var tw := stone.create_tween()
+		tw.tween_interval(k * 0.06)
+		tw.tween_property(stone, "position", land, randf_range(0.3, 0.45)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(stone, "rotation", Vector3(randf(), randf(), randf()) * 3.0, 0.45)
+	var dust_mat := Fx.mat(Color(0.7, 0.66, 0.75), 0.3, true, 0.5)
+	var flash := OmniLight3D.new()   # um clarão avermelhado da runa da Mãe na pancada
+	flash.light_color = Color(1.0, 0.4, 0.35)
+	flash.omni_range = 9.0
+	flash.light_energy = 2.5
+	flash.position = at + Vector3(-1.5, 2.5, 0)
+	add_child(flash)
+	var ft := flash.create_tween()
+	ft.tween_property(flash, "light_energy", 0.0, 1.2)
+	ft.tween_callback(flash.queue_free)
+	for k in 7:
+		var puff := Fx.sphere(0.6, dust_mat.duplicate())
+		puff.position = at + Vector3(randf_range(-1.5, 2.5), 0.5, randf_range(-1.2, 1.2))
+		add_child(puff)
+		var tw := puff.create_tween()
+		tw.tween_interval(0.35 + k * 0.05)
+		tw.tween_property(puff, "scale", Vector3.ONE * randf_range(2.5, 4.0), 1.4).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(puff.material_override, "albedo_color:a", 0.0, 1.4)
+		tw.tween_callback(puff.queue_free)
