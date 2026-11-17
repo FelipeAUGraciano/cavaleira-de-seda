@@ -45,13 +45,32 @@ const FALL_DAMAGE := 25.0
 ## teia, veneno e armadilha para caçar qualquer coisa do tamanho de um sapo. No nível
 ## EVOLVE_LEVEL, descansar num casulo faz a muda: vira a Cavaleira de Seda (lâminas, placas,
 ## o dobro da vida), o nível volta a 1 e o crescimento por nível dobra.
-enum Form { FILHOTE, CAVALEIRA }
+## No nível BRANCH_LEVEL da Cavaleira, a jogadora escolhe no casulo um dos três ramos
+## (Lâmina, Teia ou Runa) e a próxima muda faz a forma escolhida.
+enum Form { FILHOTE, CAVALEIRA, LAMINA, TEIA, RUNA }
 const EVOLVE_LEVEL := 8
+const BRANCH_LEVEL := 10
+const BRANCHES := [Form.LAMINA, Form.TEIA, Form.RUNA]
 const FORMS := {
 	Form.FILHOTE: {"name": "Filhote de Seda", "scale": 0.7, "size": 0, "hp": 40.0, "energy": 60.0, "silk": 40.0,
 		"per_level": [4.0, 3.0, 2.0], "combo": [4.0, 4.0, 7.0], "bite": 3.0, "speed": 1.06, "hide": 0.8, "sight": 3.5},
 	Form.CAVALEIRA: {"name": "Cavaleira de Seda", "scale": 1.0, "size": 1, "hp": 90.0, "energy": 90.0, "silk": 60.0,
 		"per_level": [8.0, 4.0, 3.0], "combo": [8.0, 8.0, 14.0], "bite": 5.0, "speed": 1.0, "hide": 1.0, "sight": 5.5},
+	# Ramo Lâmina: garras viram foices; mais vida, golpes pesados e couraça
+	Form.LAMINA: {"name": "Ceifadora de Seda", "branch": "Lâmina", "scale": 1.15, "size": 1, "hp": 140.0, "energy": 100.0, "silk": 60.0,
+		"per_level": [10.0, 5.0, 3.0], "combo": [14.0, 14.0, 26.0], "bite": 7.0, "speed": 1.05, "hide": 1.0, "sight": 6.0,
+		"armor": 0.85, "tint": Color(1.0, 0.35, 0.3),
+		"desc": ["Foices de cristal: combo 14 / 14 / 26 e mais alcance.", "Couraça: -15% de todo dano recebido.", "140 PV base, +10 por nível."]},
+	# Ramo Teia: a tecelã — muita seda, fios baratos e longos, anda rápido nos fios
+	Form.TEIA: {"name": "Tecelã do Abismo", "branch": "Teia", "scale": 1.05, "size": 1, "hp": 110.0, "energy": 100.0, "silk": 120.0,
+		"per_level": [7.0, 4.0, 7.0], "combo": [9.0, 9.0, 16.0], "bite": 6.0, "speed": 1.0, "hide": 0.9, "sight": 6.0,
+		"strand_bonus": 3.0, "strand_cost": 0.5, "trap_cost": 0.6, "strand_speed": 1.3, "tint": Color(0.92, 0.95, 1.0),
+		"desc": ["120 de Seda base, +7 por nível.", "Fio-guia pela metade da seda e +3 m de alcance; teia de captura -40%.", "Anda 30% mais rápido nos fios."]},
+	# Ramo Runa: a arauta — energia, visão e furtividade; o Pulso Espiral já vem com ela
+	Form.RUNA: {"name": "Arauta da Runa", "branch": "Runa", "scale": 1.0, "size": 1, "hp": 100.0, "energy": 150.0, "silk": 80.0,
+		"per_level": [7.0, 7.0, 4.0], "combo": [10.0, 10.0, 18.0], "bite": 6.0, "speed": 1.08, "hide": 0.6, "sight": 8.0,
+		"pulse": true, "tint": Color(0.45, 0.85, 1.0),
+		"desc": ["150 de Energia base e enxerga 8 m no escuro.", "Muito mais furtiva (os bichos te veem 40% mais perto).", "Pulso Espiral já vem: custa 10 e atordoa a 6,5 m."]},
 }
 
 enum State { NORMAL, DODGE, BACKSTEP, ATTACK, BITE, ZIP, EAT, DEAD }
@@ -68,6 +87,8 @@ var satiety := 100.0
 var level := 1
 var xp := 0
 var form: Form = Form.FILHOTE
+var pending_form := -1          ## ramo escolhido no casulo (faz a muda no próximo descanso)
+var _mark: Node3D
 var vis_scale := 1.0   ## tamanho do corpo na tela (a muda anima isso)
 var bonus_hp := 0.0          ## vida, energia e seda ganhas com cristais e comida (sobrevivem à muda)
 var bonus_energy := 0.0
@@ -308,7 +329,31 @@ func body_size() -> int:
 
 
 func can_evolve() -> bool:
-	return form == Form.FILHOTE and level >= EVOLVE_LEVEL
+	return (form == Form.FILHOTE and level >= EVOLVE_LEVEL) or (can_choose_branch() and pending_form >= 0)
+
+
+func can_choose_branch() -> bool:
+	return form == Form.CAVALEIRA and level >= BRANCH_LEVEL
+
+
+func choose_branch(f: int) -> bool:
+	if not can_choose_branch() or not BRANCHES.has(f):
+		return false
+	pending_form = f
+	return true
+
+
+func is_branch() -> bool:
+	return BRANCHES.has(form)
+
+
+func _levels_before() -> int:
+	## Níveis já vividos nas formas anteriores (para devolver pontos de habilidade).
+	if form == Form.FILHOTE:
+		return 0
+	if form == Form.CAVALEIRA:
+		return EVOLVE_LEVEL - 1
+	return (EVOLVE_LEVEL - 1) + (BRANCH_LEVEL - 1)
 
 
 func recompute_stats(refill: bool) -> void:
@@ -348,10 +393,14 @@ func _apply_form_visual() -> void:
 	_rune_light.omni_range = RUNE_RANGE * maxf(k, 0.8)
 	_sight_light.omni_range = sight_radius()
 	_update_blades_visible()
+	_build_mark()
 
 
 func evolve() -> void:
-	## A muda no casulo: Filhote -> Cavaleira de Seda.
+	## A muda no casulo: Filhote -> Cavaleira de Seda; Cavaleira -> o ramo escolhido.
+	if form != Form.FILHOTE:
+		_evolve_branch()
+		return
 	form = Form.CAVALEIRA
 	level = 1
 	xp = 0
@@ -362,9 +411,76 @@ func evolve() -> void:
 	_update_blades_visible()
 	_rune_light.omni_range = RUNE_RANGE
 	_sight_light.omni_range = sight_radius()
+	_build_mark()
 	EventBus.big_message.emit("Evolução: Cavaleira de Seda!")
 	_msg("A muda terminou. Lâminas de cristal, placas novas e muito mais vida. O nível voltou a 1.")
 	GameState.say_once("evolucao_1", "Eu... cresci? Lâminas! Eu tenho LÂMINAS! Ok, caverna. Agora a conversa é outra.")
+
+
+func _evolve_branch() -> void:
+	if pending_form < 0:
+		return
+	form = pending_form as Form
+	pending_form = -1
+	level = 1
+	xp = 0
+	recompute_stats(true)
+	var tw := create_tween()
+	tw.tween_property(self, "vis_scale", float(form_data()["scale"]), 1.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_build_legs(float(form_data()["scale"]))
+	_update_blades_visible()
+	_rune_light.omni_range = RUNE_RANGE * maxf(float(form_data()["scale"]), 0.8)
+	_sight_light.omni_range = sight_radius()
+	_build_mark()
+	EventBus.big_message.emit("Evolução: %s!" % form_name())
+	_msg("A muda terminou: %s. O nível voltou a 1." % form_name())
+	match form:
+		Form.LAMINA:
+			GameState.say_once("evolucao_lamina", "Foices. Eu tenho FOICES. Tudo que me olhou torto, pode vir.")
+		Form.TEIA:
+			GameState.say_once("evolucao_teia", "Seda saindo de tudo quanto é lugar. O Abismo inteiro vai ser minha teia.")
+		Form.RUNA:
+			GameState.say_once("evolucao_runa", "A runa tá... cantando? Eu enxergo tudo. E ninguém me enxerga.")
+
+
+func _build_mark() -> void:
+	## A marca da forma no corpo: crista vermelha (Lâmina), manto de seda (Teia), halo (Runa).
+	if _mark != null:
+		_mark.queue_free()
+		_mark = null
+	if not is_branch() or _visual == null:
+		return
+	_mark = Node3D.new()
+	_visual.add_child(_mark)
+	var tint: Color = form_data().get("tint", Color.WHITE)
+	match form:
+		Form.LAMINA:
+			for k in 5:
+				var sp := Fx.cylinder(0.07, 0.55 - absf(k - 2) * 0.08, Fx.mat(tint, 2.2))
+				(sp.mesh as CylinderMesh).top_radius = 0.005
+				sp.position = Vector3(0, 0.95, -0.15 + k * 0.2)
+				sp.rotation.x = 0.45
+				_mark.add_child(sp)
+		Form.TEIA:
+			var cape := Fx.box(Vector3(0.85, 0.02, 1.0), Fx.mat(tint, 0.8, true, 0.6))
+			cape.position = Vector3(0, 0.95, 0.45)
+			cape.rotation.x = 0.3
+			_mark.add_child(cape)
+			for k in 5:
+				var th := Fx.box(Vector3(0.015, 0.015, 1.05), Fx.mat(tint, 1.4, true))
+				th.position = Vector3(-0.36 + k * 0.18, 0.97, 0.45)
+				th.rotation.x = 0.3
+				_mark.add_child(th)
+		Form.RUNA:
+			var halo := MeshInstance3D.new()
+			var tm := TorusMesh.new()
+			tm.inner_radius = 0.22
+			tm.outer_radius = 0.26
+			halo.mesh = tm
+			halo.material_override = Fx.mat(tint, 3.0, true)
+			halo.position = Vector3(0, 1.15, 0.1)
+			_mark.add_child(halo)
+			_rune_light.light_color = tint.lightened(0.1)
 
 
 func _apply_model(base_parts: Array) -> void:
@@ -440,12 +556,12 @@ func _build_blades() -> void:
 
 func _update_blades_visible() -> void:
 	for b in _blades:
-		b.visible = form == Form.CAVALEIRA
+		b.visible = form != Form.FILHOTE
 
 
 func _swing_blades(index: int) -> void:
 	## Golpe do combo: 1º lâmina direita varre, 2º a esquerda, 3º as duas descem juntas.
-	if _blades.size() < 2 or form != Form.CAVALEIRA:
+	if _blades.size() < 2 or form == Form.FILHOTE:
 		return
 	for tw in _blade_tw:
 		if tw.is_valid():
@@ -591,7 +707,7 @@ func _state_normal() -> Vector3:
 	if _slow_time > 0.0:
 		spd *= _slow_mult
 	if on_strand:
-		spd *= 1.8 if has_skill("passos") else STRAND_SPEED_MULT
+		spd *= (1.8 if has_skill("passos") else STRAND_SPEED_MULT) * float(form_data().get("strand_speed", 1.0))
 	if satiety <= 0.0:
 		spd *= 0.8
 	if dragged != null:
@@ -763,7 +879,7 @@ func _state_attack() -> Vector3:
 
 
 func _spiral_ready() -> bool:
-	return has_skill("espiral") and form == Form.CAVALEIRA
+	return has_skill("espiral") and form != Form.FILHOTE
 
 
 func _spiral_fx(r: float) -> void:
@@ -1074,7 +1190,11 @@ func has_skill(id: String) -> bool:
 
 
 func strand_cost() -> float:
-	return 3.0 if has_skill("fio_leve") else SILK_STRAND
+	return (3.0 if has_skill("fio_leve") else SILK_STRAND) * float(form_data().get("strand_cost", 1.0))
+
+
+func trap_cost() -> float:
+	return SILK_TRAP * float(form_data().get("trap_cost", 1.0))
 
 
 func throw_range() -> float:
@@ -1332,8 +1452,9 @@ func _weave_cocoon() -> void:
 
 func _toggle_rune() -> void:
 	rune_on = not rune_on
-	if rune_on and has_skill("pulso") and energy >= 20.0:
-		energy -= 20.0
+	var pulse_cost := 10.0 if form == Form.RUNA else 20.0
+	if rune_on and (has_skill("pulso") or form == Form.RUNA) and energy >= pulse_cost:
+		energy -= pulse_cost
 		_rune_pulse()
 		_msg("Pulso Espiral!")
 	elif rune_on:
@@ -1361,7 +1482,7 @@ func _rune_pulse() -> void:
 		var c := n as Creature
 		if c == null or c.dead or c is Centipede:
 			continue
-		if Fx.flat_dist(c.global_position, global_position) <= 4.5:
+		if Fx.flat_dist(c.global_position, global_position) <= (6.5 if form == Form.RUNA else 4.5):
 			c.entangle_raw(1.5)
 
 
@@ -1459,7 +1580,7 @@ func weave_level() -> int:
 
 func strand_range() -> float:
 	## Tecelagem 1: 12 m; cada nível +1,5 m (Tecelagem 5: 18 m, o Abismo duplo).
-	return STRAND_RANGE + (weave_level() - 1) * 1.5
+	return STRAND_RANGE + (weave_level() - 1) * 1.5 + float(form_data().get("strand_bonus", 0.0))
 
 
 func _gain_weave() -> void:
@@ -1469,6 +1590,17 @@ func _gain_weave() -> void:
 		EventBus.big_message.emit("Tecelagem %d" % weave_level())
 		_msg("Tecelagem %d: fio-guia até %.1f m." % [weave_level(), strand_range()])
 		GameState.say_once("tecelagem_%d" % weave_level(), ["", "", "Meus fios estão saindo mais firmes.", "Mais longe... e mais longe.", "Dá pra sentir a seda esticando sem arrebentar.", "Dezoito metros. Agora nenhum buraco me segura."][weave_level()])
+
+
+func apply_acid(amount: float) -> void:
+	## Ácido (cuspe e rastro da lesma): Resistência a Ácido 3 anula.
+	if dead:
+		return
+	var k := maxf(0.0, 1.0 - resist_acid / 3.0)
+	if k <= 0.0:
+		return
+	_hurt(amount * k)
+	_msg("Ácido! -%d PV" % int(ceil(amount * k)))
 
 
 func apply_poison(secs: float) -> void:
@@ -1501,8 +1633,8 @@ func _place_trap() -> void:
 	if level < TRAP_LEVEL:
 		_msg("Teia de captura libera no nível %d (F1 sobe de nível para testar)." % TRAP_LEVEL)
 		return
-	if silk < SILK_TRAP:
-		_msg("Seda insuficiente para a teia de captura (precisa de %d)." % int(SILK_TRAP))
+	if silk < trap_cost():
+		_msg("Seda insuficiente para a teia de captura (precisa de %d)." % int(trap_cost()))
 		return
 	if Fx.flat_dist(aim_point, global_position) > TRAP_RANGE:
 		_msg("Longe demais para lançar a teia (máximo %d m)." % int(TRAP_RANGE))
@@ -1510,9 +1642,9 @@ func _place_trap() -> void:
 	if not _has_floor(aim_point):
 		_msg("A teia de captura precisa de chão firme.")
 		return
-	silk -= SILK_TRAP
+	silk -= trap_cost()
 	WebNetwork.create_trap(Vector3(aim_point.x, 0.0, aim_point.z))
-	_msg("Teia de captura armada (-%d seda)." % int(SILK_TRAP))
+	_msg("Teia de captura armada (-%d seda)." % int(trap_cost()))
 	GameState.say_once("primeira_armadilha", "Pronto. Agora é só esperar alguém pisar... Paciência de aranha.")
 
 
@@ -1562,7 +1694,7 @@ func _update_resources(delta: float) -> void:
 			GameState.say_once("fome", "Minha barriga está roncando tão alto que vai me denunciar.")
 		_hurt(STARVE_DPS * delta)
 	energy_delay = maxf(0.0, energy_delay - delta)
-	if energy_delay <= 0.0 and (rune_on or has_skill("runa_oculta")) and not weaving:
+	if energy_delay <= 0.0 and (rune_on or has_skill("runa_oculta") or form == Form.RUNA) and not weaving:
 		energy = minf(max_energy, energy + ENERGY_REGEN * delta * (1.5 if in_territory else 1.0) * (1.0 if rune_on else 0.5))
 	# seda não volta sozinha: só comendo (presa, embrulho) ou descansando na toca
 	if satiety > 60.0:
@@ -1577,6 +1709,7 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 	_hurt_flash = 0.25
 	if crystal_skin:
 		amount *= 0.8
+	amount *= float(form_data().get("armor", 1.0))
 	if knockback and source != null:
 		var push := global_position - source.global_position
 		push.y = 0.0
@@ -1948,7 +2081,7 @@ func to_dict() -> Dictionary:
 		"level": level, "xp": xp, "resist_rot": resist_rot,
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"resist_poison": resist_poison, "dark_sight": dark_sight, "weave_xp": weave_xp,
-		"form": int(form), "bonus": [bonus_hp, bonus_energy, bonus_silk],
+		"form": int(form), "pending": pending_form, "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z], "rested": rested_here,
 		"skills": skills.keys(), "sp": skill_points, "bag": bag, "shards": rune_shards,
 	}
@@ -1982,6 +2115,7 @@ func from_dict(d: Dictionary) -> void:
 	weave_xp = int(d.get("weave_xp", weave_xp))
 	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
 	form = int(d.get("form", form)) as Form
+	pending_form = int(d.get("pending", pending_form))
 	if d.has("skills"):
 		skills = {}
 		for k in d["skills"]:
@@ -1992,7 +2126,7 @@ func from_dict(d: Dictionary) -> void:
 		skill_points = int(d["sp"])
 	elif d.has("level"):
 		# save de antes das habilidades: devolve os pontos dos níveis já ganhos
-		skill_points = (level - 1) + (EVOLVE_LEVEL - 1 if form == Form.CAVALEIRA else 0)
+		skill_points = (level - 1) + _levels_before()
 	rune_shards = int(d.get("shards", 0))
 	var ba = d.get("bag", d.get("pantry", []))   # save antigo: a despensa vira a bolsa (só cabem 2)
 	if ba is Array:

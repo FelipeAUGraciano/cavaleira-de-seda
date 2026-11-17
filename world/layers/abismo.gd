@@ -497,10 +497,10 @@ func _build_well() -> void:
 # ---------------------------------------------------------------- bichos e coisas
 
 func _populate() -> void:
-	ecosystem.larva_target = 4
+	ecosystem.larva_target = 8
 	ecosystem.frog_target = 0
 	ecosystem.larva_spawns = []
-	for id in ["A6", "A16", "A15", "A17"]:
+	for id in ["A6", "A16", "A15", "A17", "A5", "A18"]:
 		var p = _spot(id, 300 + String(id).hash() % 97, 1.0)
 		if p != null:
 			ecosystem.larva_spawns.append(p)
@@ -533,6 +533,7 @@ func _populate() -> void:
 			s.set_meta("flag", "escorpiao_%d" % k)
 			ecosystem.add_child(s)
 	_build_nest()
+	_populate_monsters()
 	# A8: a Cortina viva
 	curtain = BatCurtain.new().setup(CURTAIN_A, CURTAIN_B)
 	add_child(curtain)
@@ -584,6 +585,79 @@ func _populate() -> void:
 		"Um cristal pulsando devagar. Quando você chega perto, ele pulsa no mesmo ritmo da sua runa.",
 		"Por um instante você vê fios: milhares, ligando o teto ao chão, e uma aranha enorme no meio.",
 		"A visão some. O cristal volta a pulsar sozinho."], "cristal"))
+
+
+func _populate_monsters() -> void:
+	## O Abismo cheio (~60 bichos, como as Galerias): matilhas, mímicos, lesmas e morcegos gigantes.
+	# Aranhas-lobo do breu: três matilhas nas partes geradas
+	for pk in [["A15", 3, 901], ["A17", 4, 902], ["A16", 3, 903]]:
+		var c = _spot(pk[0], int(pk[2]), 1.2)
+		if c == null:
+			continue
+		for k in int(pk[1]):
+			var w := WolfSpider.new()
+			var a := k * TAU / float(pk[1])
+			w.position = (c as Vector3) + Vector3(cos(a) * 1.5, 0.3, sin(a) * 1.5)
+			w.pack = String(pk[0])
+			w.den = c
+			w.range_rooms = [pk[0]] if pk[0] != "A16" else ["A16", "A6", "A7"]
+			ecosystem.add_child(w)
+	# Mímicos: no meio dos pilares da Floresta, numa coluna do Santuário e no Beco sem volta
+	var mim: Array = []
+	var r := RandomNumberGenerator.new()
+	r.seed = 4242
+	for k in 30:
+		if mim.size() >= 3:
+			break
+		var q := A6_C + Vector2(r.randf_range(-12, 12), r.randf_range(-12, 12))
+		if not cave.is_floor(q, 1.2):
+			continue
+		var clear := true
+		for an in WebNetwork.anchors.values():
+			if Fx.flat_dist((an as Node3D).global_position, Vector3(q.x, 0, q.y)) < 1.6:
+				clear = false
+				break
+		if clear:
+			mim.append(Vector3(q.x, 0, q.y))
+	for id in ["A11", "A19"]:
+		var q2 = _spot(id, 950 + id.length(), 1.4)
+		if q2 != null:
+			mim.append(q2)
+	for q3: Vector3 in mim:
+		var m := Mimic.new()
+		m.position = q3 + Vector3(0, 0.05, 0)
+		ecosystem.add_child(m)
+	# Lesmas de ácido: na margem do Lago negro, no Fosso das raízes e no Fosso dos besouros
+	for sl in [["A5", 961], ["A5", 962], ["A16", 963], ["A18", 964]]:
+		var q4 = _spot(sl[0], int(sl[1]), 1.4)
+		if q4 != null:
+			var s := AcidSlug.new()
+			s.position = (q4 as Vector3) + Vector3(0, 0.3, 0)
+			s.range_rooms = [sl[0]]
+			ecosystem.add_child(s)
+	# Morcegos gigantes: bandos caçando nos salões grandes (e por cima do Abismo duplo)
+	for fl in [["A18", 3, ["A18", "A19"], 971], ["A9", 2, ["A9", "A6", "A16"], 972], ["A11", 3, ["A11", "A17"], 973]]:
+		var home = _spot(fl[0], int(fl[3]), 1.0)
+		if fl[0] == "A9":
+			home = Vector3(GORGE_X - GORGE_W * 0.5 - 3.0, 0, GORGE_Z)
+		if home == null:
+			continue
+		for k in int(fl[1]):
+			var b := GiantBat.new()
+			b.position = (home as Vector3) + Vector3(r.randf_range(-2.0, 2.0), Bat.ROOST_Y, r.randf_range(-1.5, 1.5))
+			b.den = home
+			b.flock = "gigante_%s" % fl[0]
+			b.range_rooms = fl[2]
+			ecosystem.add_child(b)
+			b.home = home
+	# um escorpião a mais, rondando o Beco sem volta
+	var q5 = _spot("A19", 981, 1.2)
+	if q5 != null and not GameState.flags.has("escorpiao_3"):
+		var sc := Scorpion.new()
+		sc.position = (q5 as Vector3) + Vector3(0, 0.3, 0)
+		sc.range_rooms = ["A19", "A18"]
+		sc.set_meta("flag", "escorpiao_3")
+		ecosystem.add_child(sc)
 
 
 func _on_colossus_alert() -> void:
@@ -666,7 +740,8 @@ func _spawn_beetles() -> void:
 			alive[g] = int(alive.get(g, 0)) + 1
 	var groups := [["A2a", Vector3(CARCASSES[0].x, 0, CARCASSES[0].y), 4, ["A2"]],
 		["A2b", Vector3(CARCASSES[2].x, 0, CARCASSES[2].y), 3, ["A2"]],
-		["A18", _spot("A18", 81, 1.2), 5, ["A18", "A19"]], ["A17", _spot("A17", 82, 1.2), 3, ["A17", "A11"]]]
+		["A18", _spot("A18", 81, 1.2), 5, ["A18", "A19"]], ["A17", _spot("A17", 82, 1.2), 3, ["A17", "A11"]],
+		["A11", _spot("A11", 83, 1.2), 2, ["A11"]], ["A1", _spot("A1", 84, 1.2), 2, ["A1", "A15"]]]
 	for g in groups:
 		if g[1] == null:
 			continue

@@ -235,6 +235,68 @@ func _run() -> void:
 	_check(a.den.slots.size() == 4, "quatro frestas (Trilha, Floresta, Lago, Cristal)")
 	var far: float = col.project(Vector3(84, 0, -6)).y
 	_check(far > 12.0, "a toca fica longe do caminho do Colosso (%.0f m)" % far)
+
+	# Bichos: o Abismo cheio como as Galerias
+	var kinds := {}
+	var total := 0
+	for c in World.creatures:
+		if is_instance_valid(c) and not c.dead:
+			total += 1
+			kinds[c.display_name] = int(kinds.get(c.display_name, 0)) + 1
+	_check(total >= 45, "Abismo cheio: %d bichos (%s)" % [total, str(kinds)])
+	for nm in ["Aranha-lobo do breu", "Mímico de estalagmite", "Lesma de ácido", "Morcego gigante", "Escorpião-de-obsidiana"]:
+		_check(kinds.has(nm), "tem %s" % nm)
+	# matilha: uma te sente, todas vêm
+	var wolves: Array = []
+	for c in World.creatures:
+		if c is WolfSpider and (c as WolfSpider).pack == "A17":
+			wolves.append(c)
+	if wolves.size() >= 2:
+		player.invuln = 999.0
+		player.global_position = (wolves[0] as Node3D).global_position + Vector3(3, 0.1, 0)
+		(wolves[0] as WolfSpider).howl()
+		var all_in := true
+		for w in wolves:
+			if (w as Creature).player_memory <= 0.0 and w != wolves[0]:
+				all_in = false
+		_check(all_in, "aranha-lobo bate as patas: a matilha toda vem (%d)" % wolves.size())
+	# mímico: parece pilar até você passar perto
+	var mm: Mimic = null
+	for c in World.creatures:
+		if c is Mimic:
+			mm = c
+			break
+	if mm != null:
+		_check(mm.mode == Mimic.Mode.HIDDEN, "o mímico fica parado, parecendo pilar")
+		player.invuln = 0.0
+		player.hp = player.max_hp
+		player.global_position = mm.global_position + Vector3(1.6, 0.1, 0)
+		await _seconds(0.9)
+		_check(mm.mode != Mimic.Mode.HIDDEN and player.hp < player.max_hp, "passou perto: o pilar morde")
+		player.invuln = 999.0
+		player.global_position = Vector3(31, 0.1, 8)
+	# lesma: rastro de ácido
+	var sl: AcidSlug = null
+	for c in World.creatures:
+		if c is AcidSlug:
+			sl = c
+			break
+	if sl != null:
+		sl.global_position += Vector3(2.0, 0, 0)
+		await _seconds(0.3)
+		_check(not get_tree().get_nodes_in_group("acid_puddle").is_empty(), "a lesma deixa rastro de ácido")
+		var pd: Node3D = get_tree().get_nodes_in_group("acid_puddle")[0]
+		sl.global_position += Vector3(0, 0, 4.0)   # a lesma sai de cima do rastro
+		sl.set_physics_process(false)
+		player.invuln = 0.0
+		player.resist_acid = 0
+		player.hp = player.max_hp
+		player.global_position = pd.global_position + Vector3(0, 0.1, 0)
+		await _seconds(0.3)
+		_check(player.hp < player.max_hp, "pisar no rastro queima")
+		sl.set_physics_process(true)
+		player.invuln = 999.0
+		player.global_position = Vector3(31, 0.1, 8)
 	# A5: a pérola do Lago negro
 	var pearl: Pickup = null
 	for n in get_tree().get_nodes_in_group("pickup"):
@@ -348,6 +410,31 @@ func _run() -> void:
 	player.global_position = Vector3(162, 0.1, 55)
 	await _seconds(0.5)
 	_check(GameState.flags.has("ato2_fim") and a.hud.cinematic, "topo da Rampa quente: Fim do Ato 2")
+
+	# Evoluções: no nível 10 da Cavaleira, escolhe um dos três ramos no casulo
+	player.form = Player.Form.CAVALEIRA
+	player.level = 9
+	player.recompute_stats(true)
+	_check(not player.choose_branch(Player.Form.TEIA), "antes do nível 10 não dá para escolher ramo")
+	player.level = Player.BRANCH_LEVEL
+	_check(player.can_choose_branch() and not player.can_evolve(), "nível 10: o casulo oferece os três ramos")
+	_check(player.choose_branch(Player.Form.TEIA) and player.can_evolve(), "escolheu o ramo Teia")
+	var coc := WebNetwork.create_cocoon(Vector3(0, 0, 2))
+	var cost0 := player.strand_cost()
+	var range0 := player.strand_range()
+	player._rest(coc)
+	_check(player.form == Player.Form.TEIA and player.level == 1, "a muda: Tecelã do Abismo, nível 1")
+	_check(player.strand_cost() < cost0 and player.strand_range() > range0 + 2.9, "Tecelã: fio pela metade e +3 m (%.1f m)" % player.strand_range())
+	_check(player.max_silk >= 120.0, "Tecelã: 120 de Seda base")
+	var d := player.to_dict()
+	_check(int(d["form"]) == Player.Form.TEIA, "a forma nova vai para o save")
+	for f: int in [Player.Form.LAMINA, Player.Form.RUNA]:
+		player.form = Player.Form.CAVALEIRA
+		player.level = Player.BRANCH_LEVEL
+		player.choose_branch(f)
+		player.evolve()
+		_check(player.form == f, "ramo %s funciona" % player.form_name())
+	_check(player.visibility_mult() < 0.4 and player.sight_radius() >= 8.0, "Arauta da Runa: furtiva e enxerga longe")
 
 	_end()
 

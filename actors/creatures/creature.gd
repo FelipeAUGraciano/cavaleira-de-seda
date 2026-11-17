@@ -1051,6 +1051,9 @@ func on_attack_hit(a: Attack, p: Player) -> void:
 			p.apply_slow(0.5, a.effect_power if a.effect_power > 0.0 else 2.0)
 		"poison":
 			p.apply_poison(a.effect_power if a.effect_power > 0.0 else 5.0)
+		"acid":
+			if a.effect_power > 0.0:
+				p.apply_acid(a.effect_power)
 
 
 func _wind_mult() -> float:

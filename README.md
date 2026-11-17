@@ -6,11 +6,11 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 
 ## O que tem hoje
 
-- **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
+- **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). No nível 10 da Cavaleira, você escolhe um dos três ramos: Ceifadora de Seda (Lâmina), Tecelã do Abismo (Teia) ou Arauta da Runa (Runa). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
 - **Toca:** nas Galerias, a G22 Fosso escuro é a câmara-toca. Você toma posse tecendo o casulo central no ninho velho (C) e fecha as 4 entradas com portas de teia (você passa, os bichos não). Só a toca salva e cura; antes dela o jogo salva sozinho nos pontos seguros, sem curar. Bichos com fome sentem a comida guardada, rasgam as portas e comem da despensa; fios-alarme avisam de longe.
 - **Comida:** a despensa (10 embrulhos) fica na toca. Na viagem você leva 2 na bolsa e come com G em qualquer lugar. Presa pequena você embrulha onde estiver (C); presa grande vai arrastada no fio até a toca.
 - **Menu da toca:** teia de 17 habilidades (1 ponto por nível), evolução, despensa, portas e fios-alarme. Descansar salva, cura, remenda portas e faz a muda; não dá para dormir com um bicho te caçando perto.
-- **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), besouros carniceiros, escorpiões-de-obsidiana, a Cortina viva de morcegos gigantes, a Mãe, a Centopeia-blindada, o Colosso do Abismo e a Serpente-cega, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
+- **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), besouros carniceiros, escorpiões-de-obsidiana, aranhas-lobo do breu, mímicos de estalagmite, lesmas de ácido, morcegos gigantes, a Cortina viva, a Mãe, a Centopeia-blindada, o Colosso do Abismo e a Serpente-cega, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
 - **Mundo:** Galerias em dois andares geradas como caverna orgânica, ciclo de luz de 5 minutos, território, pilares variados, ganchos de parede nos abismos.
 - **Menus:** 3 espaços de save, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle).
 - **Arte:** modelos 3D da protagonista, de todas as criaturas, da Mãe e dos props; o chão e as paredes são gerados em código.
@@ -53,6 +53,8 @@ Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tece
 
 **Abismo (Ato 2):** depois da Centopeia, o chão da G15 cede e ela despenca pela Fenda (cena com a câmera descendo junto e dois fios que arrebentam), passa pela tela "Fim do Ato 1" e cai no fundo, ferida (30% da vida) e sem seda. Caverna orgânica de um andar, gerada como as Galerias, com as câmaras de trava e de chefe feitas à mão. Quase breu: só a runa, poucos fungos e cristais. A1 Fundo da queda → A2 Ossário (besouros carniceiros, a primeira comida) → A3 Trilha do Colosso (um dragão da terra faz a ronda; ele sente o chão e os fios; parada de lado e com a runa apagada ele passa; se te alcança, mata na hora; nas rachaduras ele não entra; uma delas leva ao A18 Fosso dos besouros) → A4 Fenda do refúgio (a toca, com 4 frestas). Da toca: A5 Lago negro (uma sombra enorme passa embaixo; a pérola da ilha dá Resistência a Escuridão), A6 Floresta de estalagmites (dezenas de pilares: tecer sobe a Tecelagem), A7 Ninho dos escorpiões (ferrão e carne venenosos: Resistência a Veneno) e, por uma fresta secreta, A10 Câmara de cristal (lâminas que cortam). A ponta leste da Trilha sobe pela A8 Cortina viva (morcegos gigantes: runa apagada e devagar, ou Pulso Espiral) até a Câmara de cristal. A9 Abismo duplo: 17,6 m de fio, só com Tecelagem 5 → A11 Santuário afundado (a espiral da runa, pedras para ler) → A12 Toca da Serpente-cega (chefe cego que caça por vibração: arme uma teia de captura, ela dá o bote na teia que vibra e fica enredada) → A13 Poço de vapor (jatos que queimam) → A14 Rampa quente: Fim do Ato 2 (o Rio de Brasa vem na próxima versão).
 
+**Bichos do Abismo (~60):** besouros, escorpiões, matilhas de aranhas-lobo, mímicos que fingem ser pilar, lesmas de ácido, bandos de morcegos gigantes, o Colosso e a Serpente-cega. A base é a A4 Fenda do refúgio.
+
 **Tecelagem:** cada fio-guia tecido conta. Tecelagem 1 a 5 (8, 20, 36 e 56 fios): o fio-guia vai de 12 m a 18 m.
 
 **Câmara de teste:** a câmara cinza da v0.1 continua no projeto (`world/layers/test_chamber.tscn`) para o teste automático dos sistemas.
@@ -84,7 +86,7 @@ autoload/      EventBus (sinais), GameState (save, espaços, falas), Settings (o
                World (mundo vivo: registro espacial de criaturas e cadáveres, navegação, relógio)
 actors/
   player/      player.gd — a Cavaleira
-  creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, beetle.gd, scorpion.gd, bat_curtain.gd, corpse.gd
+  creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, beetle.gd, scorpion.gd, wolf_spider.gd, mimic.gd, acid_slug.gd, giant_bat.gd, bat_curtain.gd, corpse.gd
   npc/         adventurer.gd (aventureiros vistos de longe)
 systems/
   ai/          needs.gd (fome, sono, medo, inquietação), brain.gd (escolhe a atividade),

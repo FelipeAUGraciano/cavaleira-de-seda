@@ -80,7 +80,7 @@ func open(p: Player, c: Node3D) -> void:
 	cocoon = c
 	visible = true
 	message = ""
-	tab = "evo" if player.can_evolve() else "hab"
+	tab = "evo" if player.can_evolve() or (player.can_choose_branch() and player.pending_form < 0) else "hab"
 	selected = _first_learnable()
 	_show_tab(tab)
 	GameState.say_once("menu_casulo", "Meu cantinho. Aqui dá pra pensar com calma no que eu quero virar.")
@@ -180,12 +180,31 @@ func _show_tab(t: String) -> void:
 	if t == "desp":
 		_build_pantry_buttons()
 	elif t == "evo":
-		pass
+		_build_branch_buttons()
 	if t == "hab":
 		MenuBox.focus_later(_node_btns[selected])
 	else:
 		MenuBox.focus_later(_tab_btns[t])
 	_frame.queue_redraw()
+
+
+const BRANCH_RECTS := [Rect2(1280, 175, 240, 56), Rect2(1280, 250, 240, 56), Rect2(1280, 325, 240, 56)]
+
+
+func _build_branch_buttons() -> void:
+	## Os três ramos viram botões quando a Cavaleira chega no nível 10.
+	if not player.can_choose_branch():
+		return
+	for b in 3:
+		var f: int = Player.BRANCHES[b]
+		var btn := _page_button(BRANCH_RECTS[b], "", true, _pick_branch.bind(f))
+		btn.set_meta("branch", f)
+
+
+func _pick_branch(f: int) -> void:
+	if player.choose_branch(f):
+		_say("Escolhido: %s. Descanse no casulo para fazer a muda." % String(Player.FORMS[f]["name"]))
+		_frame.queue_redraw()
 
 
 func _den() -> Den:
@@ -391,7 +410,7 @@ func _draw_frame() -> void:
 	var ci := _frame
 	# retrato (a arte já traz a plataforma de luz)
 	if _art != null:
-		var k := 1.0 if player.form == Player.Form.CAVALEIRA else 0.78
+		var k := 1.0 if player.form != Player.Form.FILHOTE else 0.78
 		var anchor := Vector2(392, 659)   # centro da plataforma, em pixels da arte
 		ci.draw_texture_rect(_art, Rect2(Vector2(400, 668) - anchor * k, _art.get_size() * k), false)
 	_draw_leave(ci)
@@ -567,34 +586,48 @@ func _draw_tooltip(ci: Control) -> void:
 func _draw_evolution(ci: Control) -> void:
 	var y0 := RIGHT.position.y + 110.0
 	_text(ci, Vector2(RIGHT.position.x + 36, y0 + 10), "A muda acontece dentro do casulo.", "body_m", 18, QUIET)
+	var f := int(player.form)
+	var stage := 0 if f == Player.Form.FILHOTE else (1 if f == Player.Form.CAVALEIRA else 2)
 	var cards := [
 		["Filhote de Seda", "spider", Rect2(830, 200, 180, 150), 0],
 		["Cavaleira de Seda", "blade", Rect2(1050, 200, 180, 150), 1],
 	]
-	var branches := [["Lâmina", "blade"], ["Teia", "web"], ["Runa", "rune"]]
-	var f := int(player.form)
-	ci.draw_line(Vector2(1010, 275), Vector2(1050, 275), Color(CYAN.r, CYAN.g, CYAN.b, 0.7 if f >= 1 else 0.3), 2.0, true)
+	var icons := ["blade", "web", "rune"]
+	ci.draw_line(Vector2(1010, 275), Vector2(1050, 275), Color(CYAN.r, CYAN.g, CYAN.b, 0.7 if stage >= 1 else 0.3), 2.0, true)
 	for b in 3:
 		var by := 175.0 + b * 75.0
-		_dashed(ci, Vector2(1230, 275), Vector2(1280, by + 25.0), Color(0.5, 0.55, 0.7, 0.4), 1.4)
+		var lit: bool = stage == 2 and int(Player.BRANCHES[b]) == f
+		_dashed(ci, Vector2(1230, 275), Vector2(1280, by + 25.0), Color(CYAN.r, CYAN.g, CYAN.b, 0.8) if lit else Color(0.5, 0.55, 0.7, 0.4), 1.4)
 	for c in cards:
 		var r: Rect2 = c[2]
-		var state := int(c[3])
-		var cur := state == f
-		var done := state < f
+		var st := int(c[3])
+		var cur := st == stage
+		var done := st < stage
 		var col := GOLD if cur else (CYAN if done else QUIET)
 		_panel(ci, r, Color(0.07, 0.1, 0.2, 0.9) if cur else Color(0.05, 0.06, 0.12, 0.85), col, 10.0, cur)
 		SkillIcons.draw(ci, c[1], r.position + Vector2(r.size.x * 0.5, 52), 26.0, col)
 		_text(ci, r.position + Vector2(r.size.x * 0.5, 106), String(c[0]).to_upper(), "title_s", 13, TEXT if cur or done else QUIET, HORIZONTAL_ALIGNMENT_CENTER)
 		var tag := "Forma atual" if cur else ("Concluída" if done else "Nível %d" % Player.EVOLVE_LEVEL)
 		_text(ci, r.position + Vector2(r.size.x * 0.5, 132), tag, "body_b", 15, col, HORIZONTAL_ALIGNMENT_CENTER)
+	var can_pick := player.can_choose_branch()
 	for b in 3:
-		var r := Rect2(1280, 175.0 + b * 75.0, 240, 56)
-		_panel(ci, r, Color(0.05, 0.06, 0.11, 0.8), Color(0.3, 0.33, 0.42, 0.7), 8.0)
-		SkillIcons.draw(ci, branches[b][1], r.position + Vector2(28, 28), 12.0, DIM)
-		_text(ci, r.position + Vector2(52, 25), "Ramo " + branches[b][0], "title_s", 14, QUIET)
-		_text(ci, r.position + Vector2(52, 45), "Cavaleira nível 10 · Ato 2", "body", 14, DIM)
-		SkillIcons.draw(ci, "lock", r.position + Vector2(r.size.x - 22, 28), 8.0, DIM)
+		var bf: int = Player.BRANCHES[b]
+		var data: Dictionary = Player.FORMS[bf]
+		var r: Rect2 = BRANCH_RECTS[b]
+		var cur := f == bf
+		var picked := player.pending_form == bf
+		var hot := false
+		for btn in _page_btns:
+			if int(btn.get_meta("branch", -1)) == bf and (btn.has_focus() or btn.is_hovered()):
+				hot = true
+		var col := GOLD if (cur or picked) else (CYAN if (can_pick and hot) else (TEXT if can_pick else DIM))
+		_panel(ci, r, Color(0.08, 0.1, 0.2, 0.9) if (cur or picked or hot) else Color(0.05, 0.06, 0.11, 0.8), col if (cur or picked or hot) else Color(0.3, 0.33, 0.42, 0.7), 8.0, cur or picked)
+		SkillIcons.draw(ci, icons[b], r.position + Vector2(28, 28), 12.0, col)
+		_text(ci, r.position + Vector2(52, 25), String(data["name"]), "title_s", 14, col)
+		var sub := "Forma atual" if cur else ("Escolhida: descanse para mudar" if picked else ("Clique para escolher" if can_pick else "Ramo %s · Cavaleira nível %d" % [data["branch"], Player.BRANCH_LEVEL]))
+		_text(ci, r.position + Vector2(52, 45), sub, "body", 14, col if (cur or picked) else DIM)
+		if not can_pick and not cur:
+			SkillIcons.draw(ci, "lock", r.position + Vector2(r.size.x - 22, 28), 8.0, DIM)
 	# quadro da próxima muda
 	var box := Rect2(830, 410, 690, 240)
 	_panel(ci, box, Color(0.04, 0.05, 0.1, 0.9), BORDER, 10.0)
@@ -615,11 +648,38 @@ func _draw_evolution(ci: Control) -> void:
 		if player.can_evolve():
 			var pulse := 0.6 + 0.4 * sin(_t * 3.0)
 			_text(ci, bx + Vector2(0, 212), "Pronta para a muda! Descanse no casulo para mudar.", "body_b", 18, Color(GOLD.r, GOLD.g, GOLD.b, pulse))
+	elif player.form == Player.Form.CAVALEIRA:
+		var shown := player.pending_form
+		if shown < 0:
+			for btn in _page_btns:
+				if btn.has_focus() or btn.is_hovered():
+					shown = int(btn.get_meta("branch", -1))
+		if shown >= 0:
+			var d: Dictionary = Player.FORMS[shown]
+			_text(ci, bx + Vector2(0, 40), "%s  ·  Ramo %s" % [d["name"], d["branch"]], "title", 20, GOLD)
+			var desc: Array = d["desc"]
+			for i in desc.size():
+				_text(ci, bx + Vector2(0, 80 + i * 28), "·  " + String(desc[i]), "body", 17, TEXT)
+			if player.pending_form >= 0:
+				var pulse2 := 0.6 + 0.4 * sin(_t * 3.0)
+				_text(ci, bx + Vector2(0, 212), "Pronta para a muda! Descanse no casulo para mudar.", "body_b", 18, Color(GOLD.r, GOLD.g, GOLD.b, pulse2))
+		else:
+			var lv2 := player.level
+			_text(ci, bx + Vector2(0, 40), "Próxima muda: escolha um ramo", "title", 20, GOLD if can_pick else TEXT)
+			_bar(ci, Rect2(bx + Vector2(0, 62), Vector2(420, 10)), clampf(float(lv2) / Player.BRANCH_LEVEL, 0.0, 1.0), CYAN)
+			_text(ci, bx + Vector2(436, 72), "Nível %d / %d" % [lv2, Player.BRANCH_LEVEL], "body_b", 16, TEXT)
+			_text(ci, bx + Vector2(0, 106), "·  Lâmina: foices, couraça e golpes pesados.", "body", 17, QUIET)
+			_text(ci, bx + Vector2(0, 132), "·  Teia: muita seda, fios baratos e longos.", "body", 17, QUIET)
+			_text(ci, bx + Vector2(0, 158), "·  Runa: energia, visão no escuro e furtividade.", "body", 17, QUIET)
+			if can_pick:
+				_text(ci, bx + Vector2(0, 204), "Passe o mouse num ramo para ver; clique para escolher.", "body_b", 17, CYAN)
 	else:
-		_text(ci, bx + Vector2(0, 40), "Cavaleira de Seda", "title", 20, GOLD)
-		_text(ci, bx + Vector2(0, 76), "·  A próxima evolução abre no nível 10 da Cavaleira.", "body", 17, QUIET)
-		_text(ci, bx + Vector2(0, 102), "·  O ramo oferecido depende do que você mais usar: lâminas, teias ou runa.", "body", 17, QUIET)
-		_text(ci, bx + Vector2(0, 128), "·  Os ramos chegam com o Ato 2 (o Abismo).", "body", 17, QUIET)
+		var d2 := player.form_data()
+		_text(ci, bx + Vector2(0, 40), "%s  ·  Ramo %s" % [d2["name"], d2["branch"]], "title", 20, GOLD)
+		var desc2: Array = d2["desc"]
+		for i in desc2.size():
+			_text(ci, bx + Vector2(0, 80 + i * 28), "·  " + String(desc2[i]), "body", 17, TEXT)
+		_text(ci, bx + Vector2(0, 190), "·  Mais mudas chegam nos próximos atos.", "body", 17, QUIET)
 
 
 # ---------------------------------------------------------------- aba Despensa

@@ -2,6 +2,21 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Abismo cheio de bicho e os três ramos de evolução (17/11)
+
+- **Evoluções depois da Cavaleira (escolha livre):** no nível 10 da Cavaleira, a aba Evolução do casulo destrava os três ramos; clique em um e descanse para fazer a muda (o nível volta a 1, habilidades e pontos ficam).
+  - **Ceifadora de Seda (Lâmina):** 140 PV (+10/nível), combo 14/14/26, corpo maior (mais alcance), couraça (-15% de dano). Crista vermelha nas costas.
+  - **Tecelã do Abismo (Teia):** 120 de Seda (+7/nível), fio-guia pela metade da seda e +3 m de alcance, teia de captura -40%, 30% mais rápida nos fios. Manto de seda.
+  - **Arauta da Runa (Runa):** 150 de Energia (+7/nível), enxerga 8 m no escuro, muito mais furtiva, energia volta mesmo com a runa apagada e o Pulso Espiral já vem (custa 10, atordoa a 6,5 m). Halo de luz.
+- **Abismo cheio (~60, como as Galerias):** 51 bichos ao carregar + 8 larvas que aparecem com o tempo, o Colosso e a Cortina viva.
+  - **Aranha-lobo do breu (nova, P, matilhas de 3–4):** aranhas que não tecem, só correm e caçam. Enxergam no escuro (de 12 m se a runa estiver acesa); uma que te sente bate as patas e a matilha toda vem. Mordida, bote de longe e mordida no flanco. Matilhas no A15, A16 e A17.
+  - **Mímico de estalagmite (novo, M):** finge ser pilar. Quem passa a 2,4 m leva o bote (agarra, puxa e morde 22). Pistas: não acende no Modo Tecelagem e a Leitura (Alt) mostra que é bicho. Comer dá Energia máxima. Três na Floresta, um no Santuário, um no Beco sem volta.
+  - **Lesma de ácido (nova, M, 130 PV):** lenta, pasta o musgo dos fungos e deixa rastro de ácido que queima (sobre um fio, não). Cospe ácido longe, esmaga de perto. Comer dá Resistência a Ácido. No Lago negro, no Fosso das raízes e no Fosso dos besouros.
+  - **Morcego gigante (novo, M, bandos):** os da Cortina viva acordados: ouvem quem se mexe a 14 m, mergulho de 18. Bandos no Fosso dos besouros, no Santuário e por cima do Abismo duplo.
+  - Mais um escorpião (Beco sem volta) e besouros também no Fundo da queda e no Santuário.
+- **Ácido na jogadora:** cuspe e rastro da lesma tiram vida na hora; Resistência a Ácido 3 anula.
+- Base do Abismo continua sendo só a **A4 Fenda do refúgio**.
+
 ## O Abismo inteiro: caverna gerada, A5–A19 e a Serpente-cega (17/11)
 
 - **Mesma pegada das Galerias:** o Abismo virou uma caverna orgânica de um andar (autômato celular, semente fixa) com as câmaras de trava e de chefe feitas à mão. Faixas de rocha em volta da Trilha, da Cortina viva, do Abismo duplo e da arena garantem que nenhum salão gerado vire atalho. ~180 × 120 m, 19 câmaras com nome.

@@ -23,6 +23,8 @@ const SCREECH_RANGE := 7.0
 
 var _tele_dive := Attack.make("mergulho", "", {"shape": Attack.Shape.CIRCLE, "reach": 0.9, "at_point": true})   ## marca no chão do mergulho
 var flock := "bando"            ## morcegos do mesmo bando passeiam juntos
+var dive_damage := BITE_DAMAGE  ## o Morcego gigante bate mais forte
+var hear_range := HEAR_RANGE
 var mode: Mode = Mode.ROOST
 var mode_time := 0.0
 var dive_cd := 0.0
@@ -108,7 +110,7 @@ func hears(p: Player) -> bool:
 	if asleep:
 		return d <= 1.5
 	var moving := Vector2(p.velocity.x, p.velocity.z).length() > 0.8
-	if moving and d <= maxf(HEAR_RANGE, p.noise_radius() * 1.3):
+	if moving and d <= maxf(hear_range, p.noise_radius() * 1.3):
 		return true
 	return d <= STILL_RANGE
 
@@ -214,7 +216,7 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 				if p != null:
 					if p.state != Player.State.DODGE:
 						bit = true
-						p.take_damage(BITE_DAMAGE, self, false)
+						p.take_damage(dive_damage, self, false)
 				elif target.has_method("take_damage"):
 					bit = true
 					target.take_damage(PREY_DAMAGE, self)
