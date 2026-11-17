@@ -248,7 +248,7 @@ func _overhead(m: SilkMesh, n: int) -> void:
 			free.append(k)
 	for i in n:
 		var a: int = free[(i * 29 + 3) % free.size()]
-		var b: int = free[(i * 29 + 3 + free.size() / 2 + (i % 5) * 3) % free.size()]
+		var b: int = free[(i * 29 + 3 + int(free.size() * 0.5) + (i % 5) * 3) % free.size()]
 		m.thread(m.sag(_wall_pt(a, WALL_H * 0.95, 0.2), _wall_pt(b, WALL_H * 0.92, 0.2), 0.35, 10), 0.008, i % 4 == 0)
 
 

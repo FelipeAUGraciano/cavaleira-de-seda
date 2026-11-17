@@ -385,8 +385,8 @@ func _draw_area_title(vp: Vector2) -> void:
 	for i in steps:
 		var t0 := float(i) / steps
 		var t1 := float(i + 1) / steps
-		var fade := 1.0 - absf((t0 + t1) - 1.0)
-		_cv.draw_line(Vector2(vp.x * 0.5 - half + t0 * half * 2.0, ly), Vector2(vp.x * 0.5 - half + t1 * half * 2.0, ly), Color(AREA_GOLD, 0.75 * a * fade), 1.4, true)
+		var fall := 1.0 - absf((t0 + t1) - 1.0)
+		_cv.draw_line(Vector2(vp.x * 0.5 - half + t0 * half * 2.0, ly), Vector2(vp.x * 0.5 - half + t1 * half * 2.0, ly), Color(AREA_GOLD, 0.75 * a * fall), 1.4, true)
 	var d := 5.0
 	_cv.draw_colored_polygon(PackedVector2Array([Vector2(vp.x * 0.5, ly - d), Vector2(vp.x * 0.5 + d, ly), Vector2(vp.x * 0.5, ly + d), Vector2(vp.x * 0.5 - d, ly)]), Color(AREA_GOLD, 0.9 * a))
 	if _area_sub != "":

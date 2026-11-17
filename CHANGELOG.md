@@ -2,6 +2,19 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Ato 2 começa: a queda da Fenda e o Abismo A1–A4 (17/11)
+
+- **A queda:** depois da Centopeia, na Borda da Fenda (G15), o chão racha (faixas pretas, tremor crescente), a borda se desfaz e ela escorrega para dentro. Dentro da Fenda a caverna some da tela: só ela, as pedras caindo e riscos de vento passando, com a câmera descendo junto. Ela atira um fio para cima, ele pega e arrebenta; atira outro, arrebenta de novo. Escurece, vem a tela de carregamento com "Fim do Ato 1".
+- **A chegada:** ela despenca do alto no Fundo da queda, bate no chão levantando poeira e fica caída um instante. Chega **ferida (30% da vida) e sem seda**. Depois aparece "Abismo · Ato 2" no estilo Elden Ring e o controle volta.
+- **Abismo, primeiro trecho (A1–A4), quase breu:** ambiente quase preto; só a runa, poucos fungos e cristais frios mostram alguma coisa.
+  - **A1 Fundo da queda:** ponto seguro, 4 pilares, uma presa esquecida.
+  - **A2 Ossário:** carcaças velhas e uma costela gigante de alguma coisa do tamanho do Colosso. **Besouros carniceiros (novo):** bichos pequenos em bandos (4 e 3) que roem as carcaças e fogem de você. São a primeira comida fácil (devolvem seda); descansar repõe o bando.
+  - **A3 Trilha do Colosso:** corredor largo e comprido. Um **dragão da terra** (o Colosso, provisório em formas simples até ter modelo) vai e volta pela trilha, parando nas pontas. Ele **sente o chão**: correr perto, ou andar num fio a até 13 m dele, chama atenção; ele enxerga só de perto (menos ainda com a runa apagada). Parada de lado no escuro, ele passa; bem no caminho das patas, ele pisa. Alerta, os olhos ficam vermelhos, ele ruge e avança pela trilha; se te alcança, **mata na hora**. Nas **rachaduras** das paredes (5 ao longo da trilha) ele não entra: fareja, desiste e volta para a ronda. Pisa e arrebenta qualquer fio no caminho. Cada passo treme a câmera, mais forte quanto mais perto.
+  - **A4 Fenda do refúgio:** uma rachadura estreita na parede da trilha que dá numa câmara pequena: a **toca do Abismo** (casulo central, uma porta só, despensa). Fica a 18 m do caminho do Colosso.
+  - Passagens para o Lago negro (A5) e a Cortina viva (A8) estão atrás de **desabamentos**: chegam na próxima parte.
+- Correções: avisos antigos do GDScript (divisão inteira na toca, variáveis repetidas nas Galerias, sombra de função no HUD) zerados.
+- Teste novo: `abismo_test`. Captura: `tests/screenshot_abismo.tscn`.
+
 ## Fim do prólogo com cena, tela de carregamento e chegada à la Elden Ring (17/11)
 
 - **Fuga até o fim:** ao chegar na saída do Berçário ela não para mais. Faixas pretas entram, a interface some, ela dispara túnel adentro sozinha, a câmera olha para trás e a Mãe bate com o corpo na entrada. Um clarão vermelho, tremor de câmera, pedras despencando e poeira fecham o túnel atrás dela. O túnel agora segue escuro até um brilho verde lá no fundo (o musgo das Galerias).

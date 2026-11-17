@@ -1,6 +1,6 @@
 # Cavaleira de Seda — v0.8
 
-Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada), com visão curta e quedas para o andar de baixo. Morrer te leva de volta à sua toca (ou ao último ponto seguro), e o andar continua como você deixou.
+Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada) e o **Ato 2 começou**: a queda pela Fenda e o primeiro trecho do Abismo (A1–A4). Visão curta e quedas para o andar de baixo. Morrer te leva de volta à sua toca (ou ao último ponto seguro), e o andar continua como você deixou.
 
 O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design completo fica no GDD (documento do projeto).
 
@@ -10,7 +10,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 - **Toca:** nas Galerias, a G22 Fosso escuro é a câmara-toca. Você toma posse tecendo o casulo central no ninho velho (C) e fecha as 4 entradas com portas de teia (você passa, os bichos não). Só a toca salva e cura; antes dela o jogo salva sozinho nos pontos seguros, sem curar. Bichos com fome sentem a comida guardada, rasgam as portas e comem da despensa; fios-alarme avisam de longe.
 - **Comida:** a despensa (10 embrulhos) fica na toca. Na viagem você leva 2 na bolsa e come com G em qualquer lugar. Presa pequena você embrulha onde estiver (C); presa grande vai arrastada no fio até a toca.
 - **Menu da toca:** teia de 17 habilidades (1 ponto por nível), evolução, despensa, portas e fios-alarme. Descansar salva, cura, remenda portas e faz a muda; não dá para dormir com um bicho te caçando perto.
-- **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), a Mãe e a Centopeia-blindada, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
+- **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), besouros carniceiros, a Mãe, a Centopeia-blindada e o Colosso do Abismo, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
 - **Mundo:** Galerias em dois andares geradas como caverna orgânica, ciclo de luz de 5 minutos, território, pilares variados, ganchos de parede nos abismos.
 - **Menus:** 3 espaços de save, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle).
 - **Arte:** modelos 3D da protagonista, de todas as criaturas, da Mãe e dos props; o chão e as paredes são gerados em código.
@@ -51,6 +51,8 @@ Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tece
 
 **Galerias Úmidas (dois andares):** caverna orgânica com bolsões de abismo; cair de cima leva ao andar de baixo (P1–P6), de onde se volta pelas passagens. As câmaras principais: G1 entrada → G2 poça (Sapo-de-rocha) ou G3 túnel dos morcegos → G4 Grande Gruta. A sudoeste, G22 Fosso escuro: a toca (casulo central, portas, despensa). Do G4: G5 jardim (Lagarto-lanterna) e G12 ninho (três lagartos, cristal de energia) ao sul, G7 lago (cristal na ilha) a sudoeste, G6 ponte quebrada (três fendas) a leste → G8 Galeria do eco (aventureiros ao longe; fresta secreta para G10) → G9 Acampamento (tochas, diário) → G13 Antecâmara (último ponto seguro) → G14 Covil da Centopeia → G15 Borda da Fenda (queda para o Abismo). G11 Poças ácidas liga o jardim à Antecâmara (Resistência a Ácido 3). A parede de cristal da G16 abre no Ato 4.
 
+**Abismo (Ato 2, primeiro trecho):** depois da Centopeia, o chão da G15 cede e ela despenca pela Fenda (cena com a câmera descendo junto e dois fios que arrebentam), passa pela tela "Fim do Ato 1" e cai no fundo, ferida (30% da vida) e sem seda. Quase breu: só a runa, poucos fungos e cristais. A1 Fundo da queda → A2 Ossário (carcaças velhas e uma costela gigante; besouros carniceiros em bandos, a primeira comida) → A3 Trilha do Colosso (corredor largo onde um dragão da terra faz a ronda; ele sente o chão: correr perto, ou andar num fio, chama ele; parada de lado e com a runa apagada, ele passa; se te alcança, mata na hora; nas rachaduras das paredes ele não entra) → A4 Fenda do refúgio (rachadura estreita que dá na toca do Abismo). Lago negro e Cortina viva estão atrás de desabamentos: chegam na próxima parte.
+
 **Câmara de teste:** a câmara cinza da v0.1 continua no projeto (`world/layers/test_chamber.tscn`) para o teste automático dos sistemas.
 
 Sistemas: 4 recursos que aparecem no corpo da aranha (placas = PV, runa = Energia, cachecol = Seda, abdômen = Saciedade), fome, território, vibração nos fios (com seta na tela), toca com save, veneno, Enredado com crítico ×2, furtividade por luz e barulho, e um ecossistema básico (o sapo caça e come larvas).
@@ -80,7 +82,7 @@ autoload/      EventBus (sinais), GameState (save, espaços, falas), Settings (o
                World (mundo vivo: registro espacial de criaturas e cadáveres, navegação, relógio)
 actors/
   player/      player.gd — a Cavaleira
-  creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, corpse.gd
+  creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, beetle.gd, corpse.gd
   npc/         adventurer.gd (aventureiros vistos de longe)
 systems/
   ai/          needs.gd (fome, sono, medo, inquietação), brain.gd (escolhe a atividade),
@@ -90,13 +92,13 @@ systems/
   ecosystem/   repovoamento da câmara
   fx.gd        formas cinza e efeitos simples
 world/         title.tscn (menu inicial), layer_base.gd (base de toda camada)
-  layers/      bercario.tscn, galerias.tscn, abismo.tscn (provisório), test_chamber.tscn
+  layers/      bercario.tscn, galerias.tscn, abismo.tscn, test_chamber.tscn
 systems/level/ cave_builder.gd (cavernas orgânicas), map_system.gd, pickup.gd, fire.gd (tochas), note.gd (coisas para ler)
 systems/spider_legs.gd   as 8 patas com IK
 systems/models.gd        troca formas cinza por modelos .glb (assets/models/)
 assets/models/ modelos 3D, um por pasta (veja "Modelos 3D" abaixo)
 tools/         preparar_modelo.sh (reduz malha e texturas dos modelos da IA)
-actors/bosses/ mother_leg.gd (pata da despensa), mother_chase.gd (fuga), centipede.gd (Centopeia-blindada)
+actors/bosses/ mother_leg.gd (pata da despensa), mother_chase.gd (fuga), centipede.gd (Centopeia-blindada), colossus.gd (Colosso do Abismo)
 ui/            hud.gd, cocoon_menu.gd (menu do casulo), options_menu.gd, skill_icons.gd, vision_overlay.gd
 systems/skills.gd        a teia de habilidades
 audio/voice/   arquivos de dublagem (veja docs/falas.md)
@@ -149,6 +151,7 @@ godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evoluçã
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
 godot --headless --path . res://tests/fuga_test.tscn       # fim do prólogo: fuga, carregamento, chegada
+godot --headless --path . res://tests/abismo_test.tscn     # queda da Fenda, Abismo A1–A4, Colosso, besouros, toca
 godot --headless --path . res://tests/toca_test.tscn       # toca, portas, bolsa, arrasto, saque e save
 godot --headless --path . res://tests/novos_test.tscn       # formigas, cobra e coletáveis novos
 godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar

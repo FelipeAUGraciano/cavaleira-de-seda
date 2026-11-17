@@ -372,7 +372,7 @@ func _build_level() -> void:
 	for k in 8:
 		var ang := k * TAU / 8.0 + PI / 8.0
 		pillars["G14_%d" % k] = ARENA + Vector3(cos(ang) * 7.2, 0.0, sin(ang) * 5.6)
-	var i := 0
+	var _i := 0
 	for n in pillars:
 		var pos: Vector3 = pillars[n]
 		if not cave.is_floor(Vector2(pos.x, pos.z), 0.45):
@@ -380,7 +380,7 @@ func _build_level() -> void:
 			pillars[n] = pos
 		var small := String(n) == "G7_b"
 		add_anchor(n, pos, 2.5 if small else 3.5, 0.4 if small else 0.5, STONE)
-		i += 1
+		_i += 1
 		if not cave.is_floor(Vector2(pos.x, pos.z), 0.45):
 			push_warning("Pilar %s fora do chão firme em %s" % [n, pos])
 	_add_wall_hooks()
@@ -784,9 +784,9 @@ func _room_spot(room_id: String, seed_: int, min_clear: float = 1.0) -> Variant:
 	var cells: Array = World.nav.room_cells.get(room_id, [])
 	var ok: Array = []
 	for c in cells:
-		var p := World.nav.center_of(c)
-		if cave.floor_value(Vector2(p.x, p.z)) >= min_clear:
-			ok.append(p)
+		var cp := World.nav.center_of(c)
+		if cave.floor_value(Vector2(cp.x, cp.z)) >= min_clear:
+			ok.append(cp)
 	if ok.is_empty():
 		ok = cells.map(func(c): return World.nav.center_of(c))
 	if ok.is_empty():
@@ -804,11 +804,11 @@ func _wall_spot(room_id: String, seed_: int) -> Variant:
 	var cells: Array = World.nav.room_cells.get(room_id, [])
 	var ok: Array = []
 	for c in cells:
-		var p := World.nav.center_of(c)
-		var q := Vector2(p.x, p.z)
-		var o := cave.open_value(q)
-		if o > 0.5 and o < 1.3 and cave.floor_value(q) > 0.5:
-			ok.append(q)
+		var cp := World.nav.center_of(c)
+		var cq := Vector2(cp.x, cp.z)
+		var o := cave.open_value(cq)
+		if o > 0.5 and o < 1.3 and cave.floor_value(cq) > 0.5:
+			ok.append(cq)
 	if ok.is_empty():
 		return null
 	var r := RandomNumberGenerator.new()
@@ -958,22 +958,139 @@ func in_acid(p: Vector2) -> bool:
 
 
 func _on_edge(body: Node3D) -> void:
-	# G15: depois da luta, o chão da borda cede e a Cavaleira cai para o Abismo.
+	## G15, depois da Centopeia: o chão da borda racha, ela escorrega para dentro da Fenda e
+	## despenca. A câmera desce junto; ela atira dois fios para cima e os dois arrebentam.
+	## Tudo escurece e vem o Abismo (tela de carregamento, Ato 2).
 	if _collapsing or not (body is Player) or not GameState.flags.has("g14_centopeia"):
 		return
 	_collapsing = true
+	player.invuln = 999.0
+	player.autopilot = true
+	player.auto_target = W3(172.5, 0.1, 110.0)
+	player.auto_run = false
+	player.cam_zoom = 11.0
+	hud.cinematic = true
 	EventBus.message.emit("O chão está rachando...")
 	GameState.say_once("g15_racha", "Ok. Isso aí não é um barulho bom.")
 	var t := 0.0
-	while t < 2.2:
+	while t < 2.0 and is_inside_tree():
 		await get_tree().process_frame
-		var dt := get_process_delta_time()
-		t += dt
-		if player != null and player.camera != null:
-			player.camera.h_offset = randf_range(-0.25, 0.25) * t
-			player.camera.v_offset = randf_range(-0.2, 0.2) * t
+		t += get_process_delta_time()
+		player.shake(0.2 + t * 0.35)
+	if not is_inside_tree():
+		return
 	EventBus.big_message.emit("O chão cede!")
 	GameState.say_once("g15_queda", "NÃO NÃO NÃO NÃO NÃÃÃÃÃO...")
 	GameState.flags["ato1_fim"] = true
-	await get_tree().create_timer(1.6).timeout
-	go_to_layer(NEXT_LAYER)
+	var lip := player.global_position
+	_crumble(lip)
+	player.shake(1.6)
+	# daqui em diante a queda é coreografada (sem física: o chão sumiu)
+	player.autopilot = false
+	player.velocity = Vector3.ZERO
+	player.set_physics_process(false)
+	var mid := W3(179.5, 0.0, 110.0)
+	var slide := create_tween()
+	slide.tween_property(player, "global_position", Vector3(lerpf(lip.x, mid.x, 0.6), -1.5, lerpf(lip.z, mid.z, 0.6)), 0.55) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await slide.finished
+	var start := player.global_position
+	_into_the_void()
+	var fall := create_tween()
+	fall.tween_property(player, "global_position", Vector3(mid.x, -26.0, mid.z), 2.6) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_rockfall(mid, start.y)
+	# primeiro fio: pega na borda... e arrebenta
+	await get_tree().create_timer(0.55).timeout
+	if not is_inside_tree():
+		return
+	_snap_thread(lip + Vector3(0, 0.3, 0), "Fio! FIO!")
+	await get_tree().create_timer(0.75).timeout
+	if not is_inside_tree():
+		return
+	_snap_thread(Vector3(mid.x + 2.2, start.y + 1.0, mid.z - 1.5), "O fio arrebentou!")
+	await get_tree().create_timer(0.6).timeout
+	if not is_inside_tree():
+		return
+	await hud.fade(1.0, 0.6)
+	go_to_layer(NEXT_LAYER, "Fim do Ato 1", "A Fenda não tem fundo... até ter. Lá embaixo, no escuro, algo enorme anda.")
+
+
+func _into_the_void() -> void:
+	## Dentro da Fenda a caverna some da tela: só ela, as pedras e o vento, no escuro.
+	for c in get_children():
+		if c is Node3D and c != player and not (c is Camera3D) and not c.has_meta("fall_fx"):
+			(c as Node3D).visible = false
+	var streak := Fx.mat(Color(0.75, 0.82, 1.0), 1.0, true, 0.35)
+	for k in 26:
+		var st := Fx.box(Vector3(0.03, 2.2, 0.03), streak)
+		st.set_meta("fall_fx", true)
+		add_child(st)
+		_streak(st, k * 0.1)
+
+
+func _streak(st: MeshInstance3D, delay: float) -> void:
+	## Riscos de vento passando para cima: dá a sensação de velocidade na queda.
+	await get_tree().create_timer(delay).timeout
+	while is_instance_valid(st) and is_instance_valid(player) and player.global_position.y > -25.0:
+		var base := player.global_position
+		st.position = base + Vector3(randf_range(-6.0, 6.0), -10.0, randf_range(-5.0, 5.0))
+		var tw := st.create_tween()
+		tw.tween_property(st, "position", st.position + Vector3(0, 18.0, 0), 0.5)
+		await tw.finished
+	if is_instance_valid(st):
+		st.queue_free()
+
+
+func _snap_thread(anchor: Vector3, line: String) -> void:
+	## Ela atira um fio para cima; ele estica, segura um instante e arrebenta.
+	var pl := player
+	var line_node := SilkLine.shoot(self, func(): return pl.global_position + Vector3(0, 0.3, 0), func(): return anchor)
+	EventBus.message.emit(line)
+	await get_tree().create_timer(0.32).timeout
+	if is_instance_valid(line_node):
+		line_node.release(true)
+	if is_instance_valid(pl):
+		pl.shake(0.8)
+
+
+func _crumble(at: Vector3) -> void:
+	## A borda se desfaz: pedaços de chão afundam na Fenda e levantam poeira.
+	var rock := Fx.mat(cave.rock_color.lightened(0.3), 0.1)
+	for k in 8:
+		var r := randf_range(0.3, 0.7)
+		var stone := Fx.sphere(r, rock)
+		stone.scale = Vector3(1.0, randf_range(0.5, 0.8), randf_range(0.8, 1.3))
+		stone.position = at + Vector3(randf_range(-1.5, 2.5), 0.0, randf_range(-2.0, 2.0))
+		add_child(stone)
+		var tw := stone.create_tween()
+		tw.tween_interval(k * 0.05)
+		tw.tween_property(stone, "position", stone.position + Vector3(randf_range(1.0, 3.0), -30.0, randf_range(-1.0, 1.0)), 2.4) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(stone, "rotation", Vector3(randf(), randf(), randf()) * 6.0, 2.4)
+		tw.tween_callback(stone.queue_free)
+	var dust_mat := Fx.mat(Color(0.7, 0.68, 0.72), 0.2, true, 0.4)
+	for k in 6:
+		var d := Fx.sphere(randf_range(0.5, 0.9), dust_mat)
+		d.position = at + Vector3(randf_range(-1.5, 1.5), 0.3, randf_range(-1.5, 1.5))
+		add_child(d)
+		var tw := d.create_tween()
+		tw.tween_property(d, "scale", Vector3.ONE * 2.5, 1.2)
+		tw.parallel().tween_property(d, "position", d.position + Vector3(0, 1.2, 0), 1.2)
+		tw.tween_callback(d.queue_free)
+
+
+func _rockfall(mid: Vector3, top: float) -> void:
+	## Pedras caindo junto com ela (a câmera desce no meio delas).
+	var rock := Fx.mat(cave.rock_color.lightened(0.2), 0.05)
+	for k in 10:
+		var r := randf_range(0.25, 0.6)
+		var stone := Fx.sphere(r, rock)
+		stone.position = mid + Vector3(randf_range(-3.0, 3.0), top + randf_range(1.0, 6.0), randf_range(-2.5, 2.5))
+		stone.set_meta("fall_fx", true)
+		add_child(stone)
+		var tw := stone.create_tween()
+		tw.tween_property(stone, "position", stone.position + Vector3(0, -34.0, 0), randf_range(2.2, 3.0)) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(stone, "rotation", Vector3(randf(), randf(), randf()) * 5.0, 2.6)
+		tw.tween_callback(stone.queue_free)
