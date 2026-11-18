@@ -2,6 +2,15 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Abismo e Rio de Brasa abertos: dá para ir e voltar (18/11)
+
+- **A Rampa quente liga os dois andares nos dois sentidos.** No Abismo, subir a rampa (A14) leva ao Rio; no Rio, a **descida a oeste da Margem fria** (degraus para o escuro, com a luz fria do Abismo) leva de volta ao topo da Rampa quente. Berçário e Galerias continuam sem volta.
+- A tela "Fim do Ato 2" aparece só na primeira subida; depois o carregamento mostra só "Rio de Brasa" ou "Abismo".
+- Voltando do Rio, ela **desce a rampa andando** (a queda dramática e o "ferida e sem seda" são só da primeira chegada).
+- **As teias ficam onde você deixou:** fios, teias de captura e casulos de cada andar são guardados ao sair e voltam ao entrar de novo (também no save). A toca de cada andar já era lembrada.
+- Correção: chegar numa camada não reaproveita mais um save antigo daquela mesma camada por engano, e o conhecimento em memória (mapas, teias) não é trocado pelo do disco.
+- Rio de Brasa: a toca (Câmara fria) agora tem túneis firmes até a Forja e o Ninho (antes, dependendo da geração, a forja podia ficar sem ligação com a toca).
+
 ## Ato 3: o Rio de Brasa inteiro (18/11)
 
 - **Chegada:** no topo da Rampa quente (A14) ela sobe correndo, vem a tela "Fim do Ato 2" e o título "Rio de Brasa · Ato 3".

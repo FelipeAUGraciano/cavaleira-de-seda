@@ -2,7 +2,8 @@ extends LayerBase
 ## R — Rio de Brasa (Ato 3). Caverna orgânica de um andar (como as Galerias e o Abismo) cortada
 ## por um rio de lava de norte a sul. Câmaras de trava e de chefe feitas à mão.
 ##
-##   Oeste (gerado):  R1 Margem fria (chegada), R15 Galeria de basalto, R16 Beco quente
+##   Oeste (gerado):  R1 Margem fria (chegada; a descida a oeste volta para o Abismo), R15 Galeria
+##                    de basalto, R16 Beco quente
 ##   R2 Mirante do rio: a vista do rio e a escolha entre as duas rotas
 ##   R3 Ilhas de basalto: pilares sobre a lava (fios queimam em 8 s); a brasa das ilhas pede
 ##                        Resistência a Fogo 3 (rota rápida)
@@ -28,6 +29,8 @@ const ISLANDS := [Vector2(45.5, 4.0), Vector2(52.0, 8.5), Vector2(58.5, 4.5)]
 const ISLAND_R := 2.3
 const R1_C := Vector2(2, 18)
 const R1_POOL := Vector2(6, 22.5)
+const DOWN := Vector2(-18, 14)         ## descida para o Abismo (Rampa quente)
+const ABISMO := "res://world/layers/abismo.tscn"
 const R2_C := Vector2(33, 4)
 const DEN_C := Vector2(80, 10)
 const DEN_R := 4.5
@@ -63,6 +66,8 @@ func _configure() -> void:
 	layer_name = "Rio de Brasa"
 	layer_subtitle = "Ato 3 · Onde a pedra derrete"
 	spawn_point = Vector3(R1_C.x, 0.1, R1_C.y)
+	# vindo do Abismo: sobe pela descida da Margem fria (e por ela dá para voltar)
+	entries = {"abismo": {"spawn": Vector3(R1_C.x - 4.0, 0.1, R1_C.y - 1.0), "from": Vector3(DOWN.x + 4.0, 0.1, DOWN.y + 0.3)}}
 	ambient_color = Color(0.45, 0.22, 0.14)
 	ambient_energy = 0.22
 	fog_color = Color(0.05, 0.015, 0.005)
@@ -134,9 +139,11 @@ func _build_level() -> void:
 	cave.noise.seed = 83
 	cave.rooms = rooms
 	cave.tunnels = [
+		CaveBuilder.path([R1_C, Vector2(-8, 16), DOWN + Vector2(-1.5, 0)], 4.0, 0.3),  # Margem fria → descida para o Abismo
 		CaveBuilder.path([Vector2(75.6, 10), Vector2(66, 9)], 2.6, 0.2),            # toca → oeste (ilhas)
-		CaveBuilder.path([Vector2(80, 5.6), Vector2(80, -3), Vector2(79, -10)], 2.6, 0.2),     # toca → norte (salamandras)
-		CaveBuilder.path([Vector2(80, 14.4), Vector2(80, 21), Vector2(75, 27)], 2.6, 0.2),    # toca → sul (Fosso morno, forja)
+		CaveBuilder.path([Vector2(80, 5.6), Vector2(80, -3), Vector2(79, -12), Vector2(78, -26)], 2.6, 0.2),   # toca → norte (salamandras)
+		CaveBuilder.path([Vector2(80, 14.4), Vector2(80, 21), Vector2(85, 30), Vector2(90, 37)], 2.6, 0.2),   # toca → sul (forja)
+		CaveBuilder.path([Vector2(80, 21), Vector2(75, 27)], 2.4, 0.2),                                         # → Fosso morno
 		CaveBuilder.path([Vector2(84.4, 10), Vector2(92, 10), Vector2(96, 4)], 2.6, 0.2),     # toca → leste (gêiseres)
 		CaveBuilder.path([Vector2(178, -46), Vector2(182, -50), Vector2(185, -53)], 1.4, 0.1),   # fresta → Cristais de fogo
 		CaveBuilder.path([Vector2(166, 15), Vector2(166, 24)], 4.0, 0.3),           # antecâmara → arena
@@ -161,6 +168,25 @@ func _build_level() -> void:
 	_build_geysers()
 	_build_moat()
 	_build_crystals()
+	_build_descent()
+
+
+func _build_descent() -> void:
+	## A boca da Rampa quente: degraus descendo para o escuro, com a luz fria do Abismo.
+	var rock := Fx.mat(Color(0.14, 0.12, 0.13))
+	for k in 5:
+		var st := Fx.box(Vector3(0.6, 0.1, 3.4), rock)
+		st.position = Vector3(DOWN.x - 0.8 - k * 0.6, -0.08 - k * 0.14, DOWN.y)
+		add_child(st)
+	var hole := Fx.box(Vector3(2.4, 0.04, 3.6), Fx.mat(Color(0.0, 0.0, 0.02)))
+	hole.position = Vector3(DOWN.x - 3.6, -0.7, DOWN.y)
+	add_child(hole)
+	var l := OmniLight3D.new()
+	l.light_color = Color(0.45, 0.55, 1.0)
+	l.omni_range = 5.0
+	l.light_energy = 0.9
+	l.position = Vector3(DOWN.x - 2.5, 0.6, DOWN.y)
+	add_child(l)
 
 
 func _in_zone(p: Vector2) -> bool:
@@ -509,6 +535,7 @@ func _populate() -> void:
 		ecosystem.add_child(queen)
 		add_trigger(Rect2(ARENA - Vector2(11, 8), Vector2(22, 16)), _on_arena)
 	add_trigger(Rect2(CHIMNEY_END - Vector2(3, 3), Vector2(6, 6)), _on_chimney)
+	add_trigger(Rect2(DOWN - Vector2(2.5, 2.2), Vector2(2.5, 4.4)), _on_descent)
 	# fungos de cinza (pouca luz fora do rio)
 	for fz: Vector2 in [R1_C + Vector2(-5, 2), Vector2(-8, -26), Vector2(-10, 40), R6_C + Vector2(4, -4), Vector2(104, -48),
 			R9_C + Vector2(2, -5), Vector2(184, -12), R11_C + Vector2(2, 2), Vector2(30, 58), R4_C + Vector2(-6, 0), Vector2(97, 2), Vector2(72, 27)]:
@@ -741,6 +768,20 @@ func _on_creature_died(c: Node) -> void:
 		EventBus.big_message.emit("A Salamandra-rainha caiu")
 		GameState.say_once("rainha_morta", "Caiu. E a lava... tá apagando. Sem ela, o rio esfria.")
 		cool_moat(true)
+
+
+func _on_descent(body: Node3D) -> void:
+	## Descer de volta para o Abismo (os dois andares são abertos).
+	if _ending or not (body is Player) or player.autopilot:
+		return
+	_ending = true
+	player.autopilot = true
+	player.auto_target = Vector3(DOWN.x - 3.5, 0.1, DOWN.y)
+	hud.cinematic = true
+	await get_tree().create_timer(1.0).timeout
+	if not is_inside_tree():
+		return
+	go_to_layer(ABISMO, "Abismo", "Descendo a Rampa quente.", "rio")
 
 
 func _on_chimney(body: Node3D) -> void:

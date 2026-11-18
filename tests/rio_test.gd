@@ -51,6 +51,46 @@ func _run() -> void:
 		await _seconds(0.1)
 	player.invuln = 999.0
 
+	# ida e volta: o Abismo e o Rio de Brasa são abertos
+	var a_name := "R1_0"
+	var b_name := "R1_1"
+	WebNetwork.create_strand(WebNetwork.anchors[a_name], WebNetwork.anchors[b_name])
+	player.hp = player.max_hp
+	player.global_position = Vector3(r.DOWN.x - 1.0, 0.1, r.DOWN.y)
+	var back := await _wait_scene("abismo.tscn")
+	_check(back, "a descida da Margem fria volta para o Abismo")
+	if back:
+		await _seconds(4.5)
+		player = GameState.player
+		_check(Fx.flat_dist(player.global_position, Vector3(161.5, 0, 46)) < 3.0, "chega pela Rampa quente (%.0f, %.0f)" % [player.global_position.x, player.global_position.z])
+		_check(player.hp > player.max_hp * 0.9, "sem a queda: não chega ferida")
+		for i in 40:
+			if not player.autopilot:
+				break
+			await _seconds(0.1)
+		player.invuln = 999.0
+		player.global_position = Vector3(162, 0.1, 55)
+		var ls2: Node = null
+		for i in 60:
+			await _seconds(0.1)
+			var f2 := get_tree().get_nodes_in_group("loading_screen")
+			if not f2.is_empty():
+				ls2 = f2[0]
+				break
+		_check(ls2 != null and ls2.header == "Rio de Brasa", "subir de novo: carregamento 'Rio de Brasa' (sem 'Fim do Ato 2')")
+		var again := await _wait_scene("rio_brasa.tscn")
+		_check(again, "volta para o Rio de Brasa")
+		await _seconds(4.5)
+		r = get_tree().current_scene
+		player = GameState.player
+		_check(WebNetwork.has_strand(a_name, b_name), "o fio tecido no rio continua lá")
+		_check(Fx.flat_dist(player.global_position, Vector3(r.R1_C.x - 4.0, 0, r.R1_C.y - 1.0)) < 3.0, "chega pela descida da Margem fria")
+		for i in 40:
+			if not player.autopilot:
+				break
+			await _seconds(0.1)
+		player.invuln = 999.0
+
 	# câmaras e caminhos
 	for id in ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14"]:
 		_check(World.nav.room_cells.has(id) and not (World.nav.room_cells[id] as Array).is_empty(), "câmara %s existe" % id)
@@ -216,6 +256,15 @@ func _run() -> void:
 	await _seconds(0.5)
 	_check(GameState.flags.has("ato3_fim") and r.hud.cinematic, "Chaminé: Fim do Ato 3")
 	_end()
+
+
+func _wait_scene(file: String) -> bool:
+	for i in 200:
+		await _seconds(0.1)
+		var sc = get_tree().current_scene
+		if sc != null and String(sc.scene_file_path).ends_with(file):
+			return true
+	return false
 
 
 func _shore_point(r) -> Vector3:

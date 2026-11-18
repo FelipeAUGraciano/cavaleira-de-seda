@@ -42,6 +42,11 @@ var den: Den = null
 var free_cocoons := false
 var _autosaved := {}
 var _walk_in := false            ## chegou de outra camada: entra andando, com o nome da área
+## Entradas por onde se chega vindo de outra camada: {"de onde": {"spawn": Vector3, "from": Vector3}}.
+## (Abismo e Rio de Brasa são abertos: dá para ir e voltar.)
+var entries: Dictionary = {}
+var arrived_from := ""
+var _entry_from = null
 var restarting := false        ## morreu: o ato recomeçou do início (permadeath)
 
 
@@ -52,12 +57,12 @@ func _ready() -> void:
 	_configure()
 
 	var data := GameState.load_game()
-	var here := not data.is_empty() and String(data.get("scene", "")) == scene_file_path
+	var here := GameState.carry.is_empty() and not data.is_empty() and String(data.get("scene", "")) == scene_file_path
 	resumed = here and bool(data.get("checkpoint", true))
 	restarting = here and not resumed
 	var k = data.get("knowledge", {})
-	if k is Dictionary and not k.is_empty():
-		GameState.knowledge = k
+	if k is Dictionary and not k.is_empty() and GameState.carry.is_empty():
+		GameState.knowledge = k   # (vindo de outra camada, o que está na memória é mais novo)
 	var dn = data.get("dens", {})
 	if dn is Dictionary and not dn.is_empty():
 		GameState.dens = dn
@@ -95,6 +100,12 @@ func _ready() -> void:
 	add_child(map_system)
 	map_system.room_entered.connect(_on_room_entered)
 
+	if not GameState.carry.is_empty():
+		arrived_from = GameState.arrive_from
+		GameState.arrive_from = ""
+		if entries.has(arrived_from):
+			spawn_point = entries[arrived_from]["spawn"]
+			_entry_from = entries[arrived_from].get("from", null)
 	player = Player.new()
 	player.name = "Cavaleira"
 	player.position = spawn_point
@@ -125,6 +136,9 @@ func _ready() -> void:
 		player.apply_carry(GameState.carry)
 		GameState.carry = {}
 		_walk_in = true
+		var saved_webs: Dictionary = GameState.knowledge.get("webs", {})
+		if saved_webs.has(scene_file_path):
+			WebNetwork.load_from(saved_webs[scene_file_path])   # as teias que você deixou aqui continuam
 	if GameState.act.is_empty() or String(GameState.act.get("scene", "")) != scene_file_path:
 		GameState.act = {"scene": scene_file_path, "player": player.to_dict(), "flags": GameState.flags.duplicate(true)}
 		GameState.save_act_start()
@@ -355,6 +369,8 @@ func _walk_in_scene() -> void:
 
 func _entry_point() -> Vector3:
 	## De onde ela entra: um ponto a ~5 m do início, em chão firme, de preferência ao norte.
+	if _entry_from != null:
+		return _entry_from
 	var cave_builder = get("cave") if "cave" in self else null
 	if cave_builder == null:
 		return spawn_point
@@ -386,10 +402,15 @@ func autosave() -> void:
 	EventBus.message.emit("Jogo salvo (ponto seguro).")
 
 
-func go_to_layer(path: String, header: String = "", sub: String = "") -> void:
+func go_to_layer(path: String, header: String = "", sub: String = "", from_id: String = "") -> void:
 	## Troca de camada: escurece, tela de carregamento (a teia sendo tecida) e a camada nova.
+	## from_id diz por qual entrada ela chega lá (entries da outra camada).
 	if den != null:
 		den.remember()
+	var saved_webs: Dictionary = GameState.knowledge.get("webs", {})
+	saved_webs[scene_file_path] = WebNetwork.to_dict()
+	GameState.knowledge["webs"] = saved_webs
+	GameState.arrive_from = from_id
 	GameState.carry = player.to_dict()
 	Engine.time_scale = 1.0
 	if player != null:

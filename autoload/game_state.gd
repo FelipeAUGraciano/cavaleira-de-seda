@@ -16,6 +16,7 @@ var current_layer = null
 var flags: Dictionary = {}
 ## Atributos levados de uma camada para a próxima.
 var carry: Dictionary = {}
+var arrive_from := ""             ## por qual entrada ela chega na próxima camada
 ## Morte permanente por ato (desligada): morreu, o ato recomeçaria com o que você tinha
 ## ao entrar nele. Hoje a morte volta para o último casulo e o andar continua como estava.
 var permadeath := false
@@ -179,6 +180,7 @@ func _clear_run() -> void:
 	said = {}
 	flags = {}
 	carry = {}
+	arrive_from = ""
 	act = {}
 	knowledge = {"maps": {}}
 	dens = {}

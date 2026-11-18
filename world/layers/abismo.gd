@@ -66,6 +66,8 @@ func _configure() -> void:
 	layer_name = "Abismo"
 	layer_subtitle = "Ato 2 · O fundo da Fenda"
 	spawn_point = Vector3(0.0, 0.1, 0.0)
+	# voltando do Rio de Brasa: desce a Rampa quente
+	entries = {"rio": {"spawn": Vector3(161.5, 0.1, 46.0), "from": Vector3(162.0, 0.1, 52.5)}}
 	ambient_color = Color(0.16, 0.18, 0.3)
 	ambient_energy = 0.08
 	fog_color = Color(0.0, 0.0, 0.015)
@@ -798,6 +800,7 @@ func _on_ramp_top(body: Node3D) -> void:
 	if _ending or not (body is Player):
 		return
 	_ending = true
+	var first := not GameState.flags.has("ato2_fim")
 	GameState.flags["ato2_fim"] = true
 	player.autopilot = true
 	player.auto_target = Vector3(RAMP_END.x, 0.1, RAMP_END.y + 1.5)
@@ -807,7 +810,10 @@ func _on_ramp_top(body: Node3D) -> void:
 	await get_tree().create_timer(1.6).timeout
 	if not is_inside_tree():
 		return
-	go_to_layer(NEXT_LAYER, "Fim do Ato 2", "Do fundo escuro para o rio que queima.")
+	if first:
+		go_to_layer(NEXT_LAYER, "Fim do Ato 2", "Do fundo escuro para o rio que queima.", "abismo")
+	else:
+		go_to_layer(NEXT_LAYER, "Rio de Brasa", "Subindo a Rampa quente.", "abismo")
 
 
 func _physics_process(delta: float) -> void:
@@ -840,6 +846,10 @@ func _start() -> void:
 func _walk_in_scene() -> void:
 	## Chegada do Ato 2: ela despenca do alto da Fenda, bate no chão e fica um tempo caída.
 	## Primeira vez: chega ferida (30% da vida) e sem nada de seda.
+	## Voltando do Rio de Brasa: desce a Rampa quente andando.
+	if arrived_from == "rio":
+		await super._walk_in_scene()
+		return
 	var land := spawn_point
 	player.set_physics_process(false)
 	player.global_position = land + Vector3(0.6, 16.0, -0.8)
