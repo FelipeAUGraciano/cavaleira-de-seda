@@ -690,6 +690,9 @@ func _tick_strands(delta: float) -> void:
 	for s in _burning.keys():
 		if not is_instance_valid(s):
 			_burning.erase(s)
+	if WebNetwork.fireproof():
+		_burning.clear()
+		return
 	for s in WebNetwork.strands.duplicate():
 		if not is_instance_valid(s):
 			continue
@@ -707,7 +710,8 @@ func _tick_strands(delta: float) -> void:
 		if t >= 8.0:
 			_burning.erase(s)
 			var mid := (ws.a_pos + ws.b_pos) * 0.5
-			WebNetwork.remove_strand(s)
+			if not WebNetwork.burn_strand(s):
+				continue
 			EventBus.message.emit("O fio sobre a lava queimou!")
 			_flame(mid)
 		elif t >= 5.5 and fmod(t, 1.0) < 0.26:

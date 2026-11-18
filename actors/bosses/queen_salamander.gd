@@ -174,10 +174,10 @@ func _burn_ring(r: float) -> void:
 			var da := Fx.flat_dist(ws.a_pos, c)
 			var db := Fx.flat_dist(ws.b_pos, c)
 			if minf(da, db) <= r or ws.distance_to(c) <= r:
-				WebNetwork.remove_strand(s)
+				WebNetwork.burn_strand(s)
 	for t in WebNetwork.traps.duplicate():
 		if is_instance_valid(t) and Fx.flat_dist(t.global_position, c) <= r:
-			WebNetwork.remove_trap(t)
+			WebNetwork.burn_trap(t)
 
 
 func on_enrage() -> void:

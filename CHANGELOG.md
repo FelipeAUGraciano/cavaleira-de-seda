@@ -2,6 +2,28 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## A última muda: 6 formas de ramo e 5 formas raras (18/11)
+
+- **Quando:** no nível 10 do ramo (Ceifadora, Tecelã ou Arauta), a aba Evolução do casulo abre a última muda. Pelo XP do jogo, isso cai no fim do Rio de Brasa ou no começo do Ato 4. O nível volta a 1; habilidades e pontos ficam. Depois dela não há outra muda.
+- **Cada ramo se divide em dois:**
+  - **Executora de Seda** (Lâmina · Fúria): combo 22/22/40; execução (golpe em bicho com menos de 25% da vida mata na hora; em chefe, dano dobrado); cada abate cura 8%.
+  - **Bastiã de Pedra** (Lâmina · Couraça): 280 PV base; -40% de dano; espinhos (quem te acerta de perto leva 40% de volta); nada te empurra; mais lenta.
+  - **Senhora das Teias** (Teia · Rede): 180 de Seda; fio e teia por 40%; a teia de captura segura 6 presas, bicho M fica preso 6 s e bicho grande que arrebenta perde o passo por 2,5 s.
+  - **Saltadora do Vento** (Teia · Voo): fio-guia +7 m, 1,9x nos fios; mergulho ao chegar de um fio lançado (Q): 30 de dano e atordoa em volta; esquiva pela metade.
+  - **Vidente da Runa** (Runa · Olho): enxerga 10 m; marca os bichos a 18 m através das paredes (vermelho = te notou); esquiva com mais tempo invulnerável.
+  - **Sacerdotisa da Tempestade** (Runa · Pulso): 240 de Energia, volta 50% mais rápido; Pulso Espiral a 8,5 m que atordoa e acerta 26.
+- **Formas raras (servem para qualquer ramo):**
+  - **Seda Ardente** — Resistência a Fogo 5 + Cristal de fogo (R10): imune a calor, brasa e queimadura (a lava não queima); seus fios e teias não pegam fogo (tochas, flechas, frasco, armadilhas, sopro); golpes incendeiam (5 PV/s por 3 s; bichos de fogo não pegam).
+  - **Sombra do Breu** — Pérola negra (A5) + Resistência à Podridão 3: parada e de runa apagada, ninguém te vê (só encostando ou ouvindo); emboscada em quem não te notou dá 2,5x; energia volta no escuro.
+  - **Viúva de Seda** — Resistência a Veneno 4: golpes e mordida envenenam (2 doses); imune a veneno; a teia de captura envenena.
+  - **Corrosiva** — Resistência a Ácido 5: golpes corroem (o alvo leva +40% por 5 s, até chefe de casca); imune a ácido; a teia de captura derrete quem prende (6 PV/s).
+  - **Cavaleira de Pedra-da-lua** — Pele de Cristal (comer a Centopeia) + 4 cristais de pedra-da-lua: escudo de 50 que volta 6 s depois do último golpe (HUD: ESCUDO); -20% de dano; a runa ilumina 60% mais longe. É a silhueta da visão da Fresta de cristal (G10).
+- **Menu do casulo:** trilha Filhote → Cavaleira → ramo → última muda; as duas formas do ramo à esquerda, as raras à direita (com cadeado e "pronta"); passar o mouse mostra o que a forma faz e o que falta.
+- Cada forma nova tem uma marca no corpo (foices, placas, coroa, asas de seda, olhos, halo duplo, chamas, véu, ampulheta, gotas, placas de pedra-da-lua).
+- Fogo passa por um lugar só (`WebNetwork.burn_strand` / `burn_trap`): a teia de captura queimada agora some de verdade (antes ficava no chão quando um caçador a queimava).
+- Abismo: mais 2 escorpiões (Ossário e Raízes negras), para a Viúva de Seda ter folga. Os cristais de pedra-da-lua agora são contados (e vão para o save).
+- Teste novo: `evolucao_test`. Captura: `tests/screenshot_evolucao.tscn`.
+
 ## Ato 4: a caçada nas Galerias (18/11)
 
 - **Chegada:** no topo da Chaminé (R14) do Rio de Brasa, tela "Fim do Ato 3" e ela sai no canto do Ninho dos lagartos (G12). As Galerias são as mesmas do Ato 1 (o mapa explorado no Ato 1 já vem desenhado), mas agora uma expedição humana caça a "aranha da runa". Não dá para voltar ao Rio pela Chaminé.

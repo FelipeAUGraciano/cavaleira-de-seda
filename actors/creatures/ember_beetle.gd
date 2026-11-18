@@ -13,6 +13,7 @@ func _init() -> void:
 	food_satiety = 26.0
 	food_silk = 16.0
 	food_xp = 16
+	fire_immune = true
 	senses_text = "calor e vibração (5 m)"
 
 

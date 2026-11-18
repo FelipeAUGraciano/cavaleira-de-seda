@@ -70,11 +70,11 @@ func burn_strands(from: Vector3, dir: Vector3, reach: float, half_w: float) -> v
 			for k in 6:
 				var q: Vector3 = (s as WebStrand).a_pos.lerp((s as WebStrand).b_pos, k / 5.0)
 				if Fx.seg_dist_flat(q, from, to) < half_w:
-					WebNetwork.remove_strand(s)
+					WebNetwork.burn_strand(s)
 					break
 	for t in WebNetwork.traps.duplicate():
 		if is_instance_valid(t) and Fx.seg_dist_flat(t.global_position, from, to) < half_w + 1.0:
-			WebNetwork.remove_trap(t)
+			WebNetwork.burn_trap(t)
 	_fire_fx(from, to)
 
 

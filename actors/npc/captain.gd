@@ -49,10 +49,10 @@ func on_attack_active(a: Attack) -> void:
 		var at: Vector3 = atk_point
 		for s in WebNetwork.strands.duplicate():
 			if is_instance_valid(s) and (s as WebStrand).distance_to(at) < 3.0:
-				WebNetwork.remove_strand(s)
+				WebNetwork.burn_strand(s)
 		for t in WebNetwork.traps.duplicate():
 			if is_instance_valid(t) and Fx.flat_dist(t.global_position, at) < 3.0:
-				WebNetwork.remove_trap(t)
+				WebNetwork.burn_trap(t)
 
 
 func take_damage(amount: float, source: Node3D = null) -> void:

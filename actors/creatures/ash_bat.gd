@@ -12,6 +12,7 @@ func _init() -> void:
 	food_satiety = 18.0
 	food_silk = 10.0
 	food_xp = 22
+	fire_immune = true
 	senses_text = "som (11 m): ouve quem se mexe; o mergulho queima"
 	dive_damage = 9.0
 	dive_burn = 3.0

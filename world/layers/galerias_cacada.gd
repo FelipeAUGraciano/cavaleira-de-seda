@@ -448,7 +448,7 @@ class FireTrap extends Node3D:
 				p.apply_burn(3.0)
 			for s in WebNetwork.strands.duplicate():
 				if is_instance_valid(s) and (s as WebStrand).distance_to(global_position) < 2.5:
-					WebNetwork.remove_strand(s)
+					WebNetwork.burn_strand(s)
 			EventBus.message.emit("Armadilha de fogo!")
 			GameState.say_once("a4_armadilha", "FOGO NO CHÃO! Eles armaram o CHÃO!")
 			var l = GameState.current_layer

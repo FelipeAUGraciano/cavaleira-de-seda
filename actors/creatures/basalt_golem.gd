@@ -24,6 +24,7 @@ func _init() -> void:
 	food_satiety = 60.0
 	food_silk = 20.0
 	food_xp = 180
+	fire_immune = true
 	food_energy = 6.0
 	senses_text = "vibração forte (correr a 8 m acorda); dormindo, parece pedra"
 	nav_kind = NavGrid.Kind.LARGE

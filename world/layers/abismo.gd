@@ -660,6 +660,15 @@ func _populate_monsters() -> void:
 		sc.range_rooms = ["A19", "A18"]
 		sc.set_meta("flag", "escorpiao_3")
 		ecosystem.add_child(sc)
+	# mais dois escorpiões (Ossário e Raízes negras): veneno suficiente para a Viúva de Seda
+	for e in [["A2", 982, "escorpiao_4", ["A2", "A1"]], ["A17", 983, "escorpiao_5", ["A17", "A11"]]]:
+		var qe = _spot(e[0], e[1], 1.2)
+		if qe != null and not GameState.flags.has(e[2]):
+			var se := Scorpion.new()
+			se.position = (qe as Vector3) + Vector3(0, 0.3, 0)
+			se.range_rooms = e[3]
+			se.set_meta("flag", e[2])
+			ecosystem.add_child(se)
 
 
 func _on_colossus_alert() -> void:

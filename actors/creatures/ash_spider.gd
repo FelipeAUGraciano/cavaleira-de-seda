@@ -13,6 +13,7 @@ func _init() -> void:
 	food_satiety = 32.0
 	food_silk = 30.0
 	food_xp = 45
+	fire_immune = true
 	food_fire = 0
 	senses_text = "visão no escuro (8 m) e vibração; atira fio de cinza que deixa lenta"
 	add_attack(Attack.make("fio_cinza", "Fio de cinza", {"min_range": 3.0, "max_range": 8.0, "windup": 0.6, "active": 0.2,

@@ -97,7 +97,8 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	if kind == "cristal_pv":
 		p.add_bonus(10.0, 0.0)
-		EventBus.message.emit("Cristal de pedra-da-lua! +10 PV máximo.")
+		p.moonstones += 1
+		EventBus.message.emit("Cristal de pedra-da-lua! +10 PV máximo (%d achados)." % p.moonstones)
 	elif kind == "cristal_en":
 		p.add_bonus(0.0, 15.0)
 		EventBus.message.emit("Cristal de energia! +15 Energia máxima.")
@@ -111,7 +112,7 @@ func _on_body_entered(body: Node3D) -> void:
 		p.resist_fire += 1
 		GameState.flags["material_cristal_fogo"] = true
 		EventBus.big_message.emit("Cristal de fogo")
-		EventBus.message.emit("Um cristal que queima por dentro: Resistência a Fogo +1. Material para uma evolução rara (em breve).")
+		EventBus.message.emit("Um cristal que queima por dentro: Resistência a Fogo +1. Material da forma rara Seda Ardente.")
 		GameState.say_once("cristal_fogo", "Ele pulsa igual à runa... só que em vermelho. Guarda isso. GUARDA ISSO.")
 	elif kind == "olho_escuro":
 		p.dark_sight += 1.5

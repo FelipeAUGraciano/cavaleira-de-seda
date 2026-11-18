@@ -47,12 +47,12 @@ func _physics_process(delta: float) -> void:
 	_check = 0.3
 	for s in WebNetwork.strands.duplicate():
 		if is_instance_valid(s) and s.distance_to(global_position) < BURN_RADIUS:
+			if not WebNetwork.burn_strand(s):
+				continue
 			Fx.beam(get_parent(), global_position + Vector3.UP, s.global_position + Vector3.UP * 0.1, Color(1.0, 0.5, 0.15), 0.4, 0.12)
-			WebNetwork.remove_strand(s)
 			EventBus.message.emit("O fogo queimou o seu fio!")
 			GameState.say_once("fogo_fio", "Fogo e seda não combinam. Anotado. Doloridamente anotado.")
 	for t in WebNetwork.traps.duplicate():
 		if is_instance_valid(t) and Fx.flat_dist(t.global_position, global_position) < BURN_RADIUS:
-			WebNetwork.remove_trap(t)
-			t.queue_free()
-			EventBus.message.emit("O fogo queimou a sua teia de captura!")
+			if WebNetwork.burn_trap(t):
+				EventBus.message.emit("O fogo queimou a sua teia de captura!")

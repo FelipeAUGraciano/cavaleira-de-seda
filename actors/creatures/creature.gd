@@ -161,6 +161,11 @@ var _combo_count := 0
 var _strafe := 1.0
 var _marker: AttackMarker
 var _web_immune := 0.0
+var fire_immune := false        ## bichos de fogo não pegam fogo (Seda Ardente)
+var burn_time := 0.0
+var corrode_time := 0.0         ## Corrosiva: leva +40% de dano enquanto durar
+const BURN_DPS := 5.0
+const CORRODE_MULT := 1.4
 
 
 func _ready() -> void:
@@ -658,6 +663,12 @@ func _update_glow(delta: float) -> void:
 # ---------------------------------------------------------------- status
 
 func _tick_status(delta: float) -> void:
+	if burn_time > 0.0:
+		burn_time -= delta
+		_flash = maxf(_flash, 0.05)
+		_apply_damage(BURN_DPS * delta)
+	if corrode_time > 0.0:
+		corrode_time -= delta
 	if poison_stacks > 0:
 		poison_time -= delta
 		_apply_damage(poison_stacks * POISON_DPS_PER_STACK * delta)
@@ -694,6 +705,8 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 		if push.length() > 0.01:
 			external_velocity += push.normalized() * (4.0 if size == Size.P else 1.5)
 	_on_hurt(source)
+	if corrode_time > 0.0:
+		amount *= CORRODE_MULT
 	_apply_damage(amount)
 	if not dead and not enraged and not attacks.is_empty() and hp < max_hp * enrage_frac:
 		enrage()
@@ -703,6 +716,17 @@ func _apply_damage(amount: float) -> void:
 	hp -= amount
 	if hp <= 0.0 and not dead:
 		die(false)
+
+
+func ignite(secs: float) -> void:
+	if dead or fire_immune or food_fire > 0:
+		return
+	burn_time = maxf(burn_time, secs)
+
+
+func corrode(secs: float) -> void:
+	if not dead:
+		corrode_time = maxf(corrode_time, secs)
 
 
 func add_poison() -> void:

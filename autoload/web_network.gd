@@ -66,6 +66,29 @@ func remove_trap(t: CaptureWeb) -> void:
 	traps.erase(t)
 
 
+func fireproof() -> bool:
+	## Seda Ardente: os fios dela não pegam fogo.
+	var p = GameState.player
+	return p != null and is_instance_valid(p) and bool(p.fd("fireproof", false))
+
+
+func burn_strand(s: WebStrand) -> bool:
+	## Fogo (tocha, flecha, frasco, lava, sopro) num fio. Devolve false se o fio aguentou.
+	if fireproof():
+		return false
+	remove_strand(s)
+	return true
+
+
+func burn_trap(t: CaptureWeb) -> bool:
+	if fireproof():
+		return false
+	remove_trap(t)
+	if is_instance_valid(t):
+		t.queue_free()
+	return true
+
+
 func remove_strand(s: WebStrand) -> void:
 	## Fio rompido (queimado, arrebentado por algo grande).
 	strands.erase(s)

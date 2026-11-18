@@ -153,9 +153,14 @@ func _think(delta: float) -> Vector3:
 			activity = "Seguindo o rastro de seda"
 			if _seek.distance_to(global_position) < 2.6:
 				Fx.beam(get_parent(), global_position + Vector3(0, 1.2, 0), (_seek.a_pos + _seek.b_pos) * 0.5 + Vector3(0, 0.2, 0), Color(1.0, 0.5, 0.15), 0.4, 0.12)
-				WebNetwork.remove_strand(_seek)
-				if near_player:
-					EventBus.message.emit("Um batedor queimou o seu fio!")
+				if WebNetwork.burn_strand(_seek):
+					if near_player:
+						EventBus.message.emit("Um batedor queimou o seu fio!")
+				else:
+					_ignored[_seek] = true
+					_seek = null
+					if near_player:
+						EventBus.message.emit("O batedor tentou queimar o seu fio... e a seda não pegou fogo.")
 				return Vector3.ZERO
 			var dd := Fx.flat_dist(global_position, _seek_goal)
 			if dd < _seek_best - 0.3:
@@ -196,11 +201,11 @@ func _burn_line(from: Vector3, dir: Vector3, reach: float, half_w: float) -> voi
 			var ws := s as WebStrand
 			for k in 6:
 				if Fx.seg_dist_flat(ws.a_pos.lerp(ws.b_pos, k / 5.0), from, to) < half_w:
-					WebNetwork.remove_strand(s)
+					WebNetwork.burn_strand(s)
 					break
 	for t in WebNetwork.traps.duplicate():
 		if is_instance_valid(t) and Fx.seg_dist_flat(t.global_position, from, to) < half_w + 0.8:
-			WebNetwork.remove_trap(t)
+			WebNetwork.burn_trap(t)
 	if near_player:
 		Fx.beam(get_parent(), from + Vector3(0, 1.2, 0), to + Vector3(0, 0.6, 0), Color(1.0, 0.55, 0.15), 0.3, 0.06)
 

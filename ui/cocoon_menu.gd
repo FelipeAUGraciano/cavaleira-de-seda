@@ -80,7 +80,7 @@ func open(p: Player, c: Node3D) -> void:
 	cocoon = c
 	visible = true
 	message = ""
-	tab = "evo" if player.can_evolve() or (player.can_choose_branch() and player.pending_form < 0) else "hab"
+	tab = "evo" if player.can_evolve() or ((player.can_choose_branch() or player.can_choose_final()) and player.pending_form < 0) else "hab"
 	selected = _first_learnable()
 	_show_tab(tab)
 	GameState.say_once("menu_casulo", "Meu cantinho. Aqui dá pra pensar com calma no que eu quero virar.")
@@ -191,20 +191,42 @@ func _show_tab(t: String) -> void:
 const BRANCH_RECTS := [Rect2(1280, 175, 240, 56), Rect2(1280, 250, 240, 56), Rect2(1280, 325, 240, 56)]
 
 
+## Última muda: as duas formas do ramo (coluna da esquerda) e as raras (coluna da direita).
+const FINAL_RECTS := [Rect2(830, 222, 330, 60), Rect2(830, 292, 330, 60)]
+const RARE_X := 1185.0
+const RARE_Y := 214.0
+const RARE_STEP := 38.0
+
+
+func _rare_rect(i: int) -> Rect2:
+	return Rect2(RARE_X, RARE_Y + i * RARE_STEP, 335, 33)
+
+
 func _build_branch_buttons() -> void:
-	## Os três ramos viram botões quando a Cavaleira chega no nível 10.
-	if not player.can_choose_branch():
-		return
-	for b in 3:
-		var f: int = Player.BRANCHES[b]
-		var btn := _page_button(BRANCH_RECTS[b], "", true, _pick_branch.bind(f))
-		btn.set_meta("branch", f)
+	## Os três ramos viram botões quando a Cavaleira chega no nível 10. No ramo, as formas da
+	## última muda já aparecem (passar o mouse mostra o que fazem e o que pedem).
+	if player.can_choose_branch():
+		for b in 3:
+			var f: int = Player.BRANCHES[b]
+			var btn := _page_button(BRANCH_RECTS[b], "", true, _pick_branch.bind(f))
+			btn.set_meta("branch", f)
+	elif player.is_branch():
+		var opts := player.next_options()
+		for i in opts.size():
+			var f2: int = opts[i]
+			var r: Rect2 = FINAL_RECTS[i] if i < 2 else _rare_rect(i - 2)
+			var btn2 := _page_button(r, "", true, _pick_branch.bind(f2))
+			btn2.set_meta("branch", f2)
 
 
 func _pick_branch(f: int) -> void:
 	if player.choose_branch(f):
 		_say("Escolhido: %s. Descanse no casulo para fazer a muda." % String(Player.FORMS[f]["name"]))
-		_frame.queue_redraw()
+	elif player.is_branch() and not player.can_choose_final():
+		_say("A última muda abre no nível %d do ramo." % Player.FINAL_LEVEL)
+	elif Player.RARES.has(f) and not player.rare_ready(f):
+		_say("Ainda falta: %s." % ", ".join(player.rare_requirements(f).filter(func(r): return not r[1]).map(func(r): return String(r[0]))))
+	_frame.queue_redraw()
 
 
 func _den() -> Den:
@@ -584,6 +606,9 @@ func _draw_tooltip(ci: Control) -> void:
 # ---------------------------------------------------------------- aba Evolução
 
 func _draw_evolution(ci: Control) -> void:
+	if player.tier() >= 2:
+		_draw_final_tree(ci)
+		return
 	var y0 := RIGHT.position.y + 110.0
 	_text(ci, Vector2(RIGHT.position.x + 36, y0 + 10), "A muda acontece dentro do casulo.", "body_m", 18, QUIET)
 	var f := int(player.form)
@@ -673,13 +698,118 @@ func _draw_evolution(ci: Control) -> void:
 			_text(ci, bx + Vector2(0, 158), "·  Runa: energia, visão no escuro e furtividade.", "body", 17, QUIET)
 			if can_pick:
 				_text(ci, bx + Vector2(0, 204), "Passe o mouse num ramo para ver; clique para escolher.", "body_b", 17, CYAN)
+
+
+func _hot_form() -> int:
+	for btn in _page_btns:
+		if btn.has_focus() or btn.is_hovered():
+			return int(btn.get_meta("branch", -1))
+	return -1
+
+
+func _draw_final_tree(ci: Control) -> void:
+	## Ramo e última muda: a trilha das formas no alto, as opções no meio e o quadro embaixo.
+	var f := int(player.form)
+	var final := player.is_final()
+	var branch_form: int = int(player.fd("parent", f)) if final and player.fd("parent") != null else f
+	# trilha: Filhote → Cavaleira → ramo → última muda
+	var steps := [["Filhote", "spider"], ["Cavaleira", "blade"]]
+	if Player.BRANCHES.has(branch_form):
+		steps.append([String(Player.FORMS[branch_form]["name"]).split(" ")[0], ["blade", "web", "rune"][Player.BRANCHES.find(branch_form)]])
 	else:
-		var d2 := player.form_data()
-		_text(ci, bx + Vector2(0, 40), "%s  ·  Ramo %s" % [d2["name"], d2["branch"]], "title", 20, GOLD)
-		var desc2: Array = d2["desc"]
-		for i in desc2.size():
-			_text(ci, bx + Vector2(0, 80 + i * 28), "·  " + String(desc2[i]), "body", 17, TEXT)
-		_text(ci, bx + Vector2(0, 190), "·  Mais mudas chegam nos próximos atos.", "body", 17, QUIET)
+		steps.append(["Ramo", "star"])
+	steps.append([String(player.form_data()["name"]).split(" ")[0] if final else "Última muda", String(player.fd("icon", "star")) if final else "lock"])
+	for i in steps.size():
+		var r := Rect2(830 + i * 175, 140, 160, 44)
+		var cur := (i == 2 and not final) or (i == 3 and final)
+		var done := i < (3 if final else 2)
+		var col := GOLD if cur else (CYAN if done else QUIET)
+		_panel(ci, r, Color(0.07, 0.1, 0.2, 0.9) if cur else Color(0.05, 0.06, 0.12, 0.85), col, 8.0, cur)
+		SkillIcons.draw(ci, steps[i][1], r.position + Vector2(24, 22), 10.0, col)
+		_text(ci, r.position + Vector2(44, 28), steps[i][0], "body_b", 15, TEXT if cur or done else QUIET)
+		if i > 0:
+			ci.draw_line(Vector2(r.position.x - 15, 162), Vector2(r.position.x, 162), Color(CYAN.r, CYAN.g, CYAN.b, 0.6 if done or cur else 0.25), 2.0, true)
+	var box := Rect2(830, 410, 690, 290)
+	_panel(ci, box, Color(0.04, 0.05, 0.1, 0.9), BORDER, 10.0)
+	var bx := box.position + Vector2(24, 0)
+	if final:
+		var d: Dictionary = player.form_data()
+		var big := Rect2(830, 210, 690, 180)
+		var tint: Color = d.get("tint", GOLD)
+		_panel(ci, big, Color(0.07, 0.1, 0.2, 0.9), GOLD, 12.0, true)
+		SkillIcons.draw(ci, String(d.get("icon", "star")), big.position + Vector2(90, 90), 40.0, tint)
+		_text(ci, big.position + Vector2(170, 70), String(d["name"]).to_upper(), "title", 24, TEXT)
+		_text(ci, big.position + Vector2(170, 104), ("Forma rara · " + String(d["rare"])) if d.has("rare") else ("Ramo " + String(d["branch"]) + " · " + String(d.get("pitch", ""))), "body_b", 17, GOLD)
+		_text(ci, big.position + Vector2(170, 140), "A última muda. Daqui em diante, ela só cresce em nível.", "body", 16, QUIET)
+		_text(ci, bx + Vector2(0, 40), "O que esta forma faz", "title", 20, GOLD)
+		var desc: Array = d["desc"]
+		for i in desc.size():
+			_text(ci, bx + Vector2(0, 80 + i * 30), "·  " + String(desc[i]), "body", 17, TEXT)
+		return
+	var can_pick := player.can_choose_final()
+	_text(ci, Vector2(830, 207), "RAMO " + String(player.form_data()["branch"]).to_upper(), "body_b", 13, QUIET)
+	_text(ci, Vector2(RARE_X, 207), "FORMAS RARAS (QUALQUER RAMO)", "body_b", 13, QUIET)
+	var opts := player.next_options()
+	var hot := _hot_form()
+	for i in opts.size():
+		var of: int = opts[i]
+		var d2: Dictionary = Player.FORMS[of]
+		var rare := i >= 2
+		var r: Rect2 = FINAL_RECTS[i] if not rare else _rare_rect(i - 2)
+		var is_ready := not rare or player.rare_ready(of)
+		var picked := player.pending_form == of
+		var is_hot := hot == of
+		var col := GOLD if picked else (CYAN if is_hot else (TEXT if (can_pick and is_ready) else DIM))
+		_panel(ci, r, Color(0.08, 0.1, 0.2, 0.9) if (picked or is_hot) else Color(0.05, 0.06, 0.11, 0.8), col if (picked or is_hot) else Color(0.3, 0.33, 0.42, 0.7), 8.0, picked)
+		var tint: Color = d2.get("tint", TEXT)
+		if not rare:
+			SkillIcons.draw(ci, String(d2.get("icon", "star")), r.position + Vector2(30, 30), 13.0, tint if is_ready else DIM)
+			_text(ci, r.position + Vector2(58, 26), String(d2["name"]), "title_s", 15, col)
+			var sub := "Escolhida: descanse para mudar" if picked else (String(d2.get("pitch", "")) if can_pick else "%s · ramo nível %d" % [d2.get("pitch", ""), Player.FINAL_LEVEL])
+			_text(ci, r.position + Vector2(58, 47), sub, "body", 14, col if picked else QUIET)
+		else:
+			SkillIcons.draw(ci, String(d2.get("icon", "star")), r.position + Vector2(18, 16), 8.0, tint if is_ready else DIM)
+			_text(ci, r.position + Vector2(36, 22), String(d2["name"]), "body_b", 15, col)
+			var tag := "escolhida" if picked else ("pronta" if is_ready else String(d2["rare"]))
+			_text(ci, r.position + Vector2(r.size.x - 12, 22), tag, "body", 13, GOLD if (picked or is_ready) else DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+			if not is_ready:
+				SkillIcons.draw(ci, "lock", r.position + Vector2(r.size.x - 22 - 9.0 * tag.length(), 16), 6.0, DIM)
+	var shown := player.pending_form if player.pending_form >= 0 else hot
+	if shown < 0 or not opts.has(shown):
+		var lv := player.level
+		_text(ci, bx + Vector2(0, 40), "Última muda", "title", 20, GOLD if can_pick else TEXT)
+		_bar(ci, Rect2(bx + Vector2(0, 62), Vector2(420, 10)), clampf(float(lv) / Player.FINAL_LEVEL, 0.0, 1.0), CYAN)
+		_text(ci, bx + Vector2(436, 72), "Nível %d / %d" % [lv, Player.FINAL_LEVEL], "body_b", 16, TEXT)
+		var lines := [
+			"No nível %d do ramo, o ramo se divide em dois: escolha um." % Player.FINAL_LEVEL,
+			"As formas raras servem para qualquer ramo, mas pedem resistências e materiais.",
+			"É a última muda: o nível volta a 1 e a forma fica para sempre.",
+		]
+		for i in lines.size():
+			_text(ci, bx + Vector2(0, 106 + i * 26), "·  " + lines[i], "body", 17, QUIET)
+		_text(ci, bx + Vector2(0, 230), "Passe o mouse numa forma para ver o que ela faz e o que pede.", "body_b", 16, CYAN)
+		return
+	var d3: Dictionary = Player.FORMS[shown]
+	var head := "%s  ·  %s" % [d3["name"], ("Rara de " + String(d3["rare"])) if d3.has("rare") else ("Ramo " + String(d3["branch"]))]
+	_text(ci, bx + Vector2(0, 40), head, "title", 20, GOLD)
+	var desc3: Array = d3["desc"]
+	for i in desc3.size():
+		_text(ci, bx + Vector2(0, 78 + i * 28), "·  " + String(desc3[i]), "body", 16, TEXT)
+	var y := 78.0 + desc3.size() * 28.0 + 10.0
+	var reqs := player.rare_requirements(shown)
+	if not reqs.is_empty():
+		_text(ci, bx + Vector2(0, y), "Pede:", "body_b", 16, QUIET)
+		for i in reqs.size():
+			var ok: bool = reqs[i][1]
+			var rc := Color(0.5, 0.95, 0.6) if ok else Color(1.0, 0.55, 0.5)
+			ci.draw_circle(bx + Vector2(64, y + i * 24 - 5), 5.0, rc if ok else Color(rc.r, rc.g, rc.b, 0.25))
+			_ring(ci, bx + Vector2(64, y + i * 24 - 5), 5.0, rc, 1.2)
+			_text(ci, bx + Vector2(78, y + i * 24), String(reqs[i][0]) + ("" if ok else "  (falta)"), "body_b" if ok else "body", 16, rc)
+	if player.pending_form == shown:
+		var pulse := 0.6 + 0.4 * sin(_t * 3.0)
+		_text(ci, bx + Vector2(0, 272), "Pronta para a muda! Descanse no casulo para mudar.", "body_b", 18, Color(GOLD.r, GOLD.g, GOLD.b, pulse))
+	elif not can_pick:
+		_text(ci, bx + Vector2(0, 272), "Abre no nível %d do ramo (agora %d)." % [Player.FINAL_LEVEL, player.level], "body", 16, QUIET)
 
 
 # ---------------------------------------------------------------- aba Despensa

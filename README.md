@@ -6,7 +6,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 
 ## O que tem hoje
 
-- **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). No nível 10 da Cavaleira, você escolhe um dos três ramos: Ceifadora de Seda (Lâmina), Tecelã do Abismo (Teia) ou Arauta da Runa (Runa). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
+- **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). No nível 10 da Cavaleira, você escolhe um dos três ramos: Ceifadora de Seda (Lâmina), Tecelã do Abismo (Teia) ou Arauta da Runa (Runa). No nível 10 do ramo vem a **última muda**: cada ramo se divide em dois (Executora ou Bastiã; Senhora das Teias ou Saltadora do Vento; Vidente ou Sacerdotisa da Tempestade), ou ela vira uma das **5 formas raras** se cumpriu os requisitos (Seda Ardente, Sombra do Breu, Viúva de Seda, Corrosiva, Cavaleira de Pedra-da-lua). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
 - **Toca:** nas Galerias, a G22 Fosso escuro é a câmara-toca. Você toma posse tecendo o casulo central no ninho velho (C) e fecha as 4 entradas com portas de teia (você passa, os bichos não). Só a toca salva e cura; antes dela o jogo salva sozinho nos pontos seguros, sem curar. Bichos com fome sentem a comida guardada, rasgam as portas e comem da despensa; fios-alarme avisam de longe.
 - **Comida:** a despensa (10 embrulhos) fica na toca. Na viagem você leva 2 na bolsa e come com G em qualquer lugar. Presa pequena você embrulha onde estiver (C); presa grande vai arrastada no fio até a toca.
 - **Menu da toca:** teia de 17 habilidades (1 ponto por nível), evolução, despensa, portas e fios-alarme. Descansar salva, cura, remenda portas e faz a muda; não dá para dormir com um bicho te caçando perto.
@@ -160,6 +160,7 @@ godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evoluçã
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
 godot --headless --path . res://tests/fuga_test.tscn       # fim do prólogo: fuga, carregamento, chegada
+godot --headless --path . res://tests/evolucao_test.tscn   # última muda: 6 formas de ramo + 5 raras
 godot --headless --path . res://tests/cacada_test.tscn     # Ato 4: alerta, caçadores, batedor, armadilhas, ilha, Capitã
 godot --headless --path . res://tests/rio_test.tscn        # Rio de Brasa: rotas, calor, fios queimando, bichos de fogo, rainha
 godot --headless --path . res://tests/abismo_test.tscn     # queda da Fenda e o Abismo inteiro: Colosso, toca, Tecelagem, escorpiões, Cortina viva, Serpente
