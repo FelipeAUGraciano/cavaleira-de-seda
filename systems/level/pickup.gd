@@ -6,6 +6,7 @@ extends Area3D
 ##   cristal_seda cristal de seda: +10 Seda máxima
 ##   fragmento    fragmento de runa: a cada 4, um ponto de habilidade
 ##   presa        presa embrulhada antiga: vai para a bolsa (ou é comida na hora)
+##   cristal_fogo Cristais de fogo (R10): Resistência a Fogo +1 e material de evolução rara
 ##   olho_escuro  pérola do Lago negro: Resistência a Escuridão (+1,5 m de visão no escuro)
 
 var kind := "cristal_pv"
@@ -40,6 +41,8 @@ func _ready() -> void:
 			col = Color(0.85, 0.82, 0.7)
 		"olho_escuro":
 			col = Color(0.55, 0.45, 1.0)
+		"cristal_fogo":
+			col = Color(1.0, 0.45, 0.15)
 	if kind == "presa":
 		_crystal = Fx.sphere(0.35, Fx.mat(col, 0.15))
 		_crystal.scale = Vector3(0.8, 0.7, 1.3)
@@ -94,6 +97,12 @@ func _on_body_entered(body: Node3D) -> void:
 		EventBus.message.emit("Cristal de seda! +10 Seda máxima.")
 	elif kind == "fragmento":
 		p.add_rune_shard()
+	elif kind == "cristal_fogo":
+		p.resist_fire += 1
+		GameState.flags["material_cristal_fogo"] = true
+		EventBus.big_message.emit("Cristal de fogo")
+		EventBus.message.emit("Um cristal que queima por dentro: Resistência a Fogo +1. Material para uma evolução rara (em breve).")
+		GameState.say_once("cristal_fogo", "Ele pulsa igual à runa... só que em vermelho. Guarda isso. GUARDA ISSO.")
 	elif kind == "olho_escuro":
 		p.dark_sight += 1.5
 		p.refresh_sight()

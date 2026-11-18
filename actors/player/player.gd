@@ -98,6 +98,11 @@ var resist_acid := 0            ## sobe comendo Sapo-de-rocha; 3 = atravessa as 
 var resist_poison := 0          ## sobe comendo Escorpião-de-obsidiana; corta o veneno 25% por ponto
 var poison_t := 0.0             ## envenenada: segundos de veneno ainda correndo
 var dark_sight := 0.0           ## Resistência a Escuridão (Lago negro): + metros de visão no escuro
+var resist_fire := 0            ## Resistência a Fogo: comer bichos de fogo (+1) e aguentar calor; 3 = anda na brasa
+var heat_t := 0.0               ## > 0: está no calor agora (HUD mostra CALOR)
+var heat_exposure := 0.0        ## segundos de calor aguentados (a cada 45 s: +1 de Resistência a Fogo, até 2)
+var burn_t := 0.0               ## queimando (sopro de salamandra, mergulho do morcego de cinza)
+var sight_penalty := 0.0        ## cinza no ar (Pântano de cinzas): metros a menos de visão
 var weave_xp := 0               ## Tecelagem sobe tecendo fios: fios mais longos
 const WEAVE_STEPS := [0, 8, 20, 36, 56]   ## fios tecidos para chegar em cada nível de Tecelagem (1 a 5)
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
@@ -1135,6 +1140,11 @@ func _eat(c: Corpse) -> void:
 		resist_acid += c.acid_bonus
 		_msg("Resistência a Ácido %d%s" % [resist_acid, " — as Poças ácidas não queimam mais!" if resist_acid == 3 else ""])
 		GameState.say_once("acido_%d" % mini(resist_acid, 3), ["", "Gosto de pedra molhada... e de bateria.", "Minha boca formiga. Acho que estou me acostumando.", "Pronto. Ácido agora é só tempero."][mini(resist_acid, 3)])
+	if c.fire_bonus > 0:
+		resist_fire += c.fire_bonus
+		_msg("Carne de fogo! Resistência a Fogo %d" % resist_fire)
+		EventBus.big_message.emit("Resistência a Fogo %d" % resist_fire)
+		GameState.say_once("fogo_%d" % mini(resist_fire, 3), ["", "Queimou a boca. E o estômago. E a alma.", "Já nem arde mais. Muito.", "Brasa? Pode vir. Eu ando em cima."][mini(resist_fire, 3)])
 	if c.poison_bonus > 0:
 		resist_poison += c.poison_bonus
 		if resist_poison < 2:
@@ -1257,7 +1267,7 @@ func wrappable_corpses() -> Array:
 		var c := n as Corpse
 		if c == null or c.is_rotten() or c.reserved_by != null or c == dragged:
 			continue
-		if c.energy_bonus > 0.0 or c.acid_bonus > 0 or c.skin_bonus or c.poison_bonus > 0:
+		if c.energy_bonus > 0.0 or c.acid_bonus > 0 or c.skin_bonus or c.poison_bonus > 0 or c.fire_bonus > 0:
 			continue
 		if Fx.flat_dist(c.global_position, global_position) <= WRAP_RANGE:
 			out.append(c)
@@ -1592,6 +1602,50 @@ func _gain_weave() -> void:
 		GameState.say_once("tecelagem_%d" % weave_level(), ["", "", "Meus fios estão saindo mais firmes.", "Mais longe... e mais longe.", "Dá pra sentir a seda esticando sem arrebentar.", "Dezoito metros. Agora nenhum buraco me segura."][weave_level()])
 
 
+func fire_mult() -> float:
+	## Quanto do fogo ainda passa: cada ponto de Resistência a Fogo corta 25% (4 = imune).
+	return maxf(0.0, 1.0 - 0.25 * resist_fire)
+
+
+func apply_heat(dps: float, delta: float, ember: bool = false) -> void:
+	## Calor perto da lava (ou brasa nas ilhas): perde vida aos poucos. Brasa pede Resistência 3.
+	if dead:
+		return
+	var k := maxf(0.0, 1.0 - resist_fire / 3.0) if ember else fire_mult()
+	heat_t = 0.3
+	if k <= 0.0:
+		return
+	_hurt(dps * k * delta)
+	heat_exposure += delta
+	if heat_exposure >= 45.0 and resist_fire < 2:
+		heat_exposure = 0.0
+		resist_fire += 1
+		EventBus.big_message.emit("Resistência a Fogo %d" % resist_fire)
+		_msg("Aguentou o calor: Resistência a Fogo %d." % resist_fire)
+
+
+func apply_burn(secs: float) -> void:
+	if dead or fire_mult() <= 0.0:
+		return
+	burn_t = maxf(burn_t, secs * fire_mult())
+	_msg("Queimando!")
+
+
+func lava_fall() -> void:
+	## Caiu na lava: sai pela beirada, mas queima feio.
+	falling = false
+	global_position = last_safe_pos + Vector3.UP * 0.3
+	velocity = Vector3.ZERO
+	external_velocity = Vector3.ZERO
+	_start_state(State.NORMAL)
+	_hurt_flash = 0.25
+	var dmg := max_hp * 0.4 * maxf(0.25, fire_mult())
+	_msg("Lava! -%d PV" % int(dmg))
+	GameState.say_once("primeira_lava", "AI AI AI AI QUENTE QUENTE QUENTE!")
+	_hurt(dmg)
+	snap_camera()
+
+
 func apply_acid(amount: float) -> void:
 	## Ácido (cuspe e rastro da lesma): Resistência a Ácido 3 anula.
 	if dead:
@@ -1685,6 +1739,10 @@ func _update_resources(delta: float) -> void:
 	if poison_t > 0.0:
 		poison_t -= delta
 		_hurt(3.0 * delta)
+	if burn_t > 0.0:
+		burn_t -= delta
+		_hurt(4.0 * delta)
+	heat_t = maxf(0.0, heat_t - delta)
 	satiety = maxf(0.0, satiety - SATIETY_DECAY * (0.75 if has_skill("estomago") else 1.0) * delta)
 	if satiety <= 0.0:
 		_starve_msg_timer -= delta
@@ -1773,6 +1831,7 @@ func _respawn() -> void:
 	dead = false
 	falling = false
 	poison_t = 0.0
+	burn_t = 0.0
 	state = State.NORMAL
 	hp = max_hp
 	energy = max_energy
@@ -1894,7 +1953,7 @@ func refresh_sight() -> void:
 
 func sight_radius() -> float:
 	## Até onde ela enxerga no escuro (cresce com a evolução; runa acesa ajuda).
-	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0) + dark_sight
+	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0) + dark_sight - sight_penalty
 
 
 func visibility_mult() -> float:
@@ -2081,6 +2140,7 @@ func to_dict() -> Dictionary:
 		"level": level, "xp": xp, "resist_rot": resist_rot,
 		"resist_acid": resist_acid, "crystal_skin": crystal_skin,
 		"resist_poison": resist_poison, "dark_sight": dark_sight, "weave_xp": weave_xp,
+		"resist_fire": resist_fire, "heat_exposure": heat_exposure,
 		"form": int(form), "pending": pending_form, "bonus": [bonus_hp, bonus_energy, bonus_silk],
 		"respawn": [respawn_pos.x, respawn_pos.y, respawn_pos.z], "rested": rested_here,
 		"skills": skills.keys(), "sp": skill_points, "bag": bag, "shards": rune_shards,
@@ -2113,6 +2173,8 @@ func from_dict(d: Dictionary) -> void:
 	resist_poison = int(d.get("resist_poison", resist_poison))
 	dark_sight = float(d.get("dark_sight", dark_sight))
 	weave_xp = int(d.get("weave_xp", weave_xp))
+	resist_fire = int(d.get("resist_fire", resist_fire))
+	heat_exposure = float(d.get("heat_exposure", heat_exposure))
 	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
 	form = int(d.get("form", form)) as Form
 	pending_form = int(d.get("pending", pending_form))

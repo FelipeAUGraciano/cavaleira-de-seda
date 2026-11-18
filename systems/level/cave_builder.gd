@@ -23,6 +23,9 @@ var chasms: Array = []     ## [shape]
 var bridges: Array = []    ## [shape] chão por cima de abismos
 var floor_color := Color(0.3, 0.27, 0.33)
 var rock_color := Color(0.2, 0.17, 0.24)
+var pit_y := PIT_Y                       ## altura do fundo dos abismos (lava: rasa e brilhando)
+var pit_color := Color(0.02, 0.02, 0.03)
+var pit_glow := 0.0                      ## > 0: o fundo brilha (lava)
 var noise := FastNoiseLite.new()
 var detail := FastNoiseLite.new()
 
@@ -192,6 +195,11 @@ func _sample(arr: PackedFloat32Array, p: Vector2) -> float:
 	return lerpf(a, b, tz)
 
 
+func is_pit(p: Vector2) -> bool:
+	## Ponto de abismo (ou de lava): espaço aberto sem chão.
+	return _open_cached(p) > 0.0 and _floor_cached(p) < 0.0
+
+
 func is_floor(p: Vector2, margin: float = 0.0) -> bool:
 	return _floor_cached(p) > margin   # depois do build() lê a grade pronta (bem mais rápido)
 
@@ -285,7 +293,7 @@ func build(parent: Node3D) -> Dictionary:
 	_add_floor(parent, floor_m[0])
 	_add_walls(parent, wall_m[1])
 	_add_flat(parent, rock_m[0], CAP_H, rock_color.darkened(0.35), 0.25)
-	_add_flat(parent, pit_m[0], PIT_Y, Color(0.02, 0.02, 0.03), 0.0)
+	_add_flat(parent, pit_m[0], pit_y, pit_color, 0.25 if pit_glow > 0.0 else 0.0, pit_glow)
 	_add_cliffs(parent, floor_m[1])
 	return _room_grid()
 
@@ -398,7 +406,7 @@ static func _tri(verts: PackedVector3Array, normals: PackedVector3Array, colors:
 	colors.append_array(PackedColorArray([ca, cb, cc]))
 
 
-func _mesh_node(parent: Node3D, verts: PackedVector3Array, normals: PackedVector3Array, colors: PackedColorArray, collide: bool, emission: float = 0.0) -> void:
+func _mesh_node(parent: Node3D, verts: PackedVector3Array, normals: PackedVector3Array, colors: PackedColorArray, collide: bool, emission: float = 0.0, glow_color: Color = Color(0.05, 0.04, 0.07)) -> void:
 	if verts.is_empty():
 		return
 	var arrays := []
@@ -414,7 +422,7 @@ func _mesh_node(parent: Node3D, verts: PackedVector3Array, normals: PackedVector
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	if emission > 0.0:
 		mat.emission_enabled = true
-		mat.emission = Color(0.05, 0.04, 0.07)
+		mat.emission = glow_color
 		mat.emission_energy_multiplier = emission
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
@@ -476,7 +484,7 @@ func _add_floor(parent: Node3D, tris: PackedVector2Array) -> void:
 	_mesh_node(parent, verts, normals, colors, true)
 
 
-func _add_flat(parent: Node3D, tris: PackedVector2Array, y: float, color: Color, var_amount: float) -> void:
+func _add_flat(parent: Node3D, tris: PackedVector2Array, y: float, color: Color, var_amount: float, glow: float = 0.0) -> void:
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var colors := PackedColorArray()
@@ -487,7 +495,7 @@ func _add_flat(parent: Node3D, tris: PackedVector2Array, y: float, color: Color,
 			var k := 1.0 + var_amount * noise.get_noise_2d(p.x * 2.0, p.y * 2.0)
 			cols.append(Color(color.r * k, color.g * k, color.b * k))
 		_tri(verts, normals, colors, Vector3(pts[0].x, y, pts[0].y), Vector3(pts[1].x, y, pts[1].y), Vector3(pts[2].x, y, pts[2].y), Vector3.UP, cols[0], cols[1], cols[2])
-	_mesh_node(parent, verts, normals, colors, false)
+	_mesh_node(parent, verts, normals, colors, false, glow, color)
 
 
 func _rock_normal(p: Vector2) -> Vector2:
@@ -567,8 +575,8 @@ func _add_cliffs(parent: Node3D, segs: PackedVector2Array) -> void:
 		var n := Vector3(-g.x, 0.0, -g.y).normalized()
 		var a0 := Vector3(a.x, 0.0, a.y)
 		var b0 := Vector3(b.x, 0.0, b.y)
-		var a1 := Vector3(a.x, PIT_Y, a.y)
-		var b1 := Vector3(b.x, PIT_Y, b.y)
+		var a1 := Vector3(a.x, pit_y, a.y)
+		var b1 := Vector3(b.x, pit_y, b.y)
 		_tri(verts, normals, colors, a0, b0, b1, n, top, top, bottom)
 		_tri(verts, normals, colors, a0, b1, a1, n, top, bottom, bottom)
 	_mesh_node(parent, verts, normals, colors, false)
@@ -590,13 +598,13 @@ func _room_grid() -> Dictionary:
 	for j in h:
 		var pit_start := -1
 		for i in w + 1:
-			var is_pit := false
+			var pit_here := false
 			if i < w:
 				var q := origin + Vector2(i + 0.5, j + 0.5)
-				is_pit = _open_cached(q) > 0.0 and _floor_cached(q) <= 0.0
-			if is_pit and pit_start < 0:
+				pit_here = _open_cached(q) > 0.0 and _floor_cached(q) <= 0.0
+			if pit_here and pit_start < 0:
 				pit_start = i
-			elif not is_pit and pit_start >= 0:
+			elif not pit_here and pit_start >= 0:
 				pits.append(Rect2(origin + Vector2(pit_start, j), Vector2(i - pit_start, 1)))
 				pit_start = -1
 		var run_start := -1

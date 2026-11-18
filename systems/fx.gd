@@ -76,3 +76,12 @@ static func beam(parent: Node, a: Vector3, b: Vector3, color: Color, life: float
 
 static func flat_dist(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+static func seg_dist_flat(p: Vector3, a: Vector3, b: Vector3) -> float:
+	## Distância no plano XZ entre o ponto p e o segmento a-b.
+	var q := Vector2(p.x, p.z)
+	var a2 := Vector2(a.x, a.z)
+	var ab := Vector2(b.x, b.z) - a2
+	var t := clampf((q - a2).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+	return q.distance_to(a2 + ab * t)

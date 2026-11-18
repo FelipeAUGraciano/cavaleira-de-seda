@@ -790,31 +790,24 @@ func open_well(animated: bool) -> void:
 		EventBus.message.emit("O corpo dela tapava o poço. O ar esquenta...")
 
 
+const NEXT_LAYER := "res://world/layers/rio_brasa.tscn"
+
+
 func _on_ramp_top(body: Node3D) -> void:
-	## Fim do Ato 2 (o Rio de Brasa vem na próxima versão).
+	## Fim do Ato 2: ela sobe a Rampa quente e chega no Rio de Brasa (Ato 3).
 	if _ending or not (body is Player):
 		return
 	_ending = true
 	GameState.flags["ato2_fim"] = true
 	player.autopilot = true
 	player.auto_target = Vector3(RAMP_END.x, 0.1, RAMP_END.y + 1.5)
+	player.auto_run = true
 	hud.cinematic = true
 	GameState.say_once("a14_topo", "Lá em cima tem fogo. Um RIO de fogo. ...Claro que tem.")
-	await get_tree().create_timer(1.5).timeout
+	await get_tree().create_timer(1.6).timeout
 	if not is_inside_tree():
 		return
-	await hud.fade(1.0, 1.2)
-	hud.show_title("Fim do Ato 2", "O Rio de Brasa chega na próxima versão.")
-	autosave()
-	await get_tree().create_timer(3.0).timeout
-	if not is_inside_tree():
-		return
-	player.global_position = Vector3(A13_C.x, 0.1, A13_C.y + 4.0)
-	player.snap_camera()
-	player.autopilot = false
-	hud.cinematic = false
-	await hud.fade(0.0, 1.0)
-	_ending = false
+	go_to_layer(NEXT_LAYER, "Fim do Ato 2", "Do fundo escuro para o rio que queima.")
 
 
 func _physics_process(delta: float) -> void:

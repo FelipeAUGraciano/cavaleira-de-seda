@@ -11,7 +11,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	GameState.permadeath = false
-	for path in ["res://world/layers/bercario.tscn", "res://world/layers/galerias.tscn", "res://world/layers/abismo.tscn"]:
+	for path in ["res://world/layers/bercario.tscn", "res://world/layers/galerias.tscn", "res://world/layers/abismo.tscn", "res://world/layers/rio_brasa.tscn"]:
 		GameState.delete_save()
 		GameState.said = {}
 		GameState.flags = {}

@@ -2,6 +2,35 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Ato 3: o Rio de Brasa inteiro (18/11)
+
+- **Chegada:** no topo da Rampa quente (A14) ela sobe correndo, vem a tela "Fim do Ato 2" e o título "Rio de Brasa · Ato 3".
+- **Caverna gerada de um andar** (como Galerias e Abismo), ~220 × 140 m, 20 câmaras com nome, cortada por um **rio de lava** de norte a sul. A lava brilha (o fundo dos buracos agora pode ser lava rasa e acesa) e todo buraco do andar é lava: cair queima 40% da vida (menos com Resistência a Fogo) e você sai pela beirada.
+- **Calor:** a até 3 m da lava perde vida aos poucos (2,5/s); cada ponto de Resistência a Fogo corta 25% (4 = imune). HUD mostra "CALOR".
+- **Resistência a Fogo (nova):** comer salamandras, peixes-magma, vermes de lava (+1; a rainha dá +2), o cristal de fogo (+1) e aguentar calor (a cada 45 s, até 2).
+- **Fios sobre a lava queimam em 8 s** (soltam faísca antes de arrebentar).
+- **Câmaras:**
+  - R1 Margem fria (poça com peixes), R2 Mirante do rio (a escolha das duas rotas).
+  - **R3 Ilhas de basalto:** três ilhas no meio do rio com pilares a até 8 m; a **brasa** das ilhas queima rápido (14/s) sem Resistência a Fogo 3.
+  - **R8 Rota de pedra:** a volta longa pelo sul, sem lava, com 2 golems dormindo no caminho.
+  - **R7 Câmara fria (a toca):** obsidiana resfriada, 4 frestas.
+  - R6 Ninho das salamandras (ovos), R4 Forja dos golems (bigornas, moldes e uma pedra escrita), R17 Grota dos peixes, R19 Corredor das brasas, R20 Fosso morno.
+  - **R5 Gêiseres:** 5 gêiseres que borbulham 1 s e estouram 0,8 s: arremessam e queimam.
+  - **R9 Pântano de cinzas** e R18 Cinzeiro: a cinza no ar tira 2 m da visão.
+  - **R10 Cristais de fogo (segredo):** atrás de uma fresta; o cristal de fogo dá Resistência a Fogo +1 e fica guardado como material de uma evolução rara.
+  - R11 Antecâmara (ponto seguro) → **R12 Salamandra-rainha** → **R13 Fluxo resfriado** (o fosso de lava esfria quando ela cai) → **R14 Chaminé** ("Fim do Ato 3"; a volta às Galerias, Ato 4, vem na próxima versão).
+- **Bichos novos (~58):**
+  - **Besouro-brasa** (P, bandos): a comida fácil; descansar repõe.
+  - **Peixe-magma** (P): mora na lava; salta em você quando chega na beirada, fica se debatendo no chão (a hora de pegar) e volta. Embaixo da lava não dá para acertar.
+  - **Verme de lava** (M): sai da lava e cospe duas bolas de fogo (marca no chão), depois afunda.
+  - **Salamandra-chama** (M, pares): sopro de fogo em linha que queima seus fios e te deixa queimando; mordida; chicote de cauda furiosa.
+  - **Golem de basalto** (G): dorme parado como pedra; correr perto ou bater acorda. Soco, pisão e arremesso de pedra. Perdendo você, volta a dormir no lugar.
+  - **Aranha de cinza** (P, matilhas): como as aranhas-lobo, mais o fio de cinza que deixa lenta.
+  - **Morcego de cinza** (P, bandos): mergulho que queima.
+  - **Salamandra-rainha (chefe, G, 420 PV):** sopro, mordida, cauda e, furiosa, investida. De tempos em tempos brilha inteira e solta a **onda de fogo**: um anel que cresce até a parede, queima todas as teias e fios da arena e quem estiver no chão (esquive na hora). Depois da onda a pele esfria 3,5 s: dano cheio. Fora disso a pele segura metade.
+- **Queimando (novo estado):** 4 PV por segundo enquanto durar; "QUEIMANDO" no HUD.
+- Testes: `rio_test` (novo). Capturas: `tests/screenshot_rio.tscn`. Mapa: `desenhar_mapa.py` desenha o Rio de Brasa.
+
 ## Abismo cheio de bicho e os três ramos de evolução (17/11)
 
 - **Evoluções depois da Cavaleira (escolha livre):** no nível 10 da Cavaleira, a aba Evolução do casulo destrava os três ramos; clique em um e descanse para fazer a muda (o nível volta a 1, habilidades e pontos ficam).

@@ -25,6 +25,7 @@ var _tele_dive := Attack.make("mergulho", "", {"shape": Attack.Shape.CIRCLE, "re
 var flock := "bando"            ## morcegos do mesmo bando passeiam juntos
 var dive_damage := BITE_DAMAGE  ## o Morcego gigante bate mais forte
 var hear_range := HEAR_RANGE
+var dive_burn := 0.0            ## morcego de cinza: o mergulho queima
 var mode: Mode = Mode.ROOST
 var mode_time := 0.0
 var dive_cd := 0.0
@@ -217,6 +218,8 @@ func dive_cycle(target: Node3D, heard: bool, delta: float) -> Vector3:
 					if p.state != Player.State.DODGE:
 						bit = true
 						p.take_damage(dive_damage, self, false)
+						if dive_burn > 0.0:
+							p.apply_burn(dive_burn)
 				elif target.has_method("take_damage"):
 					bit = true
 					target.take_damage(PREY_DAMAGE, self)
