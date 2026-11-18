@@ -6,6 +6,7 @@ extends Area3D
 ##   cristal_seda cristal de seda: +10 Seda máxima
 ##   fragmento    fragmento de runa: a cada 4, um ponto de habilidade
 ##   presa        presa embrulhada antiga: vai para a bolsa (ou é comida na hora)
+##   racao        suprimentos roubados dos caçadores (Ato 4): vão para a bolsa como uma presa
 ##   cristal_fogo Cristais de fogo (R10): Resistência a Fogo +1 e material de evolução rara
 ##   olho_escuro  pérola do Lago negro: Resistência a Escuridão (+1,5 m de visão no escuro)
 
@@ -43,7 +44,16 @@ func _ready() -> void:
 			col = Color(0.55, 0.45, 1.0)
 		"cristal_fogo":
 			col = Color(1.0, 0.45, 0.15)
-	if kind == "presa":
+		"racao":
+			col = Color(0.75, 0.6, 0.4)
+	if kind == "racao":
+		_crystal = Fx.box(Vector3(0.5, 0.3, 0.35), Fx.mat(Color(0.5, 0.38, 0.24)))
+		_crystal.position.y = 0.15
+		add_child(_crystal)
+		var strap := Fx.box(Vector3(0.52, 0.04, 0.08), Fx.mat(Color(0.25, 0.18, 0.1)))
+		strap.position.y = 0.31
+		add_child(strap)
+	elif kind == "presa":
 		_crystal = Fx.sphere(0.35, Fx.mat(col, 0.15))
 		_crystal.scale = Vector3(0.8, 0.7, 1.3)
 		_crystal.position.y = 0.3
@@ -69,15 +79,15 @@ func _ready() -> void:
 				Models.tint(m, col)
 	var light := OmniLight3D.new()
 	light.light_color = col
-	light.omni_range = 3.0 if kind != "presa" else 1.5
-	light.light_energy = 1.0 if kind != "presa" else 0.3
+	light.omni_range = 3.0 if kind != "presa" and kind != "racao" else 1.5
+	light.light_energy = 1.0 if kind != "presa" and kind != "racao" else 0.3
 	light.position.y = 1.0
 	add_child(light)
 	body_entered.connect(_on_body_entered)
 
 
 func _process(delta: float) -> void:
-	if kind != "presa":
+	if kind != "presa" and kind != "racao":
 		_crystal.rotate_y(delta * 1.5)
 
 
@@ -109,8 +119,8 @@ func _on_body_entered(body: Node3D) -> void:
 		EventBus.big_message.emit("Resistência a Escuridão")
 		EventBus.message.emit("Pérola negra do lago: +1,5 m de visão no escuro.")
 		GameState.say_once("perola_negra", "O escuro ficou... menos escuro. Ou eu fiquei mais escura.")
-	elif kind == "presa":
-		var item := {"name": "Presa antiga", "sat": 30.0, "silk": 15.0}
+	elif kind == "presa" or kind == "racao":
+		var item := {"name": "Presa antiga", "sat": 30.0, "silk": 15.0} if kind == "presa" else {"name": "Ração dos caçadores", "sat": 35.0, "silk": 8.0}
 		var den := p.current_den()
 		if p.bag.size() < Player.BAG_MAX:
 			p.bag.append(item)

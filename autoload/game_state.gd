@@ -17,6 +17,7 @@ var flags: Dictionary = {}
 ## Atributos levados de uma camada para a próxima.
 var carry: Dictionary = {}
 var arrive_from := ""             ## por qual entrada ela chega na próxima camada
+var hunt_alert := -1.0            ## Ato 4: alerta da caçada (0 a 3); < 0 = sem caçada nesta camada
 ## Morte permanente por ato (desligada): morreu, o ato recomeçaria com o que você tinha
 ## ao entrar nele. Hoje a morte volta para o último casulo e o andar continua como estava.
 var permadeath := false
@@ -181,6 +182,7 @@ func _clear_run() -> void:
 	flags = {}
 	carry = {}
 	arrive_from = ""
+	hunt_alert = -1.0
 	act = {}
 	knowledge = {"maps": {}}
 	dens = {}

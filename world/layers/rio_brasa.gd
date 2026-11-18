@@ -784,28 +784,21 @@ func _on_descent(body: Node3D) -> void:
 	go_to_layer(ABISMO, "Abismo", "Descendo a Rampa quente.", "rio")
 
 
+const GALERIAS_CACADA := "res://world/layers/galerias_cacada.tscn"
+
+
 func _on_chimney(body: Node3D) -> void:
-	## Fim do Ato 3 (a volta às Galerias, Ato 4, vem na próxima versão).
+	## Fim do Ato 3: ela sobe a Chaminé e sai nas Galerias (Ato 4: a caçada). Não tem volta.
 	if _ending or not (body is Player):
 		return
 	_ending = true
 	GameState.flags["ato3_fim"] = true
 	player.autopilot = true
 	player.auto_target = Vector3(CHIMNEY_END.x + 1.0, 0.1, CHIMNEY_END.y + 1.0)
+	player.auto_run = true
 	hud.cinematic = true
-	GameState.say_once("r14_topo", "Ar fresco. Cheiro de musgo. São as Galerias. Eu voltei. ...E alguém queimou minhas teias.")
+	GameState.say_once("r14_topo", "Ar fresco. Cheiro de musgo. São as Galerias. Eu voltei.")
 	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
 		return
-	await hud.fade(1.0, 1.2)
-	hud.show_title("Fim do Ato 3", "A volta às Galerias (Ato 4: a caçada) chega na próxima versão.")
-	autosave()
-	await get_tree().create_timer(3.0).timeout
-	if not is_inside_tree():
-		return
-	player.global_position = Vector3(R13_C.x, 0.1, R13_C.y)
-	player.snap_camera()
-	player.autopilot = false
-	hud.cinematic = false
-	await hud.fade(0.0, 1.0)
-	_ending = false
+	go_to_layer(GALERIAS_CACADA, "Fim do Ato 3", "De volta às Galerias. Mas agora alguém está caçando você.", "rio")

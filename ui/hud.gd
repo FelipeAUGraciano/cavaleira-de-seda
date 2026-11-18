@@ -334,7 +334,7 @@ func _draw_bars(vp: Vector2) -> void:
 	_bar(x, y + 24.0, "Energia", player.energy, player.max_energy, Color(0.3, 0.8, 1.0))
 	_bar(x, y + 48.0, "Seda", player.silk, player.max_silk, Color(0.85, 0.88, 0.95))
 	_bar(x, y + 72.0, "Saciedade", player.satiety, player.max_satiety, Color(0.95, 0.7, 0.25))
-	_text(x, y + 112.0, "Nível %d   XP %d / %d   ·   Bolsa %d/%d   ·   Tecelagem %d%s" % [player.level, player.xp, player.xp_to_next(), player.bag.size(), Player.BAG_MAX, player.weave_level(), ("   ·   ENVENENADA" if player.poison_t > 0.0 else "") + ("   ·   CALOR" if player.heat_t > 0.0 else "") + ("   ·   QUEIMANDO" if player.burn_t > 0.0 else "")], 15, TEXT)
+	_text(x, y + 112.0, "Nível %d   XP %d / %d   ·   Bolsa %d/%d   ·   Tecelagem %d%s" % [player.level, player.xp, player.xp_to_next(), player.bag.size(), Player.BAG_MAX, player.weave_level(), ("   ·   ENVENENADA" if player.poison_t > 0.0 else "") + ("   ·   CALOR" if player.heat_t > 0.0 else "") + ("   ·   QUEIMANDO" if player.burn_t > 0.0 else "") + ("" if GameState.hunt_alert < 0.0 else "   ·   CAÇADA " + "●".repeat(int(GameState.hunt_alert)) + "○".repeat(3 - int(GameState.hunt_alert)))], 15, TEXT)
 
 
 func fade(to: float, secs: float) -> Signal:

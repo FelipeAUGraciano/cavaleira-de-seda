@@ -53,6 +53,7 @@ var restarting := false        ## morreu: o ato recomeçou do início (permadeat
 func _ready() -> void:
 	Engine.time_scale = 1.0
 	GameState.current_layer = self
+	GameState.hunt_alert = -1.0
 	World.reset()
 	_configure()
 
@@ -64,7 +65,7 @@ func _ready() -> void:
 	if k is Dictionary and not k.is_empty() and GameState.carry.is_empty():
 		GameState.knowledge = k   # (vindo de outra camada, o que está na memória é mais novo)
 	var dn = data.get("dens", {})
-	if dn is Dictionary and not dn.is_empty():
+	if dn is Dictionary and not dn.is_empty() and GameState.carry.is_empty():
 		GameState.dens = dn
 	if here:
 		var said = data.get("said", {})

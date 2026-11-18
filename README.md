@@ -1,6 +1,6 @@
 # Cavaleira de Seda — v0.8
 
-Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada) o **Ato 2** (a queda pela Fenda e o Abismo inteiro, até a Serpente-cega) e o **Ato 3** (o Rio de Brasa inteiro, até a Salamandra-rainha e a Chaminé). Visão curta e quedas para o andar de baixo. Morrer te leva de volta à sua toca (ou ao último ponto seguro), e o andar continua como você deixou.
+Fangame top-down de sobrevivência e estratégia: uma aranha recém-nascida precisa sobreviver numa caverna onde tudo é maior que ela. O **Ato 1 é jogável do começo ao fim** (Berçário e Galerias Úmidas, até a Centopeia-blindada) o **Ato 2** (a queda pela Fenda e o Abismo inteiro, até a Serpente-cega) o **Ato 3** (o Rio de Brasa inteiro, até a Salamandra-rainha e a Chaminé) e o **Ato 4** (a caçada nas Galerias, até a Capitã da expedição). Visão curta e quedas para o andar de baixo. Morrer te leva de volta à sua toca (ou ao último ponto seguro), e o andar continua como você deixou.
 
 O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design completo fica no GDD (documento do projeto).
 
@@ -57,6 +57,8 @@ Todas as teclas podem ser trocadas em **Opções → Controles**. No **Modo Tece
 
 **Rio de Brasa (Ato 3):** da Rampa quente do Abismo, tela "Fim do Ato 2" e chegada no rio. **Abismo e Rio são abertos:** a descida a oeste da Margem fria volta ao topo da Rampa quente, e as teias de cada andar ficam onde você deixou. Caverna gerada de um andar cortada por um rio de lava de norte a sul. Perto da lava faz calor (perde vida aos poucos; Resistência a Fogo corta 25% por ponto). No R2 Mirante, a escolha: R3 Ilhas de basalto (rápido, pilares sobre a lava; fio sobre a lava queima em 8 s; a brasa das ilhas pede Resistência a Fogo 3) ou R8 Rota de pedra (longa, sem lava, com golems dormindo). Do outro lado: R7 Câmara fria (a toca, obsidiana resfriada), R6 Ninho das salamandras, R4 Forja dos golems, R5 Gêiseres (arremessam), R9 Pântano de cinzas (a cinza encurta a visão), R10 Cristais de fogo (segredo: Resistência a Fogo +1 e material de evolução rara), R11 Antecâmara, R12 Salamandra-rainha (onda de fogo que queima todas as teias; depois dela a pele esfria), R13 Fluxo resfriado (a lava esfria quando ela cai) e R14 Chaminé (Fim do Ato 3). Bichos: besouros-brasa, peixes-magma e vermes de lava (moram na lava), salamandras-chama, golems de basalto, aranhas de cinza e morcegos de cinza. Comer bichos de fogo sobe a Resistência a Fogo; aguentar calor também (até 2).
 
+**Ato 4, a caçada:** a Chaminé sai nas Galerias (cena `galerias_cacada.tscn`, o mesmo mapa do Ato 1). Uma expedição humana caça a aranha: alerta da caçada 0–3 (no 3, o esquadrão do acampamento sai atrás de você), espadachins, arqueiras com flechas de fogo e batedores que seguem e queimam seus fios. A Grande Gruta virou o acampamento-base, a toca do Fosso escuro foi queimada e a única toca é a ilha do Lago escondido. Armadilhas de fogo no Jardim, suprimentos para roubar, bichos alfa e comida escassa. As Profundezas são a rota de fuga. A Capitã guarda a corda da Subida antiga (Fim do Ato 4). Caçadores vencidos viram comida.
+
 **Tecelagem:** cada fio-guia tecido conta. Tecelagem 1 a 5 (8, 20, 36 e 56 fios): o fio-guia vai de 12 m a 18 m.
 
 **Câmara de teste:** a câmara cinza da v0.1 continua no projeto (`world/layers/test_chamber.tscn`) para o teste automático dos sistemas.
@@ -89,7 +91,8 @@ autoload/      EventBus (sinais), GameState (save, espaços, falas), Settings (o
 actors/
   player/      player.gd — a Cavaleira
   creatures/   creature.gd (base), larva.gd, frog.gd, bat.gd, lizard.gd, sister.gd, beetle.gd, ember_beetle.gd, scorpion.gd, wolf_spider.gd, ash_spider.gd, fire_salamander.gd, basalt_golem.gd, lava_lurker.gd, magma_fish.gd, lava_worm.gd, ash_bat.gd, mimic.gd, acid_slug.gd, giant_bat.gd, bat_curtain.gd, corpse.gd
-  npc/         adventurer.gd (aventureiros vistos de longe)
+  npc/          adventurer.gd, hunter.gd (caçadores do Ato 4), captain.gd (Capitã)
+  npc_old/         adventurer.gd (aventureiros vistos de longe)
 systems/
   ai/          needs.gd (fome, sono, medo, inquietação), brain.gd (escolhe a atividade),
                behavior.gd (base) e behaviors.gd (vagar, dormir, comer, fugir, passear, combate, recuar, brigar)
@@ -98,7 +101,7 @@ systems/
   ecosystem/   repovoamento da câmara
   fx.gd        formas cinza e efeitos simples
 world/         title.tscn (menu inicial), layer_base.gd (base de toda camada)
-  layers/      bercario.tscn, galerias.tscn, abismo.tscn, rio_brasa.tscn, test_chamber.tscn
+  layers/      bercario.tscn, galerias.tscn, abismo.tscn, rio_brasa.tscn, galerias_cacada.tscn, test_chamber.tscn
 systems/level/ cave_builder.gd (cavernas orgânicas), map_system.gd, pickup.gd, fire.gd (tochas), note.gd (coisas para ler)
 systems/spider_legs.gd   as 8 patas com IK
 systems/models.gd        troca formas cinza por modelos .glb (assets/models/)
@@ -157,6 +160,7 @@ godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evoluçã
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
 godot --headless --path . res://tests/fuga_test.tscn       # fim do prólogo: fuga, carregamento, chegada
+godot --headless --path . res://tests/cacada_test.tscn     # Ato 4: alerta, caçadores, batedor, armadilhas, ilha, Capitã
 godot --headless --path . res://tests/rio_test.tscn        # Rio de Brasa: rotas, calor, fios queimando, bichos de fogo, rainha
 godot --headless --path . res://tests/abismo_test.tscn     # queda da Fenda e o Abismo inteiro: Colosso, toca, Tecelagem, escorpiões, Cortina viva, Serpente
 godot --headless --path . res://tests/toca_test.tscn       # toca, portas, bolsa, arrasto, saque e save

@@ -2,6 +2,28 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Ato 4: a caçada nas Galerias (18/11)
+
+- **Chegada:** no topo da Chaminé (R14) do Rio de Brasa, tela "Fim do Ato 3" e ela sai no canto do Ninho dos lagartos (G12). As Galerias são as mesmas do Ato 1 (o mapa explorado no Ato 1 já vem desenhado), mas agora uma expedição humana caça a "aranha da runa". Não dá para voltar ao Rio pela Chaminé.
+- **Alerta da caçada (0 a 3, no HUD como ●●○):** sobe quando um caçador te vê (+0,8), quando um batedor queima um fio seu (+0,4), quando uma armadilha estoura (+0,5) ou quando um caçador some (+0,6). Depois de 20 s sem te verem, cai 1 nível a cada 25 s. **No 3**, o esquadrão do acampamento (4 caçadores) sai atrás do último lugar onde te viram; volta quando o alerta cai abaixo de 2.
+- **Caçadores (13 + a Capitã, G):** enxergam com as tochas (runa acesa te entrega de muito mais longe; apagada, só de perto) e ouvem barulho.
+  - **Espadachim:** corte que emenda, estocada e empurrão de escudo. Lanterna no cinto.
+  - **Arqueira:** flechas de fogo de longe (12 m): queimam seus fios no caminho e te deixam queimando.
+  - **Batedor:** tocha na mão; segue o rastro de seda (vai até o seu fio mais próximo e queima) e golpe de tocha.
+  - **Vencidos, viram comida** como os bichos (embrulhar e comer: 80 de saciedade, 35 de seda).
+- **Capitã da expedição (minichefe, 480 PV):** guarda a corda da Subida antiga (G16). Corte pesado, investida com escudo, frasco de fogo (área que queima e acaba com as teias por perto) e, furiosa, giro da espada. Na metade da vida sopra a trompa: chegam 2 espadachins. A teia segura metade do tempo nela (armadura). Vencida, a corda fica livre: subir mostra **"Fim do Ato 4"** (o Portão da Superfície vem na próxima versão).
+- **O que mudou nas câmaras:**
+  - **G4 Grande Gruta:** acampamento-base (tendas, fogueira, caixas, bandeira, tochas), com o esquadrão e as ordens da Capitã (pedra/papel para ler).
+  - **G22 Fosso escuro:** a toca do Ato 1 foi queimada (casulo preto, chão de cinza).
+  - **As teias que você deixou no Ato 1 viraram carvão** (fios pretos e quebrados nos mesmos pilares).
+  - **G7 Lago escondido:** a ilha é a **única toca** (só se chega por fio: os caçadores não alcançam).
+  - **G5 Jardim de musgo:** 5 armadilhas de fogo no chão (placa de metal: estoura 16 + queimadura, queima fios, rearma em 8 s; sobre um fio não dispara).
+  - **G6, G8, G9:** patrulhas; G9 ocupado, com suprimentos (**ração dos caçadores**: vai para a bolsa como uma presa).
+  - **Profundezas:** os caçadores não descem. Rota de fuga, com bichos.
+  - **Bichos:** comida escassa (poucas larvas, nada repõe ao descansar); os que sobraram são **alfas** (+5 níveis, mais vida e golpes 50% mais fortes): Lagarto-lanterna alfa no Ninho, lagartos e irmãs caçadoras alfa.
+- Correções: chegar de outra camada não troca mais as tocas (dens) da memória pelas do disco.
+- Teste novo: `cacada_test`. Captura: `tests/screenshot_cacada.tscn`.
+
 ## Abismo e Rio de Brasa abertos: dá para ir e voltar (18/11)
 
 - **A Rampa quente liga os dois andares nos dois sentidos.** No Abismo, subir a rampa (A14) leva ao Rio; no Rio, a **descida a oeste da Margem fria** (degraus para o escuro, com a luz fria do Abismo) leva de volta ao topo da Rampa quente. Berçário e Galerias continuam sem volta.
