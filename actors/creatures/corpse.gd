@@ -41,6 +41,13 @@ func _ready() -> void:
 	body.scale = Vector3(1.0, 0.7, 1.4) if preserved else Vector3(1.2, 0.45, 1.2)
 	body.position.y = _radius * 0.4
 	add_child(body)
+	if not preserved and age <= 0.0:
+		# o corpo "assenta" no chão depois da animação de morte
+		var final := body.scale
+		body.scale = final * 0.2
+		var tw := body.create_tween()
+		tw.tween_interval(0.25)
+		tw.tween_property(body, "scale", final, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if preserved:
 		Models.swap(self, "presa", 0.9, [body], "length")
 

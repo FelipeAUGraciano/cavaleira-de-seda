@@ -62,6 +62,7 @@ var _ending := false
 # ---------------------------------------------------------------- câmaras
 
 func _configure() -> void:
+	music_area = "rio"
 	layer_id = "R"
 	layer_name = "Rio de Brasa"
 	layer_subtitle = "Ato 3 · Onde a pedra derrete"

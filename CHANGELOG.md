@@ -2,6 +2,17 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Sensação dos golpes e o tocador de música (19/11)
+
+- **Pausa no impacto:** cada golpe que entra congela o jogo por uns centésimos (mais no crítico, no golpe pesado e no abate); levar um golpe também. Golpes em área e fogo contínuo não emendam uma pausa na outra.
+- **Faíscas e poeira:** o golpe solta faíscas na cor do tipo (comum, fogo, veneno, ácido, crítico em amarelo); golpe pesado levanta poeira. Ao levar dano, faíscas vermelhas nela.
+- **Recuo:** o bicho amassa e volta quando apanha.
+- **Morte:** o bicho tomba de lado, encolhe e some, com faíscas e poeira; o cadáver assenta no lugar em seguida (antes ele só sumia e aparecia a bolinha).
+- **Números de dano:** sobem do bicho (brancos; críticos e golpes pesados maiores e coloridos).
+- **Opções → Tela:** liga/desliga Números de dano, Pausa no impacto e Tremer a tela.
+- **Música (autoload `Music`):** procura os .ogg em `res://audio/music/` com os nomes da aba "Músicas (prompts)" do GDD (lista também em `audio/music/README.md`). Faixa do mapa + camada de tensão sincronizada (sobe quando um bicho te caça a menos de 18 m); chefes trocam a música quando a luta começa (com intro, se houver) e voltam ao mapa quando morrem (com a vitória); Colosso perto e alerta 3 da caçada tocam por cima; casulo aberto troca para a do casulo; curtas na morte, na muda, nos segredos e no Fim do Ato. Sem os arquivos, tudo segue em silêncio, sem erro.
+- Teste novo: `juice_test`. Captura: `tests/screenshot_juice.tscn`. O teste dos modelos agora compara o pilar com a altura dele (que muda com o nome do nó).
+
 ## Ataques próprios: cada ramo e cada forma final troca o golpe e a mordida (19/11)
 
 - **Ramos** (um kit cada): **Ceifadora** — Foice (dois cortes de 120° e o terceiro em linha de 4 m) e Bote longo (3,5 m, +50%). **Tecelã** — Chicote de seda (linha de 4 m; 3 acertos deixam lento) e Novelo (7 m, gruda). **Arauta** — Faísca (linha de 6 m, 5 de energia) e Lampejo (cone de 4 m que atordoa).

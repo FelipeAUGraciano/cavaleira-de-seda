@@ -88,6 +88,9 @@ func show_page(p: String) -> void:
 			_slider_row("Brilho", "brilho", 0.7, 1.6)
 			_body.add_child(_label("A caverna é escura de propósito. Suba o brilho só se a tela for escura demais.", 15, QUIET))
 			_check_row("Mostrar a lista de controles no jogo", "mostrar_controles", Settings.show_help)
+			_check_row("Números de dano", "numeros_dano", Settings.damage_numbers)
+			_check_row("Pausa curtinha no impacto dos golpes", "pausa_impacto", Settings.hit_stop)
+			_check_row("Tremer a tela", "tremor", Settings.screen_shake)
 			var r := HBoxContainer.new()
 			r.alignment = BoxContainer.ALIGNMENT_CENTER
 			r.add_child(_button("Restaurar tudo ao padrão", _reset_all, Vector2(340, 46)))

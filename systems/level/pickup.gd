@@ -95,6 +95,8 @@ func _on_body_entered(body: Node3D) -> void:
 	var p := body as Player
 	if p == null:
 		return
+	if kind in ["cristal_pv", "cristal_en", "cristal_seda", "cristal_fogo", "olho_escuro"]:
+		Music.stinger("segredo")
 	if kind == "cristal_pv":
 		p.add_bonus(10.0, 0.0)
 		p.moonstones += 1

@@ -176,10 +176,12 @@ func open_cocoon(c: Node3D) -> void:
 	if cocoon_menu == null:
 		cocoon_menu = CocoonMenu.new()
 		cocoon_menu.closed.connect(func():
+			Music.cocoon(false)
 			if not _pause_box.visible and not _options.visible:
 				get_tree().paused = false)
 		add_child(cocoon_menu)
 	get_tree().paused = true
+	Music.cocoon(true)
 	cocoon_menu.open(player, c)
 
 

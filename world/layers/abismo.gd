@@ -62,6 +62,7 @@ var _ending := false
 # ---------------------------------------------------------------- câmaras
 
 func _configure() -> void:
+	music_area = "abismo"
 	layer_id = "A"
 	layer_name = "Abismo"
 	layer_subtitle = "Ato 2 · O fundo da Fenda"

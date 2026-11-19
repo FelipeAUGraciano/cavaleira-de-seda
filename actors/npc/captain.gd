@@ -41,6 +41,7 @@ func _init(_r: String = "capita") -> void:
 func _ready() -> void:
 	super._ready()
 	add_to_group("boss")
+	boss_music = "capita"
 
 
 func on_attack_active(a: Attack) -> void:

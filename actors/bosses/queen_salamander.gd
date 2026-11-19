@@ -57,6 +57,7 @@ func _init() -> void:
 func _ready() -> void:
 	super._ready()
 	add_to_group("boss")
+	boss_music = "rainha"
 	_ring_mat = Fx.mat(Color(1.0, 0.45, 0.1), 3.0, true, 0.75)
 	_ring = MeshInstance3D.new()
 	var tm := TorusMesh.new()

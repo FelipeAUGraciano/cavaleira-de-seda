@@ -87,6 +87,7 @@ func _init() -> void:
 func _ready() -> void:
 	super._ready()
 	add_to_group("boss")
+	boss_music = "centopeia"
 	add_to_group("predator")
 	collision_mask = 1   # atravessa a jogadora na investida (o dano é pelo contato)
 	facing = Vector3(0, 0, -1)

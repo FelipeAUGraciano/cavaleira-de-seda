@@ -7,6 +7,7 @@ extends Node3D
 ##   _populate()    criaturas, itens e gatilhos
 ##   _start()       mensagens iniciais e lógica própria
 
+var music_area := ""          ## faixa do mapa no autoload Music (mus_<nome>.ogg)
 var layer_id := "?"
 var layer_name := "Camada"
 var layer_subtitle := ""       ## frase embaixo do título quando a camada começa
@@ -56,6 +57,7 @@ func _ready() -> void:
 	GameState.hunt_alert = -1.0
 	World.reset()
 	_configure()
+	Music.area.call_deferred(music_area)
 
 	var data := GameState.load_game()
 	var here := GameState.carry.is_empty() and not data.is_empty() and String(data.get("scene", "")) == scene_file_path
@@ -412,6 +414,8 @@ func go_to_layer(path: String, header: String = "", sub: String = "", from_id: S
 	saved_webs[scene_file_path] = WebNetwork.to_dict()
 	GameState.knowledge["webs"] = saved_webs
 	GameState.arrive_from = from_id
+	if header.begins_with("Fim do Ato"):
+		Music.stinger("vitoria")
 	GameState.carry = player.to_dict()
 	Engine.time_scale = 1.0
 	if player != null:

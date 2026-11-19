@@ -160,6 +160,7 @@ godot --headless --path . res://tests/dificuldade_test.tscn # Filhote, evoluçã
 godot --headless --path . res://tests/hardcore_test.tscn    # golpes, fúria, perseguição, visão, quedas, morte (volta ao casulo)
 godot --headless --path . res://tests/golpes_test.tscn      # golpes e fio (Q) da jogadora
 godot --headless --path . res://tests/fuga_test.tscn       # fim do prólogo: fuga, carregamento, chegada
+godot --headless --path . res://tests/juice_test.tscn      # pausa no impacto, faíscas, números de dano, morte tombando, tocador de música
 godot --headless --path . res://tests/kits_test.tscn       # ataques próprios dos ramos e das formas (estilos A/B)
 godot --headless --path . res://tests/evolucao_test.tscn   # última muda: 6 formas de ramo + 5 raras
 godot --headless --path . res://tests/cacada_test.tscn     # Ato 4: alerta, caçadores, batedor, armadilhas, ilha, Capitã

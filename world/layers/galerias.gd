@@ -79,6 +79,7 @@ var _acid_timer := 0.0
 
 
 func _configure() -> void:
+	music_area = "galerias"
 	layer_id = "G"
 	layer_name = "Galerias Úmidas"
 	layer_subtitle = "Ato 1 · Você ainda é uma Filhote. Fuja do que é maior, cace o que é menor."

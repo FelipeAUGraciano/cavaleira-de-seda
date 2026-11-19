@@ -59,7 +59,8 @@ func _ready() -> void:
 	a.position = Vector3(-4, 0, 0)
 	add_child(a)
 	var am := a.get_node_or_null("Modelo_pilar_teia") as Node3D
-	_check(am != null and absf(Models.bounds(am, Transform3D.IDENTITY).size.y - 4.45) < 0.01, "pilar de teia na altura do pilar")
+	# a altura de cada pilar varia (semente pelo nome do nó); o modelo tem que bater com ela
+	_check(am != null and absf(Models.bounds(am, Transform3D.IDENTITY).size.y - a.height) < 0.01, "pilar de teia na altura do pilar")
 
 	var p := Player.new()
 	p.position = Vector3(0, 0.3, 5)

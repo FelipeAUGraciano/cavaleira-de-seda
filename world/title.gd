@@ -20,6 +20,7 @@ var _web: Array = []      ## fios da teia de fundo: [de, até]
 func _ready() -> void:
 	Engine.time_scale = 1.0
 	get_tree().paused = false
+	Music.area("menu")
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_make_web()
 	var center := CenterContainer.new()

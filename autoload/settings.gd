@@ -33,6 +33,9 @@ var volume := {"Master": 0.8, "Música": 0.7, "Efeitos": 0.8, "Voz": 1.0}
 var fullscreen := false
 var brightness := 1.0           ## 0.7 a 1.6 (o jogo é escuro de propósito; isso ajuda telas escuras)
 var show_help := true           ## lista de controles no canto da tela
+var damage_numbers := true      ## números de dano subindo dos bichos
+var hit_stop := true            ## pausa curtinha no impacto dos golpes
+var screen_shake := true        ## tremor de câmera
 var slot := 1                   ## último espaço de save usado
 var capturing := false          ## esperando o jogador apertar a tecla nova (o HUD ignora a entrada)
 var _block_until := 0
@@ -90,6 +93,9 @@ func load_cfg() -> void:
 	fullscreen = bool(cf.get_value("tela", "tela_cheia", fullscreen))
 	brightness = clampf(float(cf.get_value("tela", "brilho", brightness)), 0.7, 1.6)
 	show_help = bool(cf.get_value("tela", "mostrar_controles", show_help))
+	damage_numbers = bool(cf.get_value("tela", "numeros_dano", damage_numbers))
+	hit_stop = bool(cf.get_value("tela", "pausa_impacto", hit_stop))
+	screen_shake = bool(cf.get_value("tela", "tremor", screen_shake))
 	slot = clampi(int(cf.get_value("save", "espaco", slot)), 1, GameState.SLOTS)
 	var binds = cf.get_value("controles", "trocas", {})
 	if binds is Dictionary:
@@ -104,6 +110,9 @@ func save_cfg() -> void:
 	cf.set_value("tela", "tela_cheia", fullscreen)
 	cf.set_value("tela", "brilho", brightness)
 	cf.set_value("tela", "mostrar_controles", show_help)
+	cf.set_value("tela", "numeros_dano", damage_numbers)
+	cf.set_value("tela", "pausa_impacto", hit_stop)
+	cf.set_value("tela", "tremor", screen_shake)
 	cf.set_value("save", "espaco", slot)
 	cf.set_value("controles", "trocas", _binds)
 	cf.save(PATH)
@@ -119,6 +128,12 @@ func set_value(key: String, value) -> void:
 		brightness = clampf(float(value), 0.7, 1.6)
 	elif key == "mostrar_controles":
 		show_help = bool(value)
+	elif key == "numeros_dano":
+		damage_numbers = bool(value)
+	elif key == "pausa_impacto":
+		hit_stop = bool(value)
+	elif key == "tremor":
+		screen_shake = bool(value)
 	elif key == "espaco":
 		slot = clampi(int(value), 1, GameState.SLOTS)
 	apply()
@@ -130,6 +145,9 @@ func reset_all() -> void:
 	fullscreen = false
 	brightness = 1.0
 	show_help = true
+	damage_numbers = true
+	hit_stop = true
+	screen_shake = true
 	reset_controls()
 
 

@@ -71,6 +71,7 @@ func _init() -> void:
 func _ready() -> void:
 	super._ready()
 	add_to_group("boss")
+	boss_music = "serpente"
 	add_to_group("predator")
 	collision_mask = 1
 	_web_immune = 999.0

@@ -24,6 +24,7 @@ var _traps: Array = []
 
 func _configure() -> void:
 	super._configure()
+	music_area = "cacada"
 	layer_name = "Galerias Úmidas"
 	layer_subtitle = "Ato 4 · A caçada"
 	GameState.flags["g8_aventureiros"] = true   # o encontro de longe do Ato 1 não se repete

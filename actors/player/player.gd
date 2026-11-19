@@ -609,6 +609,7 @@ func _evolve_branch() -> void:
 	_build_mark()
 	shield = float(fd("shield", 0.0))
 	EventBus.big_message.emit("Evolução: %s!" % form_name())
+	Music.stinger("evolucao")
 	_msg("A muda terminou: %s. O nível voltou a 1." % form_name() + (" Esta é a última muda." if is_final() else ""))
 	match form:
 		Form.LAMINA:
@@ -1347,6 +1348,31 @@ func _melee(damage: float, reach: float, arc_deg: float, poison: bool, dir := Ve
 		hit_creature(c, damage, poison)
 
 
+func _impact_fx(c: Creature, dmg: float, crit: bool) -> void:
+	## Faíscas, número de dano e a pausa curtinha no impacto (Juice).
+	if dmg < 0.5:
+		return
+	var col := Color(0.85, 0.95, 1.0)
+	if fd("ignite", 0.0) > 0.0:
+		col = Color(1.0, 0.55, 0.15)
+	elif int(fd("venom", 0)) > 0:
+		col = Color(0.7, 1.0, 0.3)
+	elif fd("corrode", 0.0) > 0.0:
+		col = Color(0.55, 1.0, 0.2)
+	if crit:
+		col = Color(1.0, 0.9, 0.35)
+	var to := c.global_position - global_position
+	to.y = 0.0
+	var at := c.global_position - to.normalized() * minf(c.body_radius, to.length() * 0.5) + Vector3.UP * 0.5
+	var heavy := dmg >= 30.0 or c.dead
+	var strength := 1.0 + (0.7 if crit else 0.0) + (0.7 if heavy else 0.0)
+	if dmg >= 6.0:
+		Juice.impact(at, col, strength)
+	Juice.number(c.global_position + Vector3.UP * c.body_radius, dmg, col if crit or dmg >= 30.0 else Color(1, 1, 1), crit or heavy)
+	if dmg >= 8.0:
+		Juice.hitstop(0.035 + (0.025 if crit else 0.0) + (0.03 if heavy else 0.0) + (0.04 if c.dead else 0.0))
+
+
 func hit_creature(c: Creature, damage: float, poison := false) -> float:
 	## Um acerto da jogadora num bicho, com tudo o que a forma soma (crítico no enredado,
 	## emboscada, execução, corrosão, veneno, fogo, cura no abate). Devolve o dano.
@@ -1375,6 +1401,7 @@ func hit_creature(c: Creature, damage: float, poison := false) -> float:
 	if cor > 0.0:
 		c.corrode(cor)
 	c.take_damage(dmg, self)
+	_impact_fx(c, dmg, crit)
 	if poison:
 		c.add_poison()
 	for k in int(fd("venom", 0)):
@@ -2192,6 +2219,10 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 			return false
 	invuln = 0.35
 	_hurt_flash = 0.25
+	if amount >= 4.0:
+		Juice.hitstop(0.05 if amount < 20.0 else 0.09)
+		if get_parent() != null:
+			Juice.sparks(get_parent(), global_position + Vector3.UP * 0.6, Color(1.0, 0.25, 0.2), 8, 4.0)
 	if crystal_skin:
 		amount *= 0.8
 	amount *= float(form_data().get("armor", 1.0))
@@ -2253,6 +2284,7 @@ func _hurt(amount: float) -> void:
 
 func _die() -> void:
 	stop_drag()
+	Music.stinger("morte")
 	dead = true
 	hp = 0.0
 	state = State.DEAD
@@ -2408,6 +2440,8 @@ func visibility_mult() -> float:
 
 func shake(amount: float) -> void:
 	## Tremor de câmera (a Mãe batendo no túnel, desabamento).
+	if not Settings.screen_shake:
+		return
 	_shake = maxf(_shake, amount)
 
 

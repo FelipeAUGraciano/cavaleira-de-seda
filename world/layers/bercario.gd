@@ -16,6 +16,7 @@ var _leaving := false
 
 
 func _configure() -> void:
+	music_area = "bercario"
 	layer_id = "B"
 	layer_name = "Berçário"
 	layer_subtitle = "Prólogo · O ninho da Mãe"
@@ -187,6 +188,7 @@ func _physics_process(_delta: float) -> void:
 	if not _chase_started and map_system.current_room == "B6" and player.global_position.x >= 63.0:
 		_chase_started = true
 		chase.begin()
+		Music.boss("fuga_mae")
 		mother_leg.active = false
 		mother_leg.visible = false
 
@@ -195,6 +197,7 @@ func _on_player_died() -> void:
 	# A fuga recomeça do início da câmara B6.
 	if _chase_started:
 		_chase_started = false
+		Music.end_boss()
 		chase.reset()
 		mother_leg.active = true
 		mother_leg.visible = true

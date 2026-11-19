@@ -108,6 +108,8 @@ var _visual: Node3D
 var _mat: StandardMaterial3D
 var _web_overlay: MeshInstance3D
 var _flash := 0.0
+var _flinch := 0.0              ## recuo do corpo ao levar um golpe (visual)
+var _vis_base := Vector3.ZERO
 var _anim_t := 0.0
 var _last_attacker: Node = null
 var _model: Node3D
@@ -161,6 +163,7 @@ var _combo_count := 0
 var _strafe := 1.0
 var _marker: AttackMarker
 var _web_immune := 0.0
+var boss_music := ""            ## chefe: mus_boss_<nome>.ogg quando a luta começa (autoload Music)
 var fear_time := 0.0            ## foge de fear_from (Olhar da runa)
 var fear_from := Vector3.ZERO
 var distract_time := 0.0        ## vai até distract_pos (clone de sombra) e esquece a jogadora
@@ -661,6 +664,15 @@ func _walk_into_strands() -> void:
 
 func _update_glow(delta: float) -> void:
 	_flash = maxf(0.0, _flash - delta)
+	if _visual != null:
+		if _vis_base == Vector3.ZERO:
+			_vis_base = _visual.scale
+		if _flinch > 0.0:
+			_flinch = maxf(0.0, _flinch - delta)
+			var k := sin(_flinch / 0.18 * PI)   # amassa e volta
+			_visual.scale = _vis_base * Vector3(1.0 + 0.16 * k, 1.0 - 0.22 * k, 1.0 + 0.16 * k)
+			if _flinch <= 0.0:
+				_visual.scale = _vis_base
 	if not telegraph and cur_attack == null and _marker != null and _marker.visible:
 		_marker.clear()   # golpe cancelado (enredada, atordoada, morta): a marca some junto
 	if _overlay != null:
@@ -706,6 +718,8 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 		return
 	_last_attacker = source
 	_flash = 0.12
+	if amount >= 3.0:
+		_flinch = 0.18
 	asleep = false
 	if source != null and source.is_in_group("player"):
 		player_memory = memory_time + 2.0
@@ -861,6 +875,7 @@ func die(fell: bool = false) -> void:
 	dead = true
 	World.unregister(self)
 	if not fell:
+		_death_fx()
 		var corpse := Corpse.new()
 		corpse.setup(display_name, food_satiety, food_silk, food_xp, body_color, body_radius)
 		corpse.energy_bonus = food_energy
@@ -879,6 +894,36 @@ func die(fell: bool = false) -> void:
 			EventBus.message.emit("Você derrotou: %s. Coma o corpo (E)." % display_name)
 	EventBus.creature_died.emit(self)
 	queue_free()
+
+
+func _death_fx() -> void:
+	## O corpo tomba de lado, encolhe e some; o cadáver assenta no lugar (corpse.gd).
+	var root := get_parent()
+	if root == null:
+		return
+	Juice.sparks(root, global_position + Vector3.UP * 0.5, body_color.lightened(0.3), 10, 4.0)
+	Juice.dust(root, global_position, clampf(body_radius * 1.2, 0.5, 2.5))
+	if _visual == null or not is_instance_valid(_visual):
+		return
+	if _vis_base != Vector3.ZERO:
+		_visual.scale = _vis_base
+	var ghost := _visual
+	ghost.reparent(root, true)
+	var side := facing.cross(Vector3.UP).normalized()
+	if side.length() < 0.1:
+		side = Vector3.RIGHT
+	var start := ghost.global_transform
+	var tw := ghost.create_tween()
+	tw.tween_method(func(k: float):
+		if not is_instance_valid(ghost):
+			return
+		var t := start
+		t.basis = Basis(side, -1.6 * k) * start.basis
+		t.basis = t.basis.scaled(Vector3.ONE * (1.0 - 0.15 * k))
+		t.origin = start.origin + Vector3.UP * sin(k * PI) * 0.25 * body_radius
+		ghost.global_transform = t, 0.0, 1.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(ghost, "scale", ghost.scale * 0.01, 0.25).set_delay(0.15)
+	tw.tween_callback(ghost.queue_free)
 
 
 # ---------------------------------------------------------------- movimento
