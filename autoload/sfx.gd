@@ -21,7 +21,7 @@ const FAMILY := {
 	"Lizard": "reptil", "FireSalamander": "reptil", "Snake": "reptil", "Serpent": "reptil", "QueenSalamander": "reptil",
 	"Frog": "anfibio",
 	"Bat": "voador", "GiantBat": "voador", "AshBat": "voador", "BatCurtain": "voador",
-	"Mimic": "pedra", "BasaltGolem": "pedra",
+	"Mimic": "pedra", "BasaltGolem": "pedra", "Guardian": "pedra",
 	"LavaLurker": "lava", "MagmaFish": "lava", "LavaWorm": "lava",
 	"AcidSlug": "gosma",
 	"Hunter": "humano", "Captain": "humano", "Adventurer": "humano",
@@ -32,9 +32,10 @@ const BOSS := {
 	"Centipede": {"ataque": "centopeia_golpe"},
 	"QueenSalamander": {"alerta": "rainha_rugido"},
 	"Captain": {"alerta": "capita_comando"},
+	"Guardian": {"alerta": "guardiao_rugido", "ataque": "guardiao_golpe"},
 }
 ## Casca dura: o golpe soa como em carapaça/pedra.
-const HARD := ["Beetle", "EmberBeetle", "Centipede", "Scorpion", "Mimic", "BasaltGolem", "Captain"]
+const HARD := ["Beetle", "EmberBeetle", "Centipede", "Scorpion", "Mimic", "BasaltGolem", "Captain", "Guardian"]
 
 var _pool: Array = []
 var _next := 0

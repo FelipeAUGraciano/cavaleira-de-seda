@@ -25,6 +25,7 @@ const AREAS := [
 	["abismo", "Abismo"],
 	["rio", "Rio de Brasa"],
 	["cacada", "Galerias — a caçada"],
+	["portao", "Portão da Superfície"],
 ]
 
 ## kind: bicho, chefe, perigo (não dá para vencer), humano.
@@ -133,6 +134,10 @@ const ENTRIES := [
 	{"id": "capita", "name": "Capitã da expedição", "area": "cacada", "kind": "chefe",
 		"note": "A chefe deles. Armadura, espada pesada e uma trompa que chama reforço. Ela não está de brincadeira.",
 		"tip": "A teia segura metade do tempo nela. Na metade da vida ela chama dois espadachins: guarde fios para eles."},
+
+	{"id": "guardiao", "name": "Guardião do Portão", "area": "portao", "kind": "chefe",
+		"note": "É o Colosso. O MESMO dragão da Fenda. Ele não estava passando pelo Abismo: ele mora aqui, na frente da saída. Lá embaixo eu me escondia numa rachadura. Aqui em cima eu sou do tamanho certo para responder.",
+		"tip": "Fase 1: esquive da investida para ele bater num pilar. Fase 2: ele freia antes dos pilares; teia de captura no caminho da investida. Fase 3: cego, caça pela vibração; suma no escuro e bata por trás enquanto ele fareja."},
 ]
 
 var _by_id := {}

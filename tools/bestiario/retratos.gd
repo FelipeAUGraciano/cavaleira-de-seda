@@ -45,6 +45,7 @@ var specs := [
 	["arqueira", func(): return Hunter.new("arqueira"), 0.0, null],
 	["batedor", func(): return Hunter.new("batedor"), 0.0, null],
 	["capita", func(): return Captain.new(), 0.0, null],
+	["guardiao", func(): return Guardian.new(), 0.0, null],
 ]
 
 func _snake_out(n) -> void:

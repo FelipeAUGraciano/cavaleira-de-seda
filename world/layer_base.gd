@@ -8,6 +8,7 @@ extends Node3D
 ##   _start()       mensagens iniciais e lógica própria
 
 var music_area := ""          ## faixa do mapa no autoload Music (mus_<nome>.ogg)
+var ambience := ""             ## som ambiente (amb_<nome>.ogg); vazio = o mesmo nome da música
 var layer_id := "?"
 var layer_name := "Camada"
 var layer_subtitle := ""       ## frase embaixo do título quando a camada começa
@@ -58,7 +59,7 @@ func _ready() -> void:
 	World.reset()
 	_configure()
 	Music.area.call_deferred(music_area)
-	Sfx.ambient.call_deferred(music_area)
+	Sfx.ambient.call_deferred(ambience if ambience != "" else music_area)
 
 	var data := GameState.load_game()
 	var here := GameState.carry.is_empty() and not data.is_empty() and String(data.get("scene", "")) == scene_file_path

@@ -53,3 +53,4 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("radius", maxf(40.0, c.distance_to(edge)))
 	_mat.set_shader_parameter("soft", maxf(60.0, c.distance_to(edge) * 0.8))
 	_mat.set_shader_parameter("screen", vp)
+	_mat.set_shader_parameter("strength", 0.72 * (1.0 - 0.8 * player.daylight))

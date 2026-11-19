@@ -43,6 +43,7 @@ var _show_help := true
 var _show_map := false
 var show_all_creatures := false
 var fade_alpha := 0.0             ## tela preta das transições (0 = some)
+var fade_color := Color(0, 0, 0)
 ## Nome de área à la Elden Ring (chegada numa camada): faixa escura, letras serifadas.
 const AREA_SECS := 6.5
 const AREA_GOLD := Color(0.93, 0.86, 0.68)
@@ -423,8 +424,10 @@ func _status_pills() -> Array:
 	return out
 
 
-func fade(to: float, secs: float) -> Signal:
+func fade(to: float, secs: float, col := Color(0, 0, 0)) -> Signal:
 	## Escurece (to = 1) ou clareia (to = 0) a tela. Devolve o sinal de fim para await.
+	## col: cor da tela (preta; branca na saída para a superfície).
+	fade_color = col
 	var tw := create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(self, "fade_alpha", to, secs)
@@ -496,7 +499,7 @@ func _draw_transition(vp: Vector2) -> void:
 	if _cine > 0.001:
 		_draw_cinematic(vp)
 	if fade_alpha > 0.001:
-		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, fade_alpha))
+		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(fade_color, fade_alpha))
 	if _area_time > 0.0:
 		_draw_area_title(vp)
 	if _title_time > 0.0:

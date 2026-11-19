@@ -185,8 +185,7 @@ func _run() -> void:
 	await _seconds(0.6)
 	print("    corda: ", g._rope_open, " ", rope, " ", player.global_position)
 	_check(GameState.flags.has("ato4_fim") and g.hud.cinematic, "subir a corda: Fim do Ato 4")
-	await _seconds(5.5)
-	_check(player.global_position.z < Galerias.DEEP - 5.0 and not player.dead, "depois do título ela continua na Subida antiga")
+	_check(await _wait_scene("portao.tscn"), "a corda leva ao Portão da Superfície")
 	_end()
 
 

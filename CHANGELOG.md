@@ -2,6 +2,26 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## O fim do jogo: o Portão da Superfície, o Guardião e os finais (19/11)
+
+- **Camada nova, o Portão da Superfície (P1–P8), o ato final.** A corda da Capitã agora sobe para cá (antes era "Fim do Ato 4 / próxima versão").
+  - **Escadaria antiga (P1):** degraus esculpidos e um mural com a espiral, uma aranha e um dragão lado a lado.
+  - **Acampamento grande (P2):** de onde a expedição veio. 9 caçadores (4 no esquadrão do alerta 3), tendas, fogueiras, paliçada, 4 armadilhas de fogo, rações e o diário do acampamento. O alerta da caçada e as armadilhas viraram peças reaproveitáveis (`HuntDirector`, `FireTrap`).
+  - **Ninho alto (P4, segredo):** do outro lado de um abismo, por fio. Cristal de pedra-da-lua e um ninho de pássaro: "como eu sei o que é um pássaro?".
+  - **Galeria iluminada (P3):** **luz do dia** em fachos. Dentro do facho todo mundo te vê, com ou sem runa, e ela enxerga longe; entre eles, sombra. (A Sombra do Breu não some na luz.)
+  - **Câmara do eco final (P5):** a última toca. A caverna ecoa falas de antes.
+  - **Ponte do Guardião (P6):** abismo com duas ilhas da ponte caída. Rajadas de vento a cada 7 s (com aviso): no chão empurram para o abismo; no fio, ela se agarra e para.
+  - **Arena (P7) e Saída (P8):** seis pilares, o portão de pedra com a espiral e a luz do dia vazando.
+- **O Guardião do Portão é o Colosso da Fenda** — o dragão que no Abismo só dava para evitar. 1350 PV, 3 fases, cada uma testando uma coisa:
+  1. **Esquiva:** as escamas seguram 75%; a investida (linha no chão) que bate num pilar ou na parede deixa ele atordoado, com as escamas abertas.
+  2. **Teia:** ele aprende a frear antes dos pilares. O teto cai (marcas no chão), ele cospe estilhaços de cristal e solta um tremor em volta. Só a **teia de captura** no caminho da investida o enrosca.
+  3. **Escuro:** a poeira apaga a arena e ele fica cego (caça pela vibração, como no Abismo). Perdeu você, fareja de costas: golpe por trás entra dobrado.
+  - Cada troca de fase tem rugido, música própria (guardiao_1/2/3) e dica. Golpe enorme não pula fase. Fase vencida fica vencida; se você foge da arena, ele volta para o portão e a vida volta ao começo da fase. A câmera abre na luta para caber o dragão inteiro. Dá para comer (Pele de Cristal, Energia).
+- **Finais:** ela sai pela boca da caverna e a cena, pintada em 2D, muda pelo ramo: **Lâmina** (o vale ao amanhecer, a vila ao longe), **Teia** (a floresta de manhã e o primeiro fio do mundo de cima), **Runa** (a noite e a espiral como constelação) ou **Rara** (a lua na cor da forma rara). Depois vêm o parágrafo da forma (cada uma das 16 tem o seu), a **pista da reencarnação** ("Quem eu era, antes da caverna?"), os números da jornada, os créditos e "Fim". O espaço de save ganha "★ zerado".
+- A arte da Cavaleira recortada sem o fundo (`assets/ui/cavaleira_recorte.png`) para o final.
+- Bestiário: área nova e o Guardião (32 criaturas). Sons novos do Portão com prompt no GDD (enquanto não existem, o jogo usa os parecidos).
+- Testes: `portao_test` (camada, luz do dia, vento, as 3 fases, fuga da arena, portão, final e volta ao menu). O `cacada_test` agora confere que a corda leva ao Portão.
+
 ## Bestiário (19/11)
 
 - **Tela nova (B, ou pela pausa e pelo casulo):** lista das 31 criaturas por área (Berçário, Galerias, Abismo, Rio de Brasa, a caçada) e a ficha de cada uma com retrato, nota da Cavaleira, golpes, sentidos, dica e o que comer dá. Teclado (↑↓ bicho, ←→ área), controle e mouse (clique e rodinha). O jogo pausa enquanto está aberta.

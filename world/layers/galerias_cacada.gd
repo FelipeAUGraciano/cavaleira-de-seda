@@ -302,8 +302,11 @@ func _on_creature_died(c: Node) -> void:
 		pass
 
 
+const PORTAO := "res://world/layers/portao.tscn"
+
+
 func _on_rope(body: Node3D) -> void:
-	## Fim do Ato 4 (o Portão da Superfície vem na próxima versão).
+	## Fim do Ato 4: ela sobe pela corda da expedição até o Portão da Superfície.
 	if not (body is Player) or _ending4:
 		return
 	if not _rope_open:
@@ -318,142 +321,8 @@ func _on_rope(body: Node3D) -> void:
 	await get_tree().create_timer(1.5).timeout
 	if not is_inside_tree():
 		return
-	await hud.fade(1.0, 1.2)
-	hud.show_title("Fim do Ato 4", "O Portão da Superfície chega na próxima versão.")
-	autosave()
-	await get_tree().create_timer(3.0).timeout
-	if not is_inside_tree():
-		return
-	player.global_position = _snap_floor(Vector3(60.0, 0, 28.0), 0.8) + Vector3(0, 0.1, 0)
-	player.snap_camera()
-	player.autopilot = false
-	hud.cinematic = false
-	await hud.fade(0.0, 1.0)
-	_ending4 = false
+	go_to_layer(PORTAO, "Fim do Ato 4", "Lá em cima, o Portão da Superfície.", "cacada")
 
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
-
-
-# ---------------------------------------------------------------- alerta da caçada
-
-class HuntDirector extends Node:
-	## Alerta da caçada, de 0 a 3. Sobe quando um caçador te vê (+0,8), acha teia (+0,4) ou perde
-	## um companheiro (+0,6). Depois de 20 s sem te ver, cai 1 nível a cada 25 s.
-	## No 3, o esquadrão do acampamento sai atrás do último lugar onde te viram.
-	signal level_changed(level: int)
-	signal squad_out
-
-	var alert := 0.0
-	var last_pos := Vector3.ZERO
-	var since_seen := 99.0
-	var squad_sent := false
-
-	func raise(amount: float, pos: Vector3, _by: Node = null) -> void:
-		var before := int(alert)
-		alert = minf(3.0, alert + amount)
-		last_pos = pos
-		since_seen = 0.0
-		var now := int(alert)
-		if now > before:
-			level_changed.emit(now)
-			if now < 3:
-				EventBus.message.emit("Alerta da caçada %d: %s" % [now, ["", "eles sabem que você está por perto.", "os caçadores estão procurando você."][now]])
-		if now >= 3 and not squad_sent:
-			_send_squad()
-		elif squad_sent:
-			_point_squad()
-		GameState.hunt_alert = alert
-
-	func comrade_down(h: Node) -> void:
-		var alive := 0
-		for o in get_tree().get_nodes_in_group("hunter"):
-			if o != h and not (o as Creature).dead:
-				alive += 1
-		if alive > 0:
-			raise(0.6, (h as Node3D).global_position, h)
-
-	func _send_squad() -> void:
-		squad_sent = true
-		squad_out.emit()
-		GameState.say_once("a4_esquadrao", "Sinos. Três vezes. Eles tão vindo TODOS.")
-		_point_squad()
-
-	func _point_squad() -> void:
-		for o in get_tree().get_nodes_in_group("hunter"):
-			var h := o as Hunter
-			if h == null or h.dead or not h.squad:
-				continue
-			h.range_rooms = []
-			h.track_range = 200.0
-			h.leash_range = 200.0
-			h.player_memory = h.memory_time
-			h.last_player_pos = last_pos
-
-	func _process(delta: float) -> void:
-		since_seen += delta
-		if since_seen > 20.0 and alert > 0.0:
-			var before := int(alert)
-			alert = maxf(0.0, alert - delta / 25.0)
-			if int(alert) < before:
-				level_changed.emit(int(alert))
-				EventBus.message.emit("O alerta da caçada baixou para %d." % int(alert))
-			if alert < 2.0 and squad_sent:
-				squad_sent = false
-				for o in get_tree().get_nodes_in_group("hunter"):
-					var h := o as Hunter
-					if h != null and not h.dead and h.squad:
-						h.range_rooms = ["G4"]
-						h.track_range = 24.0
-						h.leash_range = 45.0
-		GameState.hunt_alert = alert
-
-
-# ---------------------------------------------------------------- armadilha de fogo
-
-class FireTrap extends Node3D:
-	## Placa de metal com óleo por baixo (G5). Pisou (no chão), estoura fogo: queima você, os fios
-	## por perto e faz barulho (sobe o alerta). Rearma em 8 s. Sobre um fio, não dispara.
-	var armed := true
-	var _t := 0.0
-	var _plate: MeshInstance3D
-	var _burst: MeshInstance3D
-
-	func _ready() -> void:
-		add_to_group("fire_trap")
-		var steel := Fx.mat(Color(0.35, 0.33, 0.3))
-		steel.metallic = 0.8
-		_plate = Fx.cylinder(0.55, 0.05, steel)
-		_plate.position.y = 0.03
-		add_child(_plate)
-		_burst = Fx.cylinder(1.1, 2.2, Fx.mat(Color(1.0, 0.5, 0.12), 3.0, true, 0.7))
-		_burst.position.y = 1.1
-		_burst.visible = false
-		add_child(_burst)
-
-	func _physics_process(delta: float) -> void:
-		if not armed:
-			_t += delta
-			_burst.visible = _t < 0.8
-			if _t > 8.0:
-				armed = true
-			return
-		var p := GameState.player as Player
-		if p == null or p.dead or p.on_strand:
-			return
-		if Fx.flat_dist(p.global_position, global_position) < 0.85:
-			armed = false
-			_t = 0.0
-			Sfx.play("armadilha_estalo", global_position)
-			Sfx.play("armadilha_fogo", global_position)
-			if p.take_damage(16.0 * maxf(0.4, p.fire_mult()), null, false):
-				p.apply_burn(3.0)
-			for s in WebNetwork.strands.duplicate():
-				if is_instance_valid(s) and (s as WebStrand).distance_to(global_position) < 2.5:
-					WebNetwork.burn_strand(s)
-			EventBus.message.emit("Armadilha de fogo!")
-			GameState.say_once("a4_armadilha", "FOGO NO CHÃO! Eles armaram o CHÃO!")
-			var l = GameState.current_layer
-			if l != null and "hunt" in l and l.hunt != null:
-				l.hunt.raise(0.5, global_position)

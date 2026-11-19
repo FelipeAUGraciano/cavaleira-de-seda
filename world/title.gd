@@ -9,6 +9,7 @@ const LAYER_NAMES := {
 	"res://world/layers/abismo.tscn": "Abismo",
 	"res://world/layers/rio_brasa.tscn": "Rio de Brasa",
 	"res://world/layers/galerias_cacada.tscn": "Galerias — a caçada",
+	"res://world/layers/portao.tscn": "Portão da Superfície",
 }
 const MENU_POS := Vector2(118, 430)
 
@@ -132,8 +133,13 @@ func save_summary(slot: int = -1) -> String:
 	if p.has("form"):
 		var f := int(p["form"])
 		var fname := String((Player.FORMS.get(f, Player.FORMS[Player.Form.FILHOTE]) as Dictionary)["name"])
-		return "%s · %s, nível %d" % [where, fname, lvl]
-	return "%s · nível %d" % [where, lvl]
+		return "%s · %s, nível %d%s" % [where, fname, lvl, _done(data)]
+	return "%s · nível %d%s" % [where, lvl, _done(data)]
+
+
+func _done(data: Dictionary) -> String:
+	## Quem já saiu da caverna (viu o final) ganha uma estrela no espaço.
+	return "  ★ zerado" if (data.get("flags", {}) as Dictionary).has("fim_jogo") else ""
 
 
 # ---------------------------------------------------------------- telas

@@ -107,3 +107,15 @@ Famílias dos bichos (o jogo escolhe pela espécie):
 | lava_alerta_1…2, lava_ataque_1…2, lava_dor_1…2 |
 | gosma_alerta_1…2, gosma_ataque_1…2, gosma_dor_1…2 |
 | humano_alerta_1…2, humano_ataque_1…2, humano_dor_1…2 |
+
+**Ainda por gerar (Portão e o Guardião, prompt novo no GDD).** Enquanto não existirem, o jogo usa os parecidos:
+
+| Arquivo | Enquanto não existe |
+|---|---|
+| guardiao_rugido | pedra_alerta |
+| guardiao_golpe | pedra_ataque |
+| guardiao_cristal | (só o brilho) |
+| teto_desaba_1…_3 | pedra_cai |
+| vento_rajada | pc_queda |
+| portao_abre | (silêncio) |
+| amb_portao | amb_cacada |

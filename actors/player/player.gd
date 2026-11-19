@@ -172,6 +172,8 @@ var heat_t := 0.0               ## > 0: está no calor agora (HUD mostra CALOR)
 var heat_exposure := 0.0        ## segundos de calor aguentados (a cada 45 s: +1 de Resistência a Fogo, até 2)
 var burn_t := 0.0               ## queimando (sopro de salamandra, mergulho do morcego de cinza)
 var sight_penalty := 0.0        ## cinza no ar (Pântano de cinzas): metros a menos de visão
+var daylight := 0.0             ## 0 a 1: luz do dia onde ela está (Portão): vê longe e é vista, com ou sem runa
+var _day_check := 0.0
 var weave_xp := 0               ## Tecelagem sobe tecendo fios: fios mais longos
 const WEAVE_STEPS := [0, 8, 20, 36, 56]   ## fios tecidos para chegar em cada nível de Tecelagem (1 a 5)
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
@@ -908,6 +910,14 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_resources(delta)
+	_day_check -= delta
+	if _day_check <= 0.0:
+		_day_check = 0.15
+		var lyr = GameState.current_layer
+		var want := float(lyr.daylight_at(global_position)) if lyr != null and lyr.has_method("daylight_at") else 0.0
+		if absf(want - daylight) > 0.02:
+			daylight = move_toward(daylight, want, 0.25)
+			refresh_sight()
 	_update_drag(delta)
 	if dead:
 		_death_timer -= delta
@@ -2465,15 +2475,18 @@ func refresh_sight() -> void:
 
 func sight_radius() -> float:
 	## Até onde ela enxerga no escuro (cresce com a evolução; runa acesa ajuda).
-	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0) + dark_sight - sight_penalty
+	return float(form_data().get("sight", 4.0)) + (1.5 if has_skill("olhos") else 0.0) + dark_sight - sight_penalty + daylight * 9.0
 
 
 func visibility_mult() -> float:
 	if veil_t > 0.0:
 		return 0.0
-	if fd("shadow", false) and not rune_on and Vector2(velocity.x, velocity.z).length() < 0.8:
+	if fd("shadow", false) and not rune_on and daylight < 0.3 and Vector2(velocity.x, velocity.z).length() < 0.8:
 		return 0.0   # Sombra do Breu: parada no escuro, ninguém vê (só encostando ou ouvindo)
-	return (1.0 if rune_on else 0.45) * float(form_data()["hide"])
+	var v := (1.0 if rune_on else 0.45) * float(form_data()["hide"])
+	if daylight > 0.0:   # na luz do dia a runa não importa: ela aparece de longe
+		v = maxf(v, lerpf(v, 1.6, daylight) * float(form_data()["hide"]))
+	return v
 
 
 # ================================================================= mira, câmera, visual

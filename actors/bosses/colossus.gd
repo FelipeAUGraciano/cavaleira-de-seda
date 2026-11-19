@@ -243,8 +243,25 @@ func _crush_strands() -> void:
 # ---------------------------------------------------------------- corpo (provisório: dragão da terra)
 
 func _build_visual() -> void:
-	_visual = Node3D.new()
-	add_child(_visual)
+	var parts := build_body(self)
+	_visual = parts["visual"]
+	_legs = parts["legs"]
+	_neck = parts["neck"]
+	_tail = parts["tail"]
+	_head = parts["head"]
+	_eyes = parts["eyes"]
+	_eye_mat = parts["eye_mat"]
+
+
+static func build_body(parent: Node3D) -> Dictionary:
+	## O corpo do dragão da terra (o mesmo no Abismo e no Portão, onde ele é o Guardião).
+	## Devolve as partes para animar: visual, legs, neck, tail, head, eyes, eye_mat, vein_mat.
+	var visual := Node3D.new()
+	parent.add_child(visual)
+	var legs: Array = []
+	var neck: Array = []
+	var tail: Array = []
+	var eyes: Array = []
 	var skin := Fx.mat(Color(0.3, 0.28, 0.33))
 	var belly := Fx.mat(Color(0.3, 0.27, 0.25))
 	var vein := Fx.mat(Color(0.45, 0.85, 1.0), 3.0, true)
@@ -252,32 +269,32 @@ func _build_visual() -> void:
 	var body := Fx.sphere(1.0, skin)
 	body.scale = Vector3(2.0, 1.55, 4.2)
 	body.position = Vector3(0, 2.6, 0.4)
-	_visual.add_child(body)
+	visual.add_child(body)
 	var under := Fx.sphere(1.0, belly)
 	under.scale = Vector3(1.7, 1.0, 3.6)
 	under.position = Vector3(0, 2.0, 0.4)
-	_visual.add_child(under)
+	visual.add_child(under)
 	for k in 7:   # espinhos nas costas, com veios de cristal
 		var z := -2.4 + k * 0.95
 		var sp := Fx.cylinder(0.32 - k * 0.02, 1.1 - absf(k - 3) * 0.12, skin)
 		(sp.mesh as CylinderMesh).top_radius = 0.02
 		sp.position = Vector3(0, 4.2 - absf(k - 3) * 0.15, z)
 		sp.rotation.x = -0.35
-		_visual.add_child(sp)
+		visual.add_child(sp)
 		var v := Fx.box(Vector3(0.08, 0.7, 0.08), vein)
 		v.position = sp.position + Vector3(0, -0.2, 0.05)
 		v.rotation.x = -0.35
-		_visual.add_child(v)
+		visual.add_child(v)
 	for side: float in [-1.0, 1.0]:   # veio comprido no flanco
 		var fl := Fx.box(Vector3(0.06, 0.06, 5.5), vein)
 		fl.position = Vector3(side * 1.9, 2.9, 0.3)
-		_visual.add_child(fl)
+		visual.add_child(fl)
 	for i in 4:   # patas grossas
 		var lside := -1.0 if i % 2 == 0 else 1.0
 		var front := i < 2
 		var leg := Node3D.new()
 		leg.position = Vector3(lside * 1.75, 2.2, -2.2 if front else 2.6)
-		_visual.add_child(leg)
+		visual.add_child(leg)
 		var up := Fx.cylinder(0.55, 1.6, skin)
 		up.position.y = -0.6
 		leg.add_child(up)
@@ -291,56 +308,57 @@ func _build_visual() -> void:
 			claw.rotation.x = -1.2
 			leg.add_child(claw)
 		leg.set_meta("phase", [0.0, PI, PI, 0.0][i])
-		_legs.append(leg)
+		legs.append(leg)
 	var prev := Vector3(0, 3.2, -3.6)
 	for k in 5:   # pescoço
 		var seg := Fx.sphere(0.9 - k * 0.08, skin)
 		seg.position = prev + Vector3(0, 0.25, -0.75)
 		prev = seg.position
-		_visual.add_child(seg)
-		_neck.append(seg)
-	_head = Node3D.new()
-	_head.position = prev + Vector3(0, 0.1, -1.1)
-	_visual.add_child(_head)
+		visual.add_child(seg)
+		neck.append(seg)
+	var head := Node3D.new()
+	head.position = prev + Vector3(0, 0.1, -1.1)
+	visual.add_child(head)
 	var skull := Fx.sphere(0.85, skin)
 	skull.scale = Vector3(1.0, 0.8, 1.6)
-	_head.add_child(skull)
+	head.add_child(skull)
 	var jaw := Fx.sphere(0.65, belly)
 	jaw.scale = Vector3(0.9, 0.45, 1.5)
 	jaw.position = Vector3(0, -0.45, -0.25)
-	_head.add_child(jaw)
+	head.add_child(jaw)
 	for side: float in [-1.0, 1.0]:
 		var hn := Fx.cylinder(0.16, 1.4, horn)
 		(hn.mesh as CylinderMesh).top_radius = 0.02
 		hn.position = Vector3(side * 0.45, 0.6, 0.6)
 		hn.rotation = Vector3(1.0, 0.0, side * 0.35)
-		_head.add_child(hn)
-	_eye_mat = Fx.mat(Color(1.0, 0.75, 0.3), 3.0)
+		head.add_child(hn)
+	var eye_mat := Fx.mat(Color(1.0, 0.75, 0.3), 3.0)
 	for side: float in [-1.0, 1.0]:
-		var eye := Fx.sphere(0.13, _eye_mat)
+		var eye := Fx.sphere(0.13, eye_mat)
 		eye.position = Vector3(side * 0.5, 0.2, -0.85)
-		_head.add_child(eye)
-		_eyes.append(eye)
+		head.add_child(eye)
+		eyes.append(eye)
 	var glow := OmniLight3D.new()   # os olhos: a única coisa que se vê de longe no escuro
 	glow.light_color = Color(1.0, 0.6, 0.3)
 	glow.omni_range = 5.0
 	glow.light_energy = 0.8
 	glow.position = Vector3(0, 0.3, -1.4)
-	_head.add_child(glow)
+	head.add_child(glow)
 	# luz fria dos veios de cristal: no breu, ele é uma silhueta enorme com brilho nas costas
 	var back := OmniLight3D.new()
 	back.light_color = Color(0.45, 0.8, 1.0)
 	back.omni_range = 9.0
 	back.light_energy = 1.1
 	back.position = Vector3(0, 6.0, 0.5)
-	_visual.add_child(back)
+	visual.add_child(back)
 	var tp := Vector3(0, 2.6, 4.4)
 	for k in 9:   # cauda
 		var seg := Fx.sphere(0.8 - k * 0.075, skin)
 		seg.position = tp + Vector3(0, -0.12, 0.85)
 		tp = seg.position
-		_visual.add_child(seg)
-		_tail.append(seg)
+		visual.add_child(seg)
+		tail.append(seg)
+	return {"visual": visual, "legs": legs, "neck": neck, "tail": tail, "head": head, "eyes": eyes, "eye_mat": eye_mat, "vein_mat": vein}
 
 
 func _animate(_delta: float) -> void:

@@ -31,7 +31,7 @@ func _run() -> void:
 		Snake.new(), Centipede.new(), Beetle.new(), WolfSpider.new(), Mimic.new(), GiantBat.new(), Scorpion.new(),
 		AcidSlug.new(), Serpent.new(), EmberBeetle.new(), AshBat.new(), AshSpider.new(), FireSalamander.new(),
 		BasaltGolem.new(), MagmaFish.new(), LavaWorm.new(), QueenSalamander.new(), Hunter.new("espadachim"),
-		Hunter.new("arqueira"), Hunter.new("batedor"), Captain.new()]
+		Hunter.new("arqueira"), Hunter.new("batedor"), Captain.new(), Guardian.new()]
 	var missing: Array = []
 	for c in all:
 		if Bestiary.id_for(c.display_name) == "":
@@ -111,7 +111,7 @@ func _run() -> void:
 	_check(v.selected == "besouro_brasa", "→ pula para a próxima área: %s" % v.selected)
 	for i in 40:
 		v._move(1)
-	_check(v.selected == "capita" and v._scroll_to > 0.0, "a lista rola até o fim")
+	_check(v.selected == Bestiary.entries()[-1]["id"] and v._scroll_to > 0.0, "a lista rola até o fim")
 	await _frames(3)
 	var ev := InputEventAction.new()
 	ev.action = "ui_cancel"
