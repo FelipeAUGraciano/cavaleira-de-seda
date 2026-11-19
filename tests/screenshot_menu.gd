@@ -21,9 +21,21 @@ func _run() -> void:
 	GameState.player.level = 4
 	GameState.save_now()
 	await _frames(200)
-	get_tree().current_scene.hud.open_pause()
+	var hud = get_tree().current_scene.hud
+	GameState.player.poison_t = 6.0
+	GameState.player.hp = GameState.player.max_hp * 0.62
+	GameState.player.silk = GameState.player.max_silk * 0.4
+	GameState.player.rune_on = false
+	await _frames(3)
+	await _shot("hud")
+	hud.open_pause()
 	await _frames(5)
 	await _shot("pausa")
+	hud.open_options()
+	await _frames(5)
+	await _shot("opcoes")
+	hud._options.close()
+	await _frames(3)
 	GameState.to_title()
 	await _frames(60)
 	await _shot("menu")

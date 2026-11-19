@@ -2,6 +2,16 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## A cara do jogo: menu, pausa, opções e HUD (19/11)
+
+- **Menu inicial "caverna viva":** atrás do menu roda uma cena 3D de verdade — a Cavaleira (modelo, patas e lâminas) parada na frente de uma teia grande esticada entre dois pilares, fungos roxos e verdes acesos, cristais, um ninho de ovos e um casulo balançando num fio. A runa das costas pulsa, ela respira e olha em volta, pó boia na luz e a câmera dá a volta devagar. Logo novo em Cinzel ("CAVALEIRA / DE SEDA" com o fio e a espiral da runa), botões à esquerda e entrada saindo do escuro.
+- **Estilo de seda** (`ui/silk_ui.gd`): as mesmas cores e fontes do menu do casulo (azul-noite, dourado, ciano da runa; Cinzel nos títulos, Alegreya Sans no texto), molduras finas com nós nos cantos. O botão em foco ganha borda dourada, a espiral girando ao lado e um brilho correndo pelo fio de baixo.
+- **Pausa:** a interface do jogo some (antes a lista de controles ficava por baixo e saía da tela); à esquerda o nome do lugar, a sala e a fase da caverna; à direita um cartão com o retrato, forma, nível, XP e as quatro barras.
+- **Opções:** painel no estilo novo (abas com a ativa em dourado, deslizadores ciano). O aviso antigo de que "os efeitos ainda não existem" saiu.
+- **HUD:** painel de vida com medalhão do nível (o anel ciano em volta é o XP), forma, bolsa e tecelagem; barras em cápsula com ícone (coração, raio, carretel, presa). Condições e situações viram pílulas coloridas em cima do painel (Envenenada, Runa apagada, Sobre fio, Caçada…). Mini-mapa com moldura de seda. A lista de controles tem largura fixa e quebra linha (não sai mais da tela).
+- O resumo do save conhece todas as camadas (Rio de Brasa e a caçada) e todas as formas.
+- `menu_test` confere a cena 3D do menu e as fontes; `screenshot_menu` agora tira HUD, pausa, opções e menu.
+
 ## Os efeitos sonoros (19/11)
 
 - **195 arquivos** em `audio/sfx/` (todos os da aba "Efeitos sonoros (prompts)", feitos em Python pelo criador); o gerador fica em `tools/sfx/`.

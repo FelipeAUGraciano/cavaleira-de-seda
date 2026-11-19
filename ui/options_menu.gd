@@ -5,9 +5,9 @@ extends PanelContainer
 
 signal closed
 
-const TEXT := Color(0.92, 0.93, 0.97)
-const QUIET := Color(0.6, 0.66, 0.8)
-const ACCENT := Color(0.7, 0.85, 1.0)
+const TEXT := SilkUI.TEXT
+const QUIET := SilkUI.QUIET
+const ACCENT := SilkUI.GOLD
 
 var page := "som"
 var _tabs: Dictionary = {}
@@ -19,18 +19,20 @@ var _cap_from := 0
 
 func _init() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	custom_minimum_size = Vector2(900, 620)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.05, 0.05, 0.1, 1.0)
-	sb.border_color = Color(0.35, 0.38, 0.6)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(10)
-	sb.set_content_margin_all(24)
+	custom_minimum_size = Vector2(920, 640)
+	theme = SilkUI.theme()
+	var sb := SilkUI.box(Color(0.03, 0.035, 0.08, 0.96), Color(SilkUI.BORDER, 0.9), 1, 4, 30)
+	sb.content_margin_top = 26
+	sb.content_margin_bottom = 24
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 24
 	add_theme_stylebox_override("panel", sb)
+	draw.connect(func(): SilkUI.frame(self, Rect2(Vector2(6, 6), size - Vector2(12, 12)), Color(SilkUI.GOLD, 0.35)))
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 14)
 	add_child(root)
-	var title := _label("Opções", 30, TEXT)
+	var title := _label(SilkUI.spaced("OPÇÕES"), 30, TEXT)
+	title.add_theme_font_override("font", SilkUI.font("title"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(title)
 	var tabs := HBoxContainer.new()
@@ -75,14 +77,16 @@ func show_page(p: String) -> void:
 		c.queue_free()
 	for k in _tabs:
 		var on: bool = k == p
-		(_tabs[k] as Button).add_theme_color_override("font_color", ACCENT if on else QUIET)
+		var tb := _tabs[k] as Button
+		tb.add_theme_color_override("font_color", ACCENT if on else QUIET)
+		tb.add_theme_stylebox_override("normal", SilkUI.box(Color(0.1, 0.09, 0.16, 0.9) if on else Color(0.05, 0.06, 0.13, 0.6), Color(SilkUI.GOLD, 0.7) if on else Color(SilkUI.BORDER, 0.5), 1, 4))
 	match p:
 		"som":
 			_slider_row("Volume geral", "Master", 0.0, 1.0)
 			_slider_row("Música", "Música", 0.0, 1.0)
 			_slider_row("Efeitos", "Efeitos", 0.0, 1.0)
 			_slider_row("Dublagem", "Voz", 0.0, 1.0)
-			_body.add_child(_label("A música já toca. Os efeitos sonoros entram nas próximas versões; o volume deles já fica guardado.", 15, QUIET))
+			_body.add_child(_label("A dublagem ainda não existe; o volume dela já fica guardado para quando chegar.", 15, QUIET))
 		"tela":
 			_check_row("Tela cheia", "tela_cheia", Settings.fullscreen)
 			_slider_row("Brilho", "brilho", 0.7, 1.6)
@@ -273,21 +277,6 @@ func _button(text: String, action: Callable, min_size: Vector2, font := 20) -> B
 	b.focus_mode = Control.FOCUS_ALL
 	b.process_mode = Node.PROCESS_MODE_ALWAYS
 	b.add_theme_font_size_override("font_size", font)
-	b.add_theme_stylebox_override("normal", _box(Color(0.1, 0.1, 0.2, 0.92), Color(0.35, 0.38, 0.6)))
-	b.add_theme_stylebox_override("hover", _box(Color(0.18, 0.18, 0.34, 0.95), ACCENT))
-	b.add_theme_stylebox_override("focus", _box(Color(0.18, 0.18, 0.34, 0.95), ACCENT))
-	b.add_theme_stylebox_override("pressed", _box(Color(0.25, 0.25, 0.45, 0.95), Color(0.9, 0.95, 1.0)))
-	b.add_theme_stylebox_override("disabled", _box(Color(0.07, 0.07, 0.12, 0.8), Color(0.2, 0.22, 0.32)))
+	b.add_theme_font_override("font", SilkUI.font("title_s" if min_size.x >= 200.0 else "body_b"))
 	b.pressed.connect(action)
 	return b
-
-
-func _box(bg: Color, border: Color) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.border_color = border
-	s.set_border_width_all(2)
-	s.set_corner_radius_all(8)
-	s.content_margin_left = 12
-	s.content_margin_right = 12
-	return s

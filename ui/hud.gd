@@ -57,6 +57,8 @@ var _subtitle := ""
 var _title_time := 0.0
 const TITLE_SECS := 5.0   ## (capturas/depuração) mostra todas as criaturas no mapa, com legenda
 var _pause_box: MenuBox
+var _pause_holder: Control
+var _portrait: Texture2D = load("res://assets/ui/retrato_cavaleira.png") if ResourceLoader.exists("res://assets/ui/retrato_cavaleira.png") else null
 var _options: OptionsMenu
 var cocoon_menu: CocoonMenu
 var vibes: Array = []           ## setas de vibração: {pos, t, col, big, who}
@@ -90,9 +92,15 @@ func _ready() -> void:
 	center.offset_top = 40.0
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE   # não pode comer os cliques do jogo
 	_root.add_child(center)
+	_pause_holder = Control.new()
+	_pause_holder.position = Vector2(118.0, 286.0)
+	_pause_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_pause_holder)
 	_pause_box = MenuBox.new()
+	_pause_box.left = true
+	_pause_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_pause_box.visible = false
-	center.add_child(_pause_box)
+	_pause_holder.add_child(_pause_box)
 	_options = OptionsMenu.new()
 	_options.visible = false
 	_options.closed.connect(_on_options_closed)
@@ -100,7 +108,7 @@ func _ready() -> void:
 	_show_help = Settings.show_help
 	Settings.changed.connect(func(): _show_help = Settings.show_help)
 	_cv = _root
-	_font = ThemeDB.fallback_font
+	_font = SilkUI.font("body_m")
 	EventBus.message.connect(_on_message)
 	EventBus.big_message.connect(_on_big_message)
 	EventBus.monologue.connect(_on_monologue)
@@ -143,7 +151,7 @@ func _process(_delta: float) -> void:
 	var vp := _root.get_viewport_rect().size
 	_mini.position = Vector2(vp.x - 254.0, 20.0)
 	_mini.size = Vector2(230.0, 160.0)
-	_mini.visible = _map_system() != null and not _show_map and player != null and _cine < 0.3
+	_mini.visible = _map_system() != null and not _show_map and player != null and _cine < 0.3 and not _pause_menu_open()
 	_root.queue_redraw()
 	_mini.queue_redraw()
 
@@ -295,7 +303,8 @@ func _direction_name(d: Vector3) -> String:
 func _on_draw() -> void:
 	_cv = _root
 	var vp := _root.get_viewport_rect().size
-	if player != null and is_instance_valid(player) and _cine < 0.3:   # em cena, a interface some
+	var menu_open := _pause_menu_open()
+	if player != null and is_instance_valid(player) and _cine < 0.3 and not menu_open:   # em cena (ou na pausa), a interface some
 		_draw_bars(vp)
 		_draw_status(vp)
 		_draw_boss(vp)
@@ -325,20 +334,61 @@ func _on_draw() -> void:
 		_text_center(vp.x, mono_y, "Cavaleira: \"%s\"" % _mono_text, 20, Color(0.75, 0.92, 1.0, alpha))
 	if _big_time > 0.0 and _cine < 0.3:
 		_text_center(vp.x, vp.y * 0.42, _big_text, 34, Color(1, 1, 1, clampf(_big_time, 0.0, 1.0)))
-	if get_tree().paused:
-		_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.65))
-		_text_center(vp.x, vp.y * 0.5 - 170.0, "PAUSA", 40, TEXT)
+	if menu_open:
+		_draw_pause(vp)
 	_draw_transition(vp)   # por último: tela preta e título por cima de tudo
 
 func _draw_bars(vp: Vector2) -> void:
-	var x := 24.0
-	var y := vp.y - 150.0
-	_cv.draw_rect(Rect2(x - 12.0, y - 14.0, 390.0, 152.0), Color(0, 0, 0, 0.45))
-	_bar(x, y, "PV", player.hp, player.max_hp, Color(0.85, 0.3, 0.35))
-	_bar(x, y + 24.0, "Energia", player.energy, player.max_energy, Color(0.3, 0.8, 1.0))
-	_bar(x, y + 48.0, "Seda", player.silk, player.max_silk, Color(0.85, 0.88, 0.95))
-	_bar(x, y + 72.0, "Saciedade", player.satiety, player.max_satiety, Color(0.95, 0.7, 0.25))
-	_text(x, y + 112.0, "Nível %d   XP %d / %d   ·   Bolsa %d/%d   ·   Tecelagem %d%s" % [player.level, player.xp, player.xp_to_next(), player.bag.size(), Player.BAG_MAX, player.weave_level(), ("   ·   ENVENENADA" if player.poison_t > 0.0 else "") + ("   ·   CALOR" if player.heat_t > 0.0 else "") + ("   ·   QUEIMANDO" if player.burn_t > 0.0 else "") + ("   ·   ESCUDO %d" % int(player.shield) if float(player.fd("shield", 0.0)) > 0.0 else "") + (("   ·   " + player.kit.status_text()) if player.kit != null and player.kit.status_text() != "" else "") + ("" if GameState.hunt_alert < 0.0 else "   ·   CAÇADA " + "●".repeat(int(GameState.hunt_alert)) + "○".repeat(3 - int(GameState.hunt_alert)))], 15, TEXT)
+	## Painel de vida embaixo à esquerda: nível e forma em cima, quatro barras com ícone.
+	var r := Rect2(20.0, vp.y - 198.0, 396.0, 178.0)
+	SilkUI.frame(_cv, r, Color(SilkUI.BORDER, 0.7), Color(0.02, 0.025, 0.06, 0.62))
+	var x := r.position.x
+	var y := r.position.y
+	# medalhão do nível
+	var badge := Vector2(x + 36.0, y + 36.0)
+	_cv.draw_circle(badge, 23.0, Color(0.05, 0.06, 0.13, 0.95))
+	_cv.draw_arc(badge, 23.0, 0.0, TAU, 40, SilkUI.GOLD, 1.6, true)
+	var xp_k := clampf(float(player.xp) / maxf(1.0, float(player.xp_to_next())), 0.0, 1.0)
+	_cv.draw_arc(badge, 27.0, -PI * 0.5, -PI * 0.5 + TAU * xp_k, 40, SilkUI.CYAN, 2.4, true)
+	SilkUI.text(_cv, badge + Vector2(0, 8.0), str(player.level), "title", 22, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
+	SilkUI.text(_cv, Vector2(x + 72.0, y + 30.0), player.form_name(), "title_s", 19, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_LEFT, 3)
+	SilkUI.text(_cv, Vector2(x + 72.0, y + 52.0), "XP %d / %d" % [player.xp, player.xp_to_next()], "body_m", 15, SilkUI.QUIET)
+	SilkUI.text(_cv, Vector2(r.end.x - 14.0, y + 52.0), "Bolsa %d/%d  ·  Tecelagem %d" % [player.bag.size(), Player.BAG_MAX, player.weave_level()], "body_m", 15, SilkUI.QUIET, HORIZONTAL_ALIGNMENT_RIGHT)
+	SilkUI.thread(_cv, Vector2(x + 14.0, y + 70.0), Vector2(r.end.x - 14.0, y + 70.0), Color(SilkUI.SILK, 0.18), 1.5, 1.0)
+	_bar(x + 14.0, y + 84.0, "heart", player.hp, player.max_hp, Color(0.92, 0.32, 0.38))
+	_bar(x + 14.0, y + 106.0, "bolt", player.energy, player.max_energy, Color(0.32, 0.82, 1.0))
+	_bar(x + 14.0, y + 128.0, "spool", player.silk, player.max_silk, Color(0.86, 0.89, 0.98))
+	_bar(x + 14.0, y + 150.0, "fang", player.satiety, player.max_satiety, Color(0.97, 0.72, 0.28))
+
+
+func _status_pills() -> Array:
+	## [texto, cor] de tudo que está valendo agora: condições, lugar, kit, caçada.
+	var out: Array = []
+	if player.poison_t > 0.0:
+		out.append(["Envenenada", Color(0.6, 1.0, 0.4)])
+	if player.heat_t > 0.0:
+		out.append(["Calor", Color(1.0, 0.65, 0.3)])
+	if player.burn_t > 0.0:
+		out.append(["Queimando", Color(1.0, 0.45, 0.25)])
+	if float(player.fd("shield", 0.0)) > 0.0:
+		out.append(["Escudo %d" % int(player.shield), Color(0.75, 0.85, 1.0)])
+	if player.satiety <= 0.0:
+		out.append(["Faminta", Color(1.0, 0.45, 0.4)])
+	if player.kit != null and player.kit.status_text() != "":
+		out.append([player.kit.status_text(), SilkUI.GOLD])
+	if GameState.hunt_alert >= 0.0:
+		out.append(["Caçada " + "●".repeat(int(GameState.hunt_alert)) + "○".repeat(3 - int(GameState.hunt_alert)), Color(1.0, 0.5, 0.45)])
+	if player.in_territory:
+		out.append(["No território", SilkUI.CYAN])
+	if player.on_strand:
+		out.append(["Sobre fio · rápida e silenciosa", SilkUI.CYAN])
+	if not player.rune_on:
+		out.append(["Runa apagada · furtiva", Color(0.7, 0.72, 0.95)])
+	if player.dragged != null:
+		out.append(["Arrastando presa · lenta e barulhenta", Color(0.95, 0.8, 0.55)])
+	if player.in_den():
+		out.append(["Na toca", Color(0.65, 1.0, 0.75)])
+	return out
 
 
 func fade(to: float, secs: float) -> Signal:
@@ -479,30 +529,44 @@ func _draw_boss(vp: Vector2) -> void:
 		return
 
 
-func _bar(x: float, y: float, label: String, value: float, max_value: float, color: Color) -> void:
-	_text(x, y + 13.0, label, 14, QUIET)
-	var bx := x + 90.0
-	_cv.draw_rect(Rect2(bx, y + 2.0, 220.0, 12.0), Color(0, 0, 0, 0.6))
-	_cv.draw_rect(Rect2(bx, y + 2.0, 220.0 * clampf(value / max_value, 0.0, 1.0), 12.0), color)
-	_text(bx + 228.0, y + 13.0, "%d/%d" % [int(value), int(max_value)], 13, QUIET)
+func _bar(x: float, y: float, icon: String, value: float, max_value: float, color: Color) -> void:
+	## Barra em cápsula com o ícone na frente e o número no fim.
+	SkillIcons.draw(_cv, icon, Vector2(x + 9.0, y + 1.0), 8.0, color)
+	var bx := x + 28.0
+	var w := 262.0
+	var h := 10.0
+	_capsule(Rect2(bx, y - 4.0, w, h), Color(0.0, 0.0, 0.0, 0.55))
+	var k := clampf(value / maxf(max_value, 0.001), 0.0, 1.0)
+	if k > 0.0:
+		_capsule(Rect2(bx, y - 4.0, maxf(h, w * k), h), color.darkened(0.15))
+		_cv.draw_line(Vector2(bx + h * 0.5, y - 2.0), Vector2(bx + maxf(h, w * k) - h * 0.5, y - 2.0), Color(1, 1, 1, 0.28), 1.5)
+	_cv.draw_rect(Rect2(bx + h * 0.5, y - 4.0, w - h, h), Color(SilkUI.BORDER, 0.35), false, 1.0)
+	SilkUI.text(_cv, Vector2(bx + w + 10.0, y + 5.0), "%d/%d" % [int(value), int(max_value)], "body_m", 15, SilkUI.QUIET)
+
+
+func _capsule(r: Rect2, col: Color) -> void:
+	var rad := r.size.y * 0.5
+	_cv.draw_circle(r.position + Vector2(rad, rad), rad, col)
+	_cv.draw_circle(Vector2(r.end.x - rad, r.position.y + rad), rad, col)
+	_cv.draw_rect(Rect2(r.position.x + rad, r.position.y, maxf(0.0, r.size.x - rad * 2.0), r.size.y), col)
 
 
 func _draw_status(vp: Vector2) -> void:
-	var tags: Array[String] = []
-	if player.in_territory:
-		tags.append("No território")
-	if player.on_strand:
-		tags.append("Sobre fio (rápida e silenciosa)")
-	if not player.rune_on:
-		tags.append("Runa apagada (furtiva)")
-	if player.satiety <= 0.0:
-		tags.append("FAMINTA")
-	if player.dragged != null:
-		tags.append("Arrastando presa (lenta e barulhenta)")
-	if player.in_den():
-		tags.append("Na toca")
-	if not tags.is_empty():
-		_text(24.0, vp.y - 172.0, " · ".join(tags), 15, Color(0.6, 0.95, 1.0))
+	## Pílulas em cima do painel de vida (quebram linha se não couberem).
+	var x := 20.0
+	var y := vp.y - 226.0
+	for p in _status_pills():
+		var t := String(p[0])
+		var col: Color = p[1]
+		var w := SilkUI.text_width(t, "body_b", 15) + 26.0
+		if x + w > vp.x * 0.55:
+			x = 20.0
+			y -= 30.0
+		var r := Rect2(x, y, w, 24.0)
+		_capsule(r, Color(0.02, 0.03, 0.07, 0.72))
+		_cv.draw_circle(Vector2(x + 11.0, y + 12.0), 3.0, col)
+		SilkUI.text(_cv, Vector2(x + 19.0, y + 17.5), t, "body_b", 15, col)
+		x += w + 8.0
 
 
 func _draw_weave_hint(vp: Vector2) -> void:
@@ -518,12 +582,39 @@ func _draw_weave_hint(vp: Vector2) -> void:
 
 
 func _draw_help(vp: Vector2) -> void:
-	var x := vp.x - 440.0
-	var y := 240.0
+	## Lista de controles num painel de largura fixa; linha comprida quebra em vez de sair da tela.
+	const W := 380.0
+	var x := vp.x - W - 20.0
+	var y := 236.0
+	var rows: Array = []
 	var lines := help_lines()
-	_cv.draw_rect(Rect2(x - 12.0, y - 6.0, 436.0, lines.size() * 20.0 + 16.0), Color(0, 0, 0, 0.45))
 	for i in lines.size():
-		_text(x, y + 14.0 + i * 20.0, lines[i], 14 if i == 0 else 13, TEXT if i == 0 else QUIET)
+		if i == 0:
+			continue
+		var indent := String(lines[i]).begins_with("   ")
+		for part in _wrap(String(lines[i]).strip_edges(), W - 32.0 - (14.0 if indent else 0.0), 14):
+			rows.append([part, indent])
+	var r := Rect2(x, y, W, rows.size() * 19.0 + 48.0)
+	SilkUI.frame(_cv, r, Color(SilkUI.BORDER, 0.55), Color(0.02, 0.025, 0.06, 0.55))
+	SilkUI.text(_cv, Vector2(x + 16.0, y + 25.0), String(lines[0]).to_upper(), "title_s", 13, SilkUI.GOLD)
+	for i in rows.size():
+		var ind := 14.0 if rows[i][1] else 0.0
+		SilkUI.text(_cv, Vector2(x + 16.0 + ind, y + 48.0 + i * 19.0), rows[i][0], "body_m", 14, SilkUI.QUIET if ind > 0.0 else SilkUI.TEXT.darkened(0.08))
+
+
+func _wrap(t: String, width: float, size: int) -> Array:
+	var out: Array = []
+	var cur := ""
+	for word in t.split(" "):
+		var test := word if cur == "" else cur + " " + word
+		if cur != "" and SilkUI.text_width(test, "body_m", size) > width:
+			out.append(cur)
+			cur = word
+		else:
+			cur = test
+	if cur != "":
+		out.append(cur)
+	return out
 
 
 func _draw_reading(vp: Vector2) -> void:
@@ -584,6 +675,73 @@ func _text_center(width: float, y: float, s: String, size: int, color: Color) ->
 	_cv.draw_string(_font, Vector2(0.0, y), s, HORIZONTAL_ALIGNMENT_CENTER, width, size, color)
 
 
+# ---------------------------------------------------------------- tela de pausa
+
+func _pause_menu_open() -> bool:
+	return _pause_box.visible or _options.visible
+
+
+func _draw_pause(vp: Vector2) -> void:
+	## Pausa: a caverna escurece, o lugar onde você está à esquerda e um cartão com a Cavaleira.
+	_cv.draw_rect(Rect2(Vector2.ZERO, vp), Color(0.01, 0.012, 0.03, 0.55))
+	for i in 20:
+		var k := float(i) / 20.0
+		_cv.draw_rect(Rect2(k * vp.x * 0.55, 0, vp.x * 0.55 / 20.0 + 1.0, vp.y), Color(0.01, 0.012, 0.03, 0.6 * pow(1.0 - k, 1.5)))
+	if not _pause_box.visible:
+		return   # Opções abertas: só o escuro atrás
+	var x := 118.0
+	SilkUI.text(_cv, Vector2(x, 122.0), SilkUI.spaced("PAUSA"), "title_s", 20, SilkUI.GOLD)
+	var lyr = GameState.current_layer
+	var where := String(lyr.layer_name) if lyr != null and is_instance_valid(lyr) else "Caverna"
+	SilkUI.text(_cv, Vector2(x, 180.0), where, "title", 48, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_LEFT, 4)
+	var sub := ""
+	var ms = _map_system()
+	if ms != null and player != null and is_instance_valid(player):
+		var here: Dictionary = ms.room_at(player.global_position)
+		if not here.is_empty():
+			sub = "%s · %s" % [here["id"], here["name"]]
+	if World.clock != null:
+		sub += ("   ·   " if sub != "" else "") + CaveClock.NAMES[World.clock.phase]
+	SilkUI.text(_cv, Vector2(x, 214.0), sub, "body_m", 19, SilkUI.QUIET, HORIZONTAL_ALIGNMENT_LEFT, 3)
+	var tw := maxf(340.0, SilkUI.text_width(where, "title", 48))
+	SilkUI.thread(_cv, Vector2(x, 238.0), Vector2(x + tw, 238.0), Color(SilkUI.SILK, 0.4), 3.0)
+	SilkUI.knot(_cv, Vector2(x, 238.0), SilkUI.GOLD)
+	SilkUI.knot(_cv, Vector2(x + tw, 238.0), SilkUI.GOLD)
+	if player != null and is_instance_valid(player):
+		_draw_pause_card(vp)
+
+
+func _draw_pause_card(vp: Vector2) -> void:
+	var r := Rect2(vp.x - 560.0, 150.0, 460.0, 470.0)
+	SilkUI.frame(_cv, r, Color(SilkUI.BORDER, 0.8), Color(0.03, 0.035, 0.08, 0.86))
+	var x := r.position.x + 28.0
+	var y := r.position.y
+	if _portrait != null:
+		var ph := 210.0
+		var pw := ph * float(_portrait.get_width()) / float(_portrait.get_height())
+		var pr := Rect2(r.position.x + (r.size.x - pw) * 0.5, y + 18.0, pw, ph)
+		var halo := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 800.0)
+		for k in 4:
+			_cv.draw_circle(pr.get_center(), 48.0 + k * 16.0, Color(SilkUI.CYAN, 0.025 + 0.012 * halo))
+		_cv.draw_texture_rect(_portrait, pr, false)
+		y += 236.0
+	else:
+		y += 30.0
+	SilkUI.text(_cv, Vector2(r.get_center().x, y + 8.0), SilkUI.spaced("A CAVALEIRA"), "title_s", 13, SilkUI.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	SilkUI.text(_cv, Vector2(r.get_center().x, y + 42.0), player.form_name(), "title", 28, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_CENTER, 3)
+	var info := "Nível %d   ·   XP %d / %d" % [player.level, player.xp, player.xp_to_next()]
+	SilkUI.text(_cv, Vector2(r.get_center().x, y + 68.0), info, "body_m", 17, SilkUI.QUIET, HORIZONTAL_ALIGNMENT_CENTER)
+	y += 92.0
+	_bar(x, y, "heart", player.hp, player.max_hp, Color(0.92, 0.32, 0.38))
+	_bar(x, y + 24.0, "bolt", player.energy, player.max_energy, Color(0.32, 0.82, 1.0))
+	_bar(x, y + 48.0, "spool", player.silk, player.max_silk, Color(0.86, 0.89, 0.98))
+	_bar(x, y + 72.0, "fang", player.satiety, player.max_satiety, Color(0.97, 0.72, 0.28))
+	var extra := "Bolsa %d/%d   ·   Tecelagem %d" % [player.bag.size(), Player.BAG_MAX, player.weave_level()]
+	if player.moonstones > 0:
+		extra += "   ·   Pedra-da-lua %d/%d" % [mini(player.moonstones, Player.MOONSTONES_NEEDED), Player.MOONSTONES_NEEDED]
+	SilkUI.text(_cv, Vector2(r.get_center().x, y + 108.0), extra, "body_m", 15, SilkUI.DIM.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER)
+
+
 # ---------------------------------------------------------------- mapa
 
 func _map_system():
@@ -604,12 +762,12 @@ func _on_draw_mini() -> void:
 	var view := area.size / SCALE
 	var center := Vector2(player.global_position.x, player.global_position.z)
 	_draw_map(ms, area, false, Rect2(center - view * 0.5, view))
-	_cv.draw_rect(area, Color(0.6, 0.65, 0.78, 0.6), false, 1.0)
 	_cv = _root
 
 
 func _draw_minimap(ms, vp: Vector2) -> void:
 	var area := Rect2(vp.x - 254.0, 20.0, 230.0, 160.0)
+	SilkUI.frame(_cv, area.grow(2.0), Color(SilkUI.BORDER, 0.85))
 	var room_name := ""
 	var here: Dictionary = ms.room_at(player.global_position)
 	if not here.is_empty():

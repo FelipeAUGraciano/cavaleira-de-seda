@@ -2,19 +2,23 @@ extends Control
 ## Menu inicial: Continuar (se houver save), Novo jogo e Carregar (3 espaços), Opções e Sair.
 ## Funciona com mouse, teclado (setas + Enter, Esc volta) e controle.
 
-const VERSION := "protótipo v0.8"
+const VERSION := "protótipo v0.9"
 const LAYER_NAMES := {
 	"res://world/layers/bercario.tscn": "Berçário",
 	"res://world/layers/galerias.tscn": "Galerias Úmidas",
 	"res://world/layers/abismo.tscn": "Abismo",
+	"res://world/layers/rio_brasa.tscn": "Rio de Brasa",
+	"res://world/layers/galerias_cacada.tscn": "Galerias — a caçada",
 }
-const FORM_NAMES := ["Filhote de Seda", "Cavaleira de Seda"]
+const MENU_POS := Vector2(118, 430)
 
 var box: MenuBox
 var options: OptionsMenu
+var diorama: TitleDiorama
 var _screen := "main"
 var _t := 0.0
-var _web: Array = []      ## fios da teia de fundo: [de, até]
+var _overlay: Control
+var _menu_holder: Control
 
 
 func _ready() -> void:
@@ -23,14 +27,34 @@ func _ready() -> void:
 	Music.area("menu")
 	Sfx.ambient("")
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	_make_web()
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.offset_top = 150.0
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(center)
+	# fundo: a caverna viva, em 3D, num mundo só dela
+	var svc := SubViewportContainer.new()
+	svc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	svc.stretch = true
+	svc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(svc)
+	var sv := SubViewport.new()
+	sv.own_world_3d = true
+	sv.msaa_3d = Viewport.MSAA_4X
+	sv.audio_listener_enable_3d = false
+	sv.handle_input_locally = false
+	svc.add_child(sv)
+	diorama = TitleDiorama.new()
+	sv.add_child(diorama)
+	# por cima: sombra à esquerda, logo e rodapé
+	_overlay = Control.new()
+	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.draw.connect(_draw_overlay)
+	add_child(_overlay)
+	_menu_holder = Control.new()
+	_menu_holder.position = MENU_POS
+	_menu_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_menu_holder)
 	box = MenuBox.new()
-	center.add_child(box)
+	box.left = true
+	box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_menu_holder.add_child(box)
 	var oc := CenterContainer.new()
 	oc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	oc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -68,8 +92,9 @@ func save_summary(slot: int = -1) -> String:
 		p = (data.get("act", {}) as Dictionary).get("player", {})
 	var lvl := int(p.get("level", 1))
 	if p.has("form"):
-		var f := clampi(int(p["form"]), 0, FORM_NAMES.size() - 1)
-		return "%s · %s, nível %d" % [where, FORM_NAMES[f], lvl]
+		var f := int(p["form"])
+		var fname := String((Player.FORMS.get(f, Player.FORMS[Player.Form.FILHOTE]) as Dictionary)["name"])
+		return "%s · %s, nível %d" % [where, fname, lvl]
 	return "%s · nível %d" % [where, lvl]
 
 
@@ -177,67 +202,54 @@ func continue_game() -> void:
 
 # ---------------------------------------------------------------- fundo
 
-func _make_web() -> void:
-	## Uma teia simples no canto: raios + espiral.
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	var c := Vector2(0.0, 0.0)
-	var rays := 9
-	var pts: Array = []
-	for r in rays:
-		var a := lerpf(0.05, PI * 0.5 - 0.05, float(r) / float(rays - 1)) + rng.randf_range(-0.04, 0.04)
-		var ray: Array = []
-		for k in range(1, 9):
-			ray.append(c + Vector2(cos(a), sin(a)) * (70.0 * k + rng.randf_range(-8.0, 8.0)))
-		pts.append(ray)
-		_web.append([c, ray[ray.size() - 1]])
-	for k in 8:
-		for r in rays - 1:
-			_web.append([pts[r][k], pts[r + 1][k]])
-
-
 func _process(delta: float) -> void:
 	_t += delta
-	queue_redraw()
+	_overlay.queue_redraw()
 
 
-func _draw() -> void:
+func _draw_overlay() -> void:
+	var ci := _overlay
 	var vp := get_viewport_rect().size
-	# fundo: caverna escura com um brilho de fungo pulsando no centro
-	draw_rect(Rect2(Vector2.ZERO, vp), Color(0.03, 0.035, 0.07))
-	var pulse := 0.5 + 0.5 * sin(_t * 0.8)
-	for i in 6:
-		var rad := 520.0 - i * 80.0
-		draw_circle(vp * Vector2(0.5, 0.42), rad, Color(0.2, 0.35, 0.8, 0.025 + 0.012 * pulse))
-	# teias nos dois cantos de cima
-	var web_col := Color(0.75, 0.82, 1.0, 0.16 + 0.05 * pulse)
-	for seg in _web:
-		draw_line(seg[0], seg[1], web_col, 1.2, true)
-		draw_line(Vector2(vp.x - seg[0].x, seg[0].y), Vector2(vp.x - seg[1].x, seg[1].y), web_col, 1.2, true)
-	# fio descendo com a aranhinha balançando
-	var sway := sin(_t * 1.3) * 18.0
-	var spider := Vector2(vp.x * 0.5 + sway, 120.0 + 10.0 * sin(_t * 0.9))
-	draw_line(Vector2(vp.x * 0.5, 0.0), spider, Color(0.85, 0.9, 1.0, 0.5), 1.5, true)
-	draw_circle(spider, 9.0, Color(0.16, 0.14, 0.38))
-	draw_circle(spider + Vector2(0, 12), 13.0, Color(0.16, 0.14, 0.38))
-	draw_circle(spider + Vector2(0, 12), 3.0, Color(0.4, 0.9, 1.0, 0.6 + 0.4 * pulse))
-	for s in [-1.0, 1.0]:
-		for k in 4:
-			var base := spider + Vector2(5.0 * s, 4.0 + k * 3.5)
-			var knee := base + Vector2(14.0 * s, -8.0 + k * 4.0)
-			var foot := knee + Vector2(6.0 * s, 12.0 + k * 2.0)
-			draw_polyline(PackedVector2Array([base, knee, foot]), Color(0.12, 0.11, 0.26), 2.0, true)
-	# título
-	var font := ThemeDB.fallback_font
-	_center_text(font, "CAVALEIRA DE SEDA", vp.y * 0.30, 64, Color(0.9, 0.93, 1.0))
-	_center_text(font, "Uma aranha recém-nascida numa caverna onde tudo é maior que ela", vp.y * 0.30 + 44.0, 20, Color(0.6, 0.7, 0.9))
-	draw_string(font, Vector2(20.0, vp.y - 20.0), VERSION, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.54, 0.66))
-	var credit := "Fangame gratuito inspirado em Kumo desu ga, Nani ka?"
-	var w := font.get_string_size(credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	draw_string(font, Vector2(vp.x - w - 20.0, vp.y - 20.0), credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.54, 0.66))
+	# sombra que vem da esquerda (onde fica o menu) e escurece em cima e embaixo
+	var steps := 24
+	for i in steps:
+		var k := float(i) / float(steps)
+		var w := vp.x * 0.62 / float(steps)
+		ci.draw_rect(Rect2(k * vp.x * 0.62, 0, w + 1.0, vp.y), Color(0.01, 0.012, 0.03, 0.88 * pow(1.0 - k, 1.6)))
+	for i in 12:
+		var k := float(i) / 12.0
+		var a := 0.5 * pow(1.0 - k, 2.0)
+		ci.draw_rect(Rect2(0, k * 90.0, vp.x, 8.0), Color(0, 0, 0, a))
+		ci.draw_rect(Rect2(0, vp.y - k * 110.0 - 9.0, vp.x, 9.0), Color(0, 0, 0, a))
+	_draw_logo(ci, Vector2(MENU_POS.x, 132.0))
+	# rodapé
+	SilkUI.text(ci, Vector2(28.0, vp.y - 24.0), VERSION, "body_m", 15, Color(SilkUI.DIM, 0.9))
+	SilkUI.text(ci, Vector2(vp.x - 28.0, vp.y - 24.0), "Fangame gratuito inspirado em Kumo desu ga, Nani ka?", "body_m", 15, Color(SilkUI.DIM, 0.9), HORIZONTAL_ALIGNMENT_RIGHT)
+	if _screen == "main":
+		SilkUI.text(ci, Vector2(vp.x * 0.5, vp.y - 24.0), "↑ ↓  escolher    Enter  confirmar", "body_m", 15, Color(SilkUI.QUIET, 0.55), HORIZONTAL_ALIGNMENT_CENTER)
+	# entra devagar, saindo do escuro
+	var fade := clampf(1.0 - _t / 1.6, 0.0, 1.0)
+	if fade > 0.0:
+		ci.draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, fade))
 
 
-func _center_text(font: Font, text: String, y: float, fsize: int, color: Color) -> void:
-	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
-	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color(0, 0, 0, 0.6 * color.a))
-	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5 - 2.0, y - 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, color)
+func _draw_logo(ci: Control, at: Vector2) -> void:
+	## "CAVALEIRA / DE SEDA": letras de Cinzel, um fio de seda com nós e a espiral da runa.
+	var pulse := 0.5 + 0.5 * sin(_t * 1.25)
+	var glow := Color(SilkUI.CYAN, 0.12 + 0.1 * pulse)
+	for k in 3:
+		SilkUI.text(ci, at + Vector2(0, 84) + Vector2(k - 1, 0) * 2.0, "CAVALEIRA", "title", 84, glow)
+	SilkUI.text(ci, at + Vector2(3, 88), "CAVALEIRA", "title", 84, Color(0, 0, 0, 0.55))
+	SilkUI.text(ci, at + Vector2(0, 84), "CAVALEIRA", "title", 84, SilkUI.TEXT)
+	var w := SilkUI.text_width("CAVALEIRA", "title", 84)
+	# fio com a runa no meio e "DE SEDA" dourado
+	var y := at.y + 112.0
+	var rune_c := Vector2(at.x + w * 0.5, y)
+	SilkUI.thread(ci, Vector2(at.x, y), rune_c - Vector2(20, 0), Color(SilkUI.SILK, 0.55), 2.5, 1.2)
+	SilkUI.thread(ci, rune_c + Vector2(20, 0), Vector2(at.x + w, y), Color(SilkUI.SILK, 0.55), 2.5, 1.2)
+	SilkUI.knot(ci, Vector2(at.x, y), SilkUI.GOLD, 4.0)
+	SilkUI.knot(ci, Vector2(at.x + w, y), SilkUI.GOLD, 4.0)
+	SilkUI.rune(ci, rune_c, 13.0, Color(SilkUI.CYAN, 0.75 + 0.25 * pulse), _t * 0.5)
+	var sub := SilkUI.spaced("DE SEDA")
+	SilkUI.text(ci, Vector2(at.x + w * 0.5, y + 52.0), sub, "title_s", 34, SilkUI.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 4)
+	SilkUI.text(ci, Vector2(at.x, y + 98.0), "Uma aranha recém-nascida numa caverna onde tudo é maior que ela.", "body_m", 20, SilkUI.QUIET, HORIZONTAL_ALIGNMENT_LEFT, 3)
