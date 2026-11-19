@@ -21,8 +21,9 @@ func _run() -> void:
 	var title = await _open_title()
 	_check(_texts(title) == ["Novo jogo", "Opções", "Sair"], "sem save: %s" % [_texts(title)])
 	var dio: TitleDiorama = title.diorama
-	_check(dio != null and dio.cavaleira != null and dio.camera != null and dio.camera.current, "fundo do menu: a caverna em 3D com a Cavaleira e a câmera")
-	_check(dio.cavaleira.find_children("*", "SpiderLegs", true, false).size() == 1, "a Cavaleira do menu tem as 8 patas")
+	_check(dio != null and dio.camera != null and dio.camera.current, "fundo do menu: a caverna em 3D com a câmera")
+	_check(title.hero != null and title.hero.texture != null and title.hero.material is ShaderMaterial, "a Cavaleira do menu é a arte 2D, com a borda suave")
+	_check(dio.find_children("*", "SpiderLegs", true, false).is_empty(), "sem o modelo 3D dela atrás")
 	_check(SilkUI.font("title") != ThemeDB.fallback_font and SilkUI.font("body_m") != ThemeDB.fallback_font, "fontes do jogo (Cinzel e Alegreya) carregam")
 	title.show_slots("new")
 	_check(_texts(title).size() == 4 and String(_texts(title)[0]).contains("vazio"), "Novo jogo mostra os 3 espaços: %s" % [_texts(title)])

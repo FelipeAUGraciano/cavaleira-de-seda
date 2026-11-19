@@ -1,9 +1,9 @@
 class_name TitleDiorama
 extends Node3D
 ## O fundo do menu inicial: um salão da caverna de verdade, em 3D.
-## A Cavaleira parada na frente de uma teia grande esticada entre dois pilares,
-## fungos acesos em volta, ovos e um casulo pendurado; a runa das costas pulsa
-## e a câmera dá a volta devagar, baixinha, como quem chega de mansinho.
+## Uma teia grande esticada entre dois pilares, fungos acesos em volta, ovos e um
+## casulo pendurado; a luz da runa pulsa e a câmera dá a volta devagar, baixinha.
+## A Cavaleira é a arte 2D desenhada por cima, no title.gd.
 
 const SILK_COL := Color(0.72, 0.8, 1.0)
 const RUNE_COL := Color(0.4, 0.85, 1.0)
@@ -11,11 +11,8 @@ const WEB_C := Vector3(0.0, 3.3, 4.6)       ## centro da teia grande
 const LOOK := Vector3(0.0, 1.0, 0.9)       ## para onde a câmera olha
 
 var camera: Camera3D
-var cavaleira: Node3D
-var _body: Node3D
 var _rune_light: OmniLight3D
 var _glows: Array = []      ## [luz, energia base, fase]: fungos e cristais respirando
-var _blades: Array = []     ## [pivô, rotação de descanso]
 var _cocoon: Node3D
 var _dew: Array = []        ## gotas de orvalho na teia (piscam)
 var _t := 0.0
@@ -27,12 +24,12 @@ func _ready() -> void:
 	_environment()
 	_ground()
 	_pillars_and_web()
-	_cavaleira()
+	_rune_glow()
 	_props()
 	_dust()
 	camera = Camera3D.new()
 	camera.fov = 46.0
-	camera.h_offset = -1.15   # a Cavaleira fica no terço direito; o menu ocupa a esquerda
+	camera.h_offset = -1.15   # o centro da cena fica no terço direito (onde está a Cavaleira 2D)
 	camera.near = 0.05
 	add_child(camera)
 	camera.current = true
@@ -46,17 +43,6 @@ func _process(delta: float) -> void:
 	var p := 0.5 + 0.5 * sin(_t * 1.25)
 	if _rune_light:
 		_rune_light.light_energy = 1.1 + 1.5 * p
-	# corpo: sobe e desce com a respiração e olha em volta de vez em quando
-	if _body:
-		_body.position.y = 0.04 * sin(_t * 1.25)
-		_body.rotation.x = 0.03 * sin(_t * 1.25 + 0.6)
-	if cavaleira:
-		var look := sin(_t * 0.23) * 0.22 + sin(_t * 0.61) * 0.06
-		cavaleira.rotation.y = 0.2 + look
-	for i in _blades.size():
-		var pv: Node3D = _blades[i][0]
-		var rest: Vector3 = _blades[i][1]
-		pv.rotation = rest + Vector3(0.06 * sin(_t * 1.25 + i * 1.7), 0.0, 0.03 * sin(_t * 0.8 + i))
 	for g in _glows:
 		var l: OmniLight3D = g[0]
 		l.light_energy = float(g[1]) * (0.75 + 0.25 * sin(_t * 0.9 + float(g[2])))
@@ -69,7 +55,7 @@ func _process(delta: float) -> void:
 
 
 func _place_camera() -> void:
-	## Arco lento na frente da Cavaleira, baixo, olhando um pouco para cima.
+	## Arco lento e baixo, olhando um pouco para cima.
 	var a := -0.35 + 0.38 * sin(_t * 0.07)
 	var dist := 6.2 + 0.25 * sin(_t * 0.11)
 	var pos := LOOK + Vector3(sin(a) * dist, 0.55 + 0.12 * sin(_t * 0.13), -cos(a) * dist)
@@ -208,78 +194,18 @@ func _pillars_and_web() -> void:
 	_strand(Vector3(-6.3, 3.0, 9.4), Vector3(6.1, 3.6, 9.0), silk_soft, 0.012)
 	for x in [-2.6, 2.2, 4.8]:
 		_strand(Vector3(x, 8.2, 3.0 + absf(x)), Vector3(x + 0.1, 3.0 + absf(x) * 0.3, 3.0 + absf(x)), silk_soft, 0.01)
-	# fio da Cavaleira: das costas até a teia (ela acabou de descer dali)
-	_strand(Vector3(0.0, 1.1, 0.9), WEB_C + Vector3(0.0, -0.4, 0.0), silk, 0.014)
 
 
-func _cavaleira() -> void:
-	cavaleira = Node3D.new()
-	cavaleira.name = "Cavaleira"
-	cavaleira.position = Vector3(0.0, 0.0, 0.4)
-	add_child(cavaleira)
-	_body = Node3D.new()
-	cavaleira.add_child(_body)
-	var hips: Array = []
-	var m := Models.swap(_body, "cavaleira_corpo", 1.4, [], "length")
-	if m != null:
-		m.position.y = 0.15
-		for side in ["L", "R"]:
-			for k in range(1, 5):
-				var t = Models.node_xform(m, "leg_socket_%s%d" % [side, k])
-				if t != null:
-					hips.append(m.transform * (t as Transform3D).origin)
-		if hips.size() != 8:
-			hips.clear()
-		elif (hips[0] as Vector3).x > 0.0:
-			hips = hips.slice(4, 8) + hips.slice(0, 4)
-	else:
-		var mat := Fx.mat(Color(0.16, 0.14, 0.38))
-		var head := Fx.sphere(0.32, mat)
-		head.position = Vector3(0.0, 0.45, -0.18)
-		_body.add_child(head)
-		var abd := Fx.sphere(0.42, mat)
-		abd.position = Vector3(0.0, 0.55, 0.45)
-		_body.add_child(abd)
-	# a runa: disco aceso nas costas e a luz dela
+func _rune_glow() -> void:
+	## A Cavaleira agora é a arte 2D por cima (title.gd); aqui fica só a luz ciano da runa
+	## dela, acendendo o chão e a teia no lugar onde ela aparece.
 	_rune_light = OmniLight3D.new()
 	_rune_light.light_color = RUNE_COL
 	_rune_light.omni_range = 5.5
 	_rune_light.omni_attenuation = 0.8
-	_rune_light.position = Vector3(0.0, 1.5, 0.3)
+	_rune_light.position = Vector3(0.0, 1.3, 0.4)
 	_rune_light.shadow_enabled = true
-	_body.add_child(_rune_light)
-	_build_blades(hips)
-	var legs := SpiderLegs.new()
-	legs.setup(_body, 1.0, 1)
-	legs.root = cavaleira
-	legs.hip_points = hips
-	legs.segment_model = "cavaleira_pata"
-	cavaleira.add_child(legs)
-
-
-func _build_blades(hips: Array) -> void:
-	## As duas lâminas de cristal levantadas, prontas (como no jogo, um pouco mais altas).
-	if not Models.has("cavaleira_lamina"):
-		return
-	for side in [-1.0, 1.0]:
-		var m := Models.raw("cavaleira_lamina")
-		var attach = Models.node_xform(m, "attach_point")
-		var at := Vector3(0.0, 0.17, 0.0) if attach == null else (attach as Transform3D).origin
-		var pivot := Node3D.new()
-		var spin := Node3D.new()
-		spin.rotation.y = PI * 0.5
-		pivot.add_child(spin)
-		m.scale = Vector3.ONE * 1.7
-		m.position = -at * 1.7
-		spin.add_child(m)
-		var hip := Vector3(0.2 * side, 0.3, -0.5)
-		if hips.size() == 8:
-			hip = hips[0 if side < 0.0 else 4]
-		pivot.position = Vector3(hip.x * 0.8, hip.y + 0.22, hip.z - 0.05)
-		var rest := Vector3(deg_to_rad(48.0), -side * 0.38, side * 0.16)
-		pivot.rotation = rest
-		_body.add_child(pivot)
-		_blades.append([pivot, rest])
+	add_child(_rune_light)
 
 
 func _glow_light(at: Vector3, col: Color, energy: float, rng_: float) -> void:

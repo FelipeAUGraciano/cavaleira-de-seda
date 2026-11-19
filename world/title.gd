@@ -19,6 +19,31 @@ var _screen := "main"
 var _t := 0.0
 var _overlay: Control
 var _menu_holder: Control
+var hero: TextureRect   ## a Cavaleira em 2D (a mesma arte do casulo), por cima da caverna 3D
+
+const HERO_ART := "res://assets/ui/retrato_cavaleira.png"
+const RUNE_UV := Vector2(0.575, 0.386)   ## onde fica a espiral nas costas, na arte
+## Borda suave em elipse (a arte se desfaz na caverna), a runa respirando em ciano
+## e um brilho fino de "fio" passando de vez em quando.
+const HERO_SHADER := """
+shader_type canvas_item;
+uniform float pulse = 0.5;
+uniform vec2 rune_uv = vec2(0.575, 0.386);
+uniform float sheen = -1.0;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	vec2 d = (UV - vec2(0.5, 0.5)) / vec2(0.5, 0.5);
+	float r = length(d * vec2(1.0, 1.05));
+	float mask = 1.0 - smoothstep(0.52, 0.97, r);
+	vec2 q = (UV - rune_uv) * vec2(1.07, 1.0);
+	float g = exp(-dot(q, q) / 0.0032);
+	c.rgb += vec3(0.25, 0.7, 1.0) * g * (0.15 + 0.45 * pulse);
+	float lum = dot(c.rgb, vec3(0.3, 0.5, 0.2));
+	float band = exp(-pow((UV.x + UV.y * 0.6 - sheen) / 0.05, 2.0));
+	c.rgb += vec3(0.6, 0.75, 1.0) * band * smoothstep(0.25, 0.7, lum) * 0.35;
+	COLOR = vec4(c.rgb, c.a * mask);
+}
+"""
 
 
 func _ready() -> void:
@@ -41,6 +66,19 @@ func _ready() -> void:
 	svc.add_child(sv)
 	diorama = TitleDiorama.new()
 	sv.add_child(diorama)
+	# a Cavaleira em 2D, no terço direito, respirando
+	hero = TextureRect.new()
+	hero.texture = load(HERO_ART)
+	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = HERO_SHADER
+	var hm := ShaderMaterial.new()
+	hm.shader = sh
+	hm.set_shader_parameter("rune_uv", RUNE_UV)
+	hero.material = hm
+	add_child(hero)
 	# por cima: sombra à esquerda, logo e rodapé
 	_overlay = Control.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -204,7 +242,25 @@ func continue_game() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_place_hero()
 	_overlay.queue_redraw()
+
+
+func _place_hero() -> void:
+	## Ocupa ~80% da altura, encostada embaixo à direita; sobe e desce bem pouco
+	## (respiração no mesmo ritmo da luz da runa na caverna).
+	if hero == null or hero.texture == null:
+		return
+	var vp := get_viewport_rect().size
+	var h := vp.y * 0.8
+	var w := h * float(hero.texture.get_width()) / float(hero.texture.get_height())
+	var breath := sin(_t * 1.25)
+	hero.size = Vector2(w, h * (1.0 + 0.006 * breath))
+	hero.position = Vector2(vp.x * 0.69 - w * 0.5, vp.y - h - 36.0 + 5.0 * sin(_t * 0.6) - h * 0.006 * breath)
+	var hm := hero.material as ShaderMaterial
+	hm.set_shader_parameter("pulse", 0.5 + 0.5 * breath)
+	# um brilho atravessa a arte a cada ~7 s
+	hm.set_shader_parameter("sheen", fposmod(_t, 7.0) / 7.0 * 4.0 - 1.0)
 
 
 func _draw_overlay() -> void:

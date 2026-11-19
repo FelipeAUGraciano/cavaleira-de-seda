@@ -12,7 +12,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 - **Menu da toca:** teia de 17 habilidades (1 ponto por nível), evolução, despensa, portas e fios-alarme. Descansar salva, cura, remenda portas e faz a muda; não dá para dormir com um bicho te caçando perto.
 - **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), besouros carniceiros, escorpiões-de-obsidiana, aranhas-lobo do breu, mímicos de estalagmite, lesmas de ácido, morcegos gigantes, a Cortina viva, a Mãe, a Centopeia-blindada, o Colosso do Abismo e a Serpente-cega, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
 - **Mundo:** Galerias em dois andares geradas como caverna orgânica, ciclo de luz de 5 minutos, território, pilares variados, ganchos de parede nos abismos.
-- **Menus:** menu inicial com a caverna em 3D ao fundo (a Cavaleira na frente da teia), 3 espaços de save, pausa com o lugar e um cartão da Cavaleira, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle). Tudo no estilo de seda (`ui/silk_ui.gd`).
+- **Menus:** menu inicial com a Cavaleira em 2D na frente da caverna em 3D, 3 espaços de save, pausa com o lugar e um cartão da Cavaleira, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle). Tudo no estilo de seda (`ui/silk_ui.gd`).
 - **Arte:** modelos 3D da protagonista, de todas as criaturas, da Mãe e dos props; o chão e as paredes são gerados em código.
 
 ## Como abrir

@@ -2,6 +2,11 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## A Cavaleira 2D no menu (19/11)
+
+- No menu inicial, a Cavaleira agora é a arte 2D (a mesma do casulo) no lugar do modelo 3D. A caverna 3D continua atrás (teia, fungos, cristais, casulo, pó, câmera girando).
+- A borda da arte se desfaz em elipse na caverna; a espiral das costas pulsa em ciano junto com a luz da runa no chão, ela respira (sobe e desce bem pouco) e um brilho atravessa a arte a cada ~7 s.
+
 ## A cara do jogo: menu, pausa, opções e HUD (19/11)
 
 - **Menu inicial "caverna viva":** atrás do menu roda uma cena 3D de verdade — a Cavaleira (modelo, patas e lâminas) parada na frente de uma teia grande esticada entre dois pilares, fungos roxos e verdes acesos, cristais, um ninho de ovos e um casulo balançando num fio. A runa das costas pulsa, ela respira e olha em volta, pó boia na luz e a câmera dá a volta devagar. Logo novo em Cinzel ("CAVALEIRA / DE SEDA" com o fio e a espiral da runa), botões à esquerda e entrada saindo do escuro.
