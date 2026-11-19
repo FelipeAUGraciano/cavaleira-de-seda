@@ -82,7 +82,7 @@ func show_page(p: String) -> void:
 			_slider_row("Música", "Música", 0.0, 1.0)
 			_slider_row("Efeitos", "Efeitos", 0.0, 1.0)
 			_slider_row("Dublagem", "Voz", 0.0, 1.0)
-			_body.add_child(_label("Música e efeitos entram nas próximas versões; o volume já fica guardado.", 15, QUIET))
+			_body.add_child(_label("A música já toca. Os efeitos sonoros entram nas próximas versões; o volume deles já fica guardado.", 15, QUIET))
 		"tela":
 			_check_row("Tela cheia", "tela_cheia", Settings.fullscreen)
 			_slider_row("Brilho", "brilho", 0.7, 1.6)

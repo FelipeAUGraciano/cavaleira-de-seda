@@ -36,11 +36,29 @@ var _cache := {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	var bi := AudioServer.get_bus_index(BUS)
+	if bi >= 0 and AudioServer.get_bus_effect_count(bi) == 0:
+		var lim := AudioEffectHardLimiter.new()   # base + tensão + camada por cima nunca estouram
+		lim.ceiling_db = -0.5
+		AudioServer.add_bus_effect(bi, lim)
 	_a = _player()
 	_t = _player()
 	_over = _player()
 	_sting = _player()
 	_sting.volume_db = 0.0
+
+
+func _exit_tree() -> void:
+	# solta os .ogg ao fechar o jogo (senão o Godot avisa "resources still in use")
+	for c in get_children():
+		if c is AudioStreamPlayer:
+			var pl := c as AudioStreamPlayer
+			for conn in pl.finished.get_connections():
+				pl.finished.disconnect(conn["callable"])
+			pl.stop()
+			pl.stream = null
+	_old.clear()
+	_cache.clear()
 
 
 func _player() -> AudioStreamPlayer:
@@ -131,7 +149,7 @@ func _process(delta: float) -> void:
 			p.queue_free()
 			_old.erase(p)
 	if _over.stream != null:
-		var target := duck_db if _over_key != "" else SILENT
+		var target := duck_db - 4.0 if _over_key != "" else SILENT   # camada por cima um pouco abaixo (somadas não estouram)
 		_over.volume_db = move_toward(_over.volume_db, target, 60.0 * delta / FADE)
 		if _over_key == "" and _over.volume_db <= SILENT + 0.5:
 			_over.stop()
@@ -242,7 +260,9 @@ func _set_overlay(track: String) -> void:
 		return
 	_over.stream = s
 	_over.volume_db = SILENT
-	_over.play(_a.get_playback_position() if _a.playing else 0.0)
+	var at := _a.get_playback_position() if _a.playing else 0.0
+	var ln := s.get_length()
+	_over.play(fmod(at, ln) if ln > 0.0 else 0.0)   # em fase com a base (Colosso 8 compassos, alerta 16)
 
 
 func _stream(track: String, loop: bool) -> AudioStream:

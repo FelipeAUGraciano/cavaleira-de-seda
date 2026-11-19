@@ -2,6 +2,13 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## As músicas (19/11)
+
+- **32 faixas** em `audio/music/` (todas as da aba "Músicas (prompts)", feitas em Python pelo criador): 6 mapas com camada de tensão, Colosso e alerta da caçada por cima, Fuga da Mãe, Centopeia e Serpente com intro, Rainha com camada de fúria, Capitã com a trompa, Guardião (3 fases, para o Portão), casulo, menu e 4 curtas. O gerador fica em `tools/musica/` (sementes fixas: gera sempre igual).
+- Conferido: durações batem com o pedido (base e tensão do mesmo tamanho), volume (~ -18 LUFS nos mapas, ~ -14 nos chefes), picos abaixo de -1,7 dBFS e emendas de loop sem salto.
+- O barramento Música ganhou um limitador (base + tensão + camada por cima somadas chegavam a +2,4 dB no Abismo com o Colosso); a camada por cima toca 4 dB abaixo, e começa em fase com a base.
+- Testes: o `juice_test` agora confere que as faixas são achadas, em loop, e que a intro do chefe toca antes. O `cacada_test` ficou estável (o caçador do teste precisa ter linha de visão; o batedor tem só o fio do teste no mapa).
+
 ## Sensação dos golpes e o tocador de música (19/11)
 
 - **Pausa no impacto:** cada golpe que entra congela o jogo por uns centésimos (mais no crítico, no golpe pesado e no abate); levar um golpe também. Golpes em área e fogo contínuo não emendam uma pausa na outra.

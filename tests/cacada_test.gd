@@ -75,10 +75,19 @@ func _run() -> void:
 			sw = h
 			break
 	player.rune_on = true
-	player.global_position = sw.global_position + Vector3(3.0, 0.1, 0)
+	# um lugar a 3 m dele com linha de visão (o espadachim pode estar encostado numa parede)
+	for k in 8:
+		var off := Vector3(3.0, 0.1, 0).rotated(Vector3.UP, k * PI / 4.0)
+		player.global_position = sw.global_position + off
+		await get_tree().physics_frame
+		if sw.has_line_of_sight(player) and _reach(player.global_position, sw.global_position):
+			break
 	player.velocity = Vector3.ZERO
 	var seen := false
 	for i in 30:
+		var look: Vector3 = player.global_position - sw.global_position
+		look.y = 0.0
+		sw.facing = look.normalized()   # virado para ela (de costas ele não vê; é o que se testa aqui)
 		await _seconds(0.1)
 		if hd.alert >= 0.7:
 			seen = true
@@ -109,6 +118,8 @@ func _run() -> void:
 			break
 	if bat_h != null:
 		bat_h.global_position = Galerias.W(Vector3(44, 0.3, 72))
+		for o in WebNetwork.strands.duplicate():
+			WebNetwork.remove_strand(o)   # só este fio no mapa: o batedor não sai atrás de outro
 		var st: WebStrand = WebNetwork.create_strand(WebNetwork.anchors["G5_a"], WebNetwork.anchors["G5_d"])
 		print("    batedor em ", bat_h.global_position, " fio: ", st, " ", bat_h.range_rooms)
 		var ref: WeakRef = weakref(st)
@@ -119,6 +130,8 @@ func _run() -> void:
 			if st == null or ref.get_ref() == null or not WebNetwork.strands.has(st):
 				gone = true
 				break
+		if not gone:
+			print("    batedor parou em ", bat_h.global_position, " (fio a %.1f m)" % st.distance_to(bat_h.global_position) if is_instance_valid(st) else "")
 		_check(gone, "o batedor segue o rastro de seda e queima o fio")
 
 	# armadilha de fogo

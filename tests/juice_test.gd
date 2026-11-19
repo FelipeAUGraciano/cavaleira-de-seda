@@ -76,7 +76,11 @@ func _run() -> void:
 	Settings.screen_shake = true
 	# música (sem arquivos: segue em silêncio, sem erro)
 	Music.area("galerias")
-	_check(Music.playing() == "mus_galerias", "música do mapa escolhida (sem arquivo, silêncio)")
+	_check(Music.playing() == "mus_galerias", "música do mapa escolhida")
+	await _frames(2)
+	_check(Music._a.stream != null and Music._t.stream != null, "achou mus_galerias.ogg e a camada de tensão")
+	if Music._a.stream != null and Music._t.stream != null:
+		_check(absf(Music._a.stream.get_length() - Music._t.stream.get_length()) < 0.01 and Music._a.stream.loop, "base e tensão do mesmo tamanho, em loop")
 	var boss := Beetle.new()
 	boss.position = base + Vector3(6, 0.2, 0)
 	boss.boss_music = "teste"
@@ -90,6 +94,15 @@ func _run() -> void:
 	boss.take_damage(9999.0, player)
 	await _seconds(0.6)
 	_check(Music.playing() == "mus_galerias", "chefe morto: volta à música do mapa")
+	Music.boss("centopeia")
+	_check(Music._a.stream != null and Music._a.stream.get_length() < 10.0 and not Music._a.stream.loop, "chefe com intro: toca a intro antes do loop")
+	Music.end_boss(true)
+	await _frames(2)
+	_check(Music._sting.stream != null and Music._sting.playing, "chefe vencido: toca a vitória")
+	Music.area("nao_existe")
+	await _frames(2)
+	_check(Music._a.stream == null, "faixa que não existe: silêncio, sem erro")
+	Music.area("galerias")
 	Music.cocoon(true)
 	_check(Music.playing() == "mus_casulo", "casulo aberto: música do casulo")
 	Music.cocoon(false)

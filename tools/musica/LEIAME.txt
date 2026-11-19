@@ -1,0 +1,13 @@
+Cavaleira de Seda - musicas geradas em Python (numpy + scipy; ffmpeg so para exportar OGG)
+
+  python3 make_all.py                 # gera todas (~2 min), em saida/wav e saida/ogg
+  python3 make_all.py galerias rio    # so algumas (nomes em TRACKS de tracks_a..e.py)
+  python3 check.py                    # decodifica os .ogg e confere pico, LUFS, duracao, emenda
+
+cs_synth.py   biblioteca de sintese (osciladores, instrumentos, reverb, loop sem emenda, LUFS)
+tracks_a.py   galerias, bercario, centopeia
+tracks_b.py   abismo, colosso, serpente
+tracks_c.py   rio, rainha
+tracks_d.py   cacada, alerta, capita (+trompa), fuga
+tracks_e.py   portao, guardiao (3 fases), stingers, casulo, menu
+Sementes fixas: rodar de novo gera exatamente o mesmo audio.
