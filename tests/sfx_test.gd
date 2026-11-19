@@ -113,6 +113,19 @@ func _run() -> void:
 	_check(Sfx.ambient_now() == "amb_galerias", "ambiente do mapa")
 	Sfx.ambient("abismo")
 	_check(Sfx.ambient_now() == "", "ambiente sem arquivo: silêncio")
+	# os arquivos de verdade (audio/sfx)
+	Sfx.use_dir(Sfx.DIR)
+	var faltando: Array = []
+	for n in ["pc_passo", "pc_garra", "hit_carne", "teia_tecer", "kit_corte", "mae_rugido", "colosso_respira_loop", "amb_galerias", "loop_fogueira", "ui_confirmar", "bota_passo", "geiser_erupcao"]:
+		if not Sfx.has(n):
+			faltando.append(n)
+	for f in Sfx.FAMILY.values():
+		for k in ["alerta", "ataque", "dor"]:
+			if not Sfx.has("%s_%s" % [f, k]):
+				faltando.append("%s_%s" % [f, k])
+	_check(faltando.is_empty(), "os efeitos de audio/sfx estão todos lá %s" % str(faltando))
+	_check(Sfx._variants("pc_passo").size() == 6 and Sfx._variants("hit_carne").size() == 4, "variações de verdade (6 passos, 4 golpes em carne)")
+	_check(Sfx._variants("amb_galerias")[0].loop and not Sfx._variants("pc_garra")[0].loop, "ambiente em loop, golpe não")
 
 
 func _check(ok: bool, label: String) -> void:

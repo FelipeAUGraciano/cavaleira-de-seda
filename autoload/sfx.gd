@@ -50,7 +50,12 @@ var _loops: Array = []            ## [{node, player, cond}]
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	var bus := BUS if AudioServer.get_bus_index(BUS) >= 0 else "Master"
+	var bi := AudioServer.get_bus_index(BUS)
+	if bi >= 0 and AudioServer.get_bus_effect_count(bi) == 0:
+		var lim := AudioEffectHardLimiter.new()   # muitos golpes juntos não estouram
+		lim.ceiling_db = -0.5
+		AudioServer.add_bus_effect(bi, lim)
+	var bus := BUS if bi >= 0 else "Master"
 	for i in POOL:
 		var p := AudioStreamPlayer3D.new()
 		p.bus = bus

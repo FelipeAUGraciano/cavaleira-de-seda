@@ -2,6 +2,13 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Os efeitos sonoros (19/11)
+
+- **195 arquivos** em `audio/sfx/` (todos os da aba "Efeitos sonoros (prompts)", feitos em Python pelo criador); o gerador fica em `tools/sfx/`.
+- Conferido: nenhum faltando nem sobrando; mono nos efeitos e estéreo nos ambientes; picos abaixo de -1 dBFS; níveis batendo com baixo/médio/alto (passos e cliques ~ -11 dB de pico, golpes ~ -1 dB); loops sem salto na emenda. Quatro sons começam com um fade curto de 20–50 ms de propósito (gêiser borbulhando, descanso, onda da Rainha, teia de captura).
+- O barramento Efeitos ganhou um limitador (muitos golpes juntos não estouram).
+- `sfx_test` confere também os arquivos de verdade (todas as famílias, variações, loops).
+
 ## Efeitos sonoros: o tocador e os prompts (19/11)
 
 - **Aba "Efeitos sonoros (prompts)" no GDD:** 9 prompts (jogadora, ataques, teia, impactos, bichos por família, chefes, caçadores, ambiente, interface), ~140 arquivos contando as variações. Lista dos nomes em `audio/sfx/README.md`.

@@ -1,0 +1,6 @@
+Cavaleira de Seda - efeitos sonoros gerados em Python (numpy + scipy; ffmpeg so para exportar OGG)
+Uso:  python3 make_sfx.py [prefixo ...]   -> saida_sfx/wav e saida_sfx/ogg
+      python3 check_sfx.py                 -> confere canais, pico, duracao, emenda dos loops, >10 kHz, grave
+Copie os .ogg para res://audio/sfx/. Semente fixa por arquivo (CRC32 do nome).
+Arquivos: sfx_a.py (jogadora e ataques), sfx_b.py (teia, impactos, bichos), sfx_c.py (chefes, cacadores), sfx_d.py (ambiente, interface).
+Nada foi ouvido a ouvido: so medido. Ajuste o nivel de cada tipo no Godot se preciso.
