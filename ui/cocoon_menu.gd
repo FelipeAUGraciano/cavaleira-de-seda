@@ -210,6 +210,10 @@ func _build_branch_buttons() -> void:
 			var f: int = Player.BRANCHES[b]
 			var btn := _page_button(BRANCH_RECTS[b], "", true, _pick_branch.bind(f))
 			btn.set_meta("branch", f)
+	elif player.is_final():
+		for st in 2:
+			var b := _page_button(STYLE_RECTS[st], "", true, _pick_style.bind(st))
+			b.set_meta("style", st)
 	elif player.is_branch():
 		var opts := player.next_options()
 		for i in opts.size():
@@ -217,6 +221,16 @@ func _build_branch_buttons() -> void:
 			var r: Rect2 = FINAL_RECTS[i] if i < 2 else _rare_rect(i - 2)
 			var btn2 := _page_button(r, "", true, _pick_branch.bind(f2))
 			btn2.set_meta("branch", f2)
+
+
+const STYLE_RECTS := [Rect2(850, 478, 324, 210), Rect2(1180, 478, 324, 210)]
+
+
+func _pick_style(st: int) -> void:
+	player.set_attack_style(st)
+	var info := KitBook.info(int(player.form), st)
+	_say("Estilo %s: %s e %s." % ["A" if st == 0 else "B", info["names"][0], info["names"][1]])
+	_frame.queue_redraw()
 
 
 func _pick_branch(f: int) -> void:
@@ -734,17 +748,36 @@ func _draw_final_tree(ci: Control) -> void:
 	var bx := box.position + Vector2(24, 0)
 	if final:
 		var d: Dictionary = player.form_data()
-		var big := Rect2(830, 210, 690, 180)
+		var big := Rect2(830, 200, 690, 96)
 		var tint: Color = d.get("tint", GOLD)
 		_panel(ci, big, Color(0.07, 0.1, 0.2, 0.9), GOLD, 12.0, true)
-		SkillIcons.draw(ci, String(d.get("icon", "star")), big.position + Vector2(90, 90), 40.0, tint)
-		_text(ci, big.position + Vector2(170, 70), String(d["name"]).to_upper(), "title", 24, TEXT)
-		_text(ci, big.position + Vector2(170, 104), ("Forma rara · " + String(d["rare"])) if d.has("rare") else ("Ramo " + String(d["branch"]) + " · " + String(d.get("pitch", ""))), "body_b", 17, GOLD)
-		_text(ci, big.position + Vector2(170, 140), "A última muda. Daqui em diante, ela só cresce em nível.", "body", 16, QUIET)
-		_text(ci, bx + Vector2(0, 40), "O que esta forma faz", "title", 20, GOLD)
+		SkillIcons.draw(ci, String(d.get("icon", "star")), big.position + Vector2(52, 48), 26.0, tint)
+		_text(ci, big.position + Vector2(104, 42), String(d["name"]).to_upper(), "title", 22, TEXT)
+		_text(ci, big.position + Vector2(104, 74), ("Forma rara · " + String(d["rare"])) if d.has("rare") else ("Ramo " + String(d["branch"]) + " · " + String(d.get("pitch", ""))), "body_b", 16, GOLD)
+		_text(ci, big.position + Vector2(big.size.x - 20, 74), "a última muda", "body", 14, QUIET, HORIZONTAL_ALIGNMENT_RIGHT)
+		var box2 := Rect2(830, 306, 690, 394)
+		_panel(ci, box2, Color(0.04, 0.05, 0.1, 0.9), BORDER, 10.0)
 		var desc: Array = d["desc"]
 		for i in desc.size():
-			_text(ci, bx + Vector2(0, 80 + i * 30), "·  " + String(desc[i]), "body", 17, TEXT)
+			_text(ci, box2.position + Vector2(24, 34 + i * 26), "·  " + String(desc[i]), "body", 16, TEXT)
+		_text(ci, box2.position + Vector2(24, 140), "ESTILO DE ATAQUE  ·  troque quando quiser aqui no casulo", "body_b", 13, QUIET)
+		var hot_st := -1
+		for btn in _page_btns:
+			if btn.has_meta("style") and (btn.has_focus() or btn.is_hovered()):
+				hot_st = int(btn.get_meta("style"))
+		for st in 2:
+			var r: Rect2 = STYLE_RECTS[st]
+			var on := player.attack_style == st
+			var col := GOLD if on else (CYAN if hot_st == st else Color(0.3, 0.33, 0.42, 0.8))
+			_panel(ci, r, Color(0.08, 0.1, 0.2, 0.92) if on or hot_st == st else Color(0.05, 0.06, 0.11, 0.85), col, 8.0, on)
+			var info := KitBook.info(f, st)
+			if info.is_empty():
+				continue
+			_text(ci, r.position + Vector2(16, 26), ("ESTILO " + ("A" if st == 0 else "B")) + ("  ·  em uso" if on else ""), "body_b", 13, GOLD if on else QUIET)
+			var yy := r.position.y + 50.0
+			for k in 2:
+				_text(ci, Vector2(r.position.x + 16, yy), ("Golpe: " if k == 0 else "Mordida: ") + String(info["names"][k]), "title_s", 15, TEXT if on or hot_st == st else Color(0.75, 0.78, 0.85))
+				yy = _wrap_text_h(ci, Vector2(r.position.x + 16, yy + 20), r.size.x - 30, String(info["descs"][k]), "body", 13, QUIET) + 6.0
 		return
 	var can_pick := player.can_choose_final()
 	_text(ci, Vector2(830, 207), "RAMO " + String(player.form_data()["branch"]).to_upper(), "body_b", 13, QUIET)
@@ -787,7 +820,10 @@ func _draw_final_tree(ci: Control) -> void:
 		]
 		for i in lines.size():
 			_text(ci, bx + Vector2(0, 106 + i * 26), "·  " + lines[i], "body", 17, QUIET)
-		_text(ci, bx + Vector2(0, 230), "Passe o mouse numa forma para ver o que ela faz e o que pede.", "body_b", 16, CYAN)
+		var bk := KitBook.info(f, 0)
+		if not bk.is_empty():
+			_text(ci, bx + Vector2(0, 200), "Seus ataques agora: %s (golpe) e %s (mordida)." % [bk["names"][0], bk["names"][1]], "body", 15, TEXT)
+		_text(ci, bx + Vector2(0, 236), "Passe o mouse numa forma para ver o que ela faz e o que pede.", "body_b", 16, CYAN)
 		return
 	var d3: Dictionary = Player.FORMS[shown]
 	var head := "%s  ·  %s" % [d3["name"], ("Rara de " + String(d3["rare"])) if d3.has("rare") else ("Ramo " + String(d3["branch"]))]
@@ -796,6 +832,11 @@ func _draw_final_tree(ci: Control) -> void:
 	for i in desc3.size():
 		_text(ci, bx + Vector2(0, 78 + i * 28), "·  " + String(desc3[i]), "body", 16, TEXT)
 	var y := 78.0 + desc3.size() * 28.0 + 10.0
+	var ia := KitBook.info(shown, 0)
+	var ib := KitBook.info(shown, 1)
+	if not ia.is_empty() and not ib.is_empty():
+		_text(ci, bx + Vector2(0, y), "Ataques: A) %s + %s   ·   B) %s + %s" % [ia["names"][0], ia["names"][1], ib["names"][0], ib["names"][1]], "body_b", 14, CYAN)
+		y += 30.0
 	var reqs := player.rare_requirements(shown)
 	if not reqs.is_empty():
 		_text(ci, bx + Vector2(0, y), "Pede:", "body_b", 16, QUIET)
@@ -951,6 +992,25 @@ func _wrap_text(ci: Control, p: Vector2, width: float, s: String, font: String, 
 			line = t
 	if line != "":
 		ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
+
+
+func _wrap_text_h(ci: Control, p: Vector2, width: float, s: String, font: String, fsize: int, col: Color) -> float:
+	## Como _wrap_text, mas devolve o y da próxima linha.
+	var f := _fnt(font)
+	var line := ""
+	var y := p.y
+	for word in s.split(" "):
+		var t := word if line == "" else line + " " + word
+		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x > width and line != "":
+			ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
+			y += fsize * 1.3
+			line = word
+		else:
+			line = t
+	if line != "":
+		ci.draw_string(f, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
+		y += fsize * 1.3
+	return y
 
 
 func _panel(ci: Control, r: Rect2, fill: Color, border: Color, radius: float, glow := false) -> void:

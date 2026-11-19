@@ -396,9 +396,9 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 		GameState.say_once("centopeia_furia", "Ah, ótimo. Agora ela está BRAVA.")
 
 
-func add_poison() -> void:
+func add_poison(n := 1, cap := MAX_POISON) -> void:
 	if is_entangled():
-		super.add_poison()
+		super.add_poison(n, cap)
 
 
 func _on_hurt(source: Node3D) -> void:

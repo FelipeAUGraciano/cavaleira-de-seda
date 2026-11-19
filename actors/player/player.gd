@@ -142,7 +142,7 @@ const FORMS := {
 		"desc": ["Placas de pedra-da-lua: escudo de 50 que volta 6 s depois do último golpe.", "-20% de todo dano.", "A runa vira luar: ilumina 60% mais longe."]},
 }
 
-enum State { NORMAL, DODGE, BACKSTEP, ATTACK, BITE, ZIP, EAT, DEAD }
+enum State { NORMAL, DODGE, BACKSTEP, ATTACK, BITE, ZIP, EAT, DEAD, SKILL }
 
 # ---------------------------------------------------------------- recursos
 var max_hp := 100.0
@@ -175,6 +175,11 @@ var sight_penalty := 0.0        ## cinza no ar (Pântano de cinzas): metros a me
 var weave_xp := 0               ## Tecelagem sobe tecendo fios: fios mais longos
 const WEAVE_STEPS := [0, 8, 20, 36, 56]   ## fios tecidos para chegar em cada nível de Tecelagem (1 a 5)
 var crystal_skin := false       ## Pele de Cristal (comer a Centopeia): -20% de dano
+var kit: AttackKit = null      ## ataques próprios do ramo / forma final (troca golpe e mordida)
+var attack_style := 0           ## formas finais: estilo A (0) ou B (1), escolhido no casulo
+var veil_t := 0.0               ## escondida pela sombra (clone, nuvem de breu): ninguém vê
+var leaping := false            ## no ar (bote aéreo): sem gravidade, passa por cima de buracos
+var _kit_key := ""
 var moonstones := 0             ## cristais de pedra-da-lua achados (forma rara Pedra-da-lua)
 var shield := 0.0               ## escudo de pedra-da-lua (forma Lua): absorve dano e volta sozinho
 var _shield_wait := 0.0
@@ -518,7 +523,29 @@ func recompute_stats(refill: bool) -> void:
 		hp = minf(hp, max_hp)
 		energy = minf(energy, max_energy)
 		silk = minf(silk, max_silk)
+	refresh_kit()
 
+
+func refresh_kit() -> void:
+	## Troca o kit de ataques quando a forma (ou o estilo) muda.
+	var key := "%d/%d" % [int(form), attack_style]
+	if key == _kit_key and (kit != null or KitBook.styles(form) == 0):
+		return
+	_kit_key = key
+	if kit != null:
+		if state == State.SKILL:
+			_start_state(State.NORMAL)
+		kit.queue_free()
+		kit = null
+	kit = KitBook.make(int(form), attack_style)
+	if kit != null:
+		add_child(kit)
+		kit.setup(self)
+
+
+func set_attack_style(s: int) -> void:
+	attack_style = clampi(s, 0, 1)
+	refresh_kit()
 
 func add_bonus(hp_: float, energy_: float, silk_: float = 0.0) -> void:
 	bonus_hp += hp_
@@ -891,6 +918,9 @@ func _physics_process(delta: float) -> void:
 	invuln = maxf(invuln - delta, 0.0)
 	_slow_time = maxf(_slow_time - delta, 0.0)
 	state_time += delta
+	veil_t = maxf(veil_t - delta, 0.0)
+	if kit != null:
+		kit.tick(delta)
 
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if autopilot:
@@ -916,6 +946,10 @@ func _physics_process(delta: float) -> void:
 			horizontal = _state_bite()
 		State.EAT:
 			horizontal = _state_eat()
+		State.SKILL:
+			horizontal = kit.state_update(delta) if kit != null else Vector3.ZERO
+			if kit == null:
+				_start_state(State.NORMAL)
 		State.ZIP:
 			_state_zip()
 			_check_fall_and_safe(delta)
@@ -923,7 +957,9 @@ func _physics_process(delta: float) -> void:
 
 	velocity.x = horizontal.x + external_velocity.x
 	velocity.z = horizontal.z + external_velocity.z
-	if is_on_floor():
+	if leaping:
+		velocity.y = 0.0
+	elif is_on_floor():
 		velocity.y = -0.5
 	else:
 		velocity.y -= GRAVITY * delta
@@ -940,6 +976,12 @@ func _start_state(s: State) -> void:
 		_visual.position.y = 0.0
 		_zip_wait = false
 		_release_silk_later(0.0)
+	if state == State.SKILL and s != State.SKILL and kit != null and kit.busy():
+		kit.cancel()
+	if state == State.SKILL and s != State.SKILL:
+		leaping = false
+		if _visual != null:
+			_visual.position.y = 0.0
 	if state == State.EAT and s != State.EAT and eating_bag:
 		eating_bag = false
 		if state_time < 1.2:
@@ -980,9 +1022,15 @@ func _state_normal() -> Vector3:
 		_throw_silk()
 	elif not weaving:
 		if Input.is_action_just_pressed("attack"):
-			_start_attack(0)
+			if kit != null:
+				kit.press(0)
+			else:
+				_start_attack(0)
 		elif Input.is_action_just_pressed("bite"):
-			_start_bite()
+			if kit != null:
+				kit.press(1)
+			else:
+				_start_bite()
 		elif Input.is_action_just_pressed("interact"):
 			_interact()
 	if Input.is_action_just_pressed("rune"):
@@ -1296,36 +1344,49 @@ func _melee(damage: float, reach: float, arc_deg: float, poison: bool, dir := Ve
 			continue   # voando alto demais (morcego): use fio (Q) ou espere o mergulho
 		if to.length() > 0.3 and rad_to_deg(dir.angle_to(to.normalized())) > arc_deg * 0.5:
 			continue
-		var dmg := damage
-		var crit := c.is_entangled()
-		if crit:
+		hit_creature(c, damage, poison)
+
+
+func hit_creature(c: Creature, damage: float, poison := false) -> float:
+	## Um acerto da jogadora num bicho, com tudo o que a forma soma (crítico no enredado,
+	## emboscada, execução, corrosão, veneno, fogo, cura no abate). Devolve o dano.
+	if c == null or c.dead:
+		return 0.0
+	var dmg := damage
+	var crit := c.is_entangled()
+	if crit:
+		dmg *= 2.0
+		_msg("Crítico! %s está enredado." % c.display_name)
+	var amb := float(fd("ambush", 1.0))
+	if amb > 1.0 and not c.noticed_player and not crit:
+		dmg *= amb
+		_msg("Emboscada! %s nem te viu." % c.display_name)
+	if kit != null:
+		dmg = kit.modify_hit(c, dmg)
+	var ex := float(fd("execute", 0.0))
+	var boss := c.is_in_group("boss")
+	if ex > 0.0 and c.hp > 0.0 and c.hp - dmg < c.max_hp * ex:
+		if boss:
 			dmg *= 2.0
-			_msg("Crítico! %s está enredado." % c.display_name)
-		var amb := float(fd("ambush", 1.0))
-		if amb > 1.0 and not c.noticed_player and not crit:
-			dmg *= amb
-			_msg("Emboscada! %s nem te viu." % c.display_name)
-		var ex := float(fd("execute", 0.0))
-		var boss := c.is_in_group("boss")
-		if ex > 0.0 and c.hp > 0.0 and c.hp - dmg < c.max_hp * ex:
-			if boss:
-				dmg *= 2.0
-			else:
-				dmg = c.hp + 1.0
-				_msg("Execução!")
-		var cor := float(fd("corrode", 0.0))
-		if cor > 0.0:
-			c.corrode(cor)
-		c.take_damage(dmg, self)
-		if poison:
-			c.add_poison()
-		for k in int(fd("venom", 0)):
-			c.add_poison()
-		var ig := float(fd("ignite", 0.0))
-		if ig > 0.0 and not c.dead:
-			c.ignite(ig)
-		if c.dead and float(fd("kill_heal", 0.0)) > 0.0:
-			hp = minf(max_hp, hp + max_hp * float(fd("kill_heal", 0.0)))
+		else:
+			dmg = c.hp + 1.0
+			_msg("Execução!")
+	var cor := float(fd("corrode", 0.0))
+	if cor > 0.0:
+		c.corrode(cor)
+	c.take_damage(dmg, self)
+	if poison:
+		c.add_poison()
+	for k in int(fd("venom", 0)):
+		c.add_poison()
+	var ig := float(fd("ignite", 0.0))
+	if ig > 0.0 and not c.dead:
+		c.ignite(ig)
+	if c.dead and float(fd("kill_heal", 0.0)) > 0.0:
+		hp = minf(max_hp, hp + max_hp * float(fd("kill_heal", 0.0)))
+	if kit != null:
+		kit.on_hit(c, dmg)
+	return dmg
 
 
 func _throw_silk() -> void:
@@ -1463,6 +1524,9 @@ func _interact() -> void:
 
 func _eat(c: Corpse) -> void:
 	var rotten := c.is_rotten()
+	if c.has_meta("venom_heal"):
+		hp = minf(max_hp, hp + max_hp * 0.2)
+		_msg("A presa envenenada te curou.")
 	satiety = minf(max_satiety, satiety + c.satiety * (0.6 if rotten else 1.0))
 	silk = minf(max_silk, silk + c.silk)
 	if rotten:
@@ -2121,6 +2185,11 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 	## Devolve false se não pegou (esquiva com invulnerabilidade, já morta).
 	if dead or invuln > 0.0:
 		return false
+	if kit != null:
+		amount = kit.on_hurt(amount, source)
+		if amount <= 0.0:
+			invuln = maxf(invuln, 0.2)
+			return false
 	invuln = 0.35
 	_hurt_flash = 0.25
 	if crystal_skin:
@@ -2328,6 +2397,8 @@ func sight_radius() -> float:
 
 
 func visibility_mult() -> float:
+	if veil_t > 0.0:
+		return 0.0
 	if fd("shadow", false) and not rune_on and Vector2(velocity.x, velocity.z).length() < 0.8:
 		return 0.0   # Sombra do Breu: parada no escuro, ninguém vê (só encostando ou ouvindo)
 	return (1.0 if rune_on else 0.45) * float(form_data()["hide"])
@@ -2511,7 +2582,7 @@ func to_dict() -> Dictionary:
 		"silk": silk, "max_silk": max_silk,
 		"satiety": satiety,
 		"level": level, "xp": xp, "resist_rot": resist_rot,
-		"resist_acid": resist_acid, "crystal_skin": crystal_skin, "moonstones": moonstones,
+		"resist_acid": resist_acid, "crystal_skin": crystal_skin, "moonstones": moonstones, "attack_style": attack_style,
 		"resist_poison": resist_poison, "dark_sight": dark_sight, "weave_xp": weave_xp,
 		"resist_fire": resist_fire, "heat_exposure": heat_exposure,
 		"form": int(form), "pending": pending_form, "bonus": [bonus_hp, bonus_energy, bonus_silk],
@@ -2550,6 +2621,7 @@ func from_dict(d: Dictionary) -> void:
 	heat_exposure = float(d.get("heat_exposure", heat_exposure))
 	crystal_skin = bool(d.get("crystal_skin", crystal_skin))
 	moonstones = int(d.get("moonstones", moonstones))
+	attack_style = int(d.get("attack_style", attack_style))
 	form = int(d.get("form", form)) as Form
 	pending_form = int(d.get("pending", pending_form))
 	if d.has("skills"):

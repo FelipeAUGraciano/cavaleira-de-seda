@@ -2,6 +2,25 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Ataques próprios: cada ramo e cada forma final troca o golpe e a mordida (19/11)
+
+- **Ramos** (um kit cada): **Ceifadora** — Foice (dois cortes de 120° e o terceiro em linha de 4 m) e Bote longo (3,5 m, +50%). **Tecelã** — Chicote de seda (linha de 4 m; 3 acertos deixam lento) e Novelo (7 m, gruda). **Arauta** — Faísca (linha de 6 m, 5 de energia) e Lampejo (cone de 4 m que atordoa).
+- **Formas finais e raras: dois estilos (A/B)**, escolhidos no casulo (aba Evolução) e trocados quando quiser:
+  - **Executora:** A) Frenesi (combo sem fim que acelera a cada acerto seguido) + Degola (bote de 5 m que mata abaixo de 35%). B) Foices gêmeas (segurar carrega um corte em linha de 3 a 6 m que atravessa todos) + Misericórdia (segura o preso no chão golpeando).
+  - **Bastiã:** A) Martelo (pancada lenta num círculo à frente: derruba e quebra a casca) + Investida de ombro (6 m empurrando; contra a parede, +25). B) Muralha (guarda de frente que bloqueia e devolve) + Pisão (onda de 4 m que derruba, até quem voa).
+  - **Senhora das Teias:** A) Chicote de guerra (5 m; 3 acertos prendem) + Casulo rápido (embrulha o preso na hora). B) Rede viva (novelo que vira teia de captura onde cai, sem pilar) + Puxar a rede (traz todos os presos).
+  - **Saltadora:** A) Pêndulo (gira presa a um fio em volta de um ponto) + Bote aéreo (pulo de 5 m por cima de bichos e buracos curtos). B) Ricochete (3 dardos de seda que deixam lento) + Bate e volta.
+  - **Vidente:** A) Ponto fraco (golpe preciso: pelo lado marcado no bicho, 3x e atordoa) + Leitura (marca um bicho: golpes nele são críticos, os dele doem metade). B) Antecipação (aparar e devolver 30) + Olhar da runa (os bichos fogem de medo).
+  - **Tempestade:** A) Raio (8 m, pula para outro bicho) + Descarga (toda a energia num golpe). B) Campo elétrico (orbe que gira e dá choque) + Trovão nos fios (choque por todos os seus fios).
+  - **Seda Ardente:** A) Lança-chamas (sopro contínuo que superaquece) + Brasa (fogo no chão). B) Garras de fogo (enchem a fornalha) + Explosão.
+  - **Sombra do Breu:** A) Golpe silencioso (quem não te viu morre) + Passo sombrio (aparece atrás do bicho). B) Sombra viva (clone que atrai os bichos) + Breu (nuvem que apaga tochas e te esconde).
+  - **Viúva:** A) Cuspe de veneno (poça) + Picada fatal (6 doses; presa envenenada cura 20%). B) Fios venenosos + Dreno (cura com o veneno dos bichos).
+  - **Corrosiva:** A) Cuspe ácido (linha de 6 m com rastro) + Derreter (segurar a mordida). B) Banho ácido (respingo em volta) + Dissolver (come o cadáver de uma vez).
+  - **Pedra-da-lua:** A) Lança de luar (estocada de 4 m) + Estouro (gasta o escudo numa onda). B) Golpe espelhado (acertos recarregam o escudo) + Refletir (devolve flechas, cuspes e golpes).
+- Todos mostram a área no chão antes de acertar (cone, linha, círculo, anel), com cores do tipo (fogo, veneno, ácido, luar). O HUD mostra calor, frenesi, guarda, campo e espelho.
+- Técnico: kits em `actors/player/kits/` (`AttackKit` com movimentos cronometrados, projéteis e áreas no chão; `KitBook` escolhe o kit pela forma e estilo). O estilo vai para o save. Bichos ganharam medo (`scare`) e distração (`distract`); fogueiras e tochas podem ser apagadas (`Fire.snuff`). O veneno passa de 5 doses só pela Picada fatal.
+- Teste novo: `kits_test` (45 checagens, um por ataque). Captura: `tests/screenshot_kits.tscn`.
+
 ## A última muda: 6 formas de ramo e 5 formas raras (18/11)
 
 - **Quando:** no nível 10 do ramo (Ceifadora, Tecelã ou Arauta), a aba Evolução do casulo abre a última muda. Pelo XP do jogo, isso cai no fim do Rio de Brasa ou no começo do Ato 4. O nível volta a 1; habilidades e pontos ficam. Depois dela não há outra muda.

@@ -195,7 +195,7 @@ func to_dict() -> Dictionary:
 			s.append([st.anchor_a, st.anchor_b])
 	var t := []
 	for trp in traps:
-		if is_instance_valid(trp) and trp.used < CaptureWeb.CAPACITY:
+		if is_instance_valid(trp) and trp.used < CaptureWeb.CAPACITY and not trp.has_meta("temp"):
 			t.append([trp.position.x, trp.position.z, CaptureWeb.CAPACITY - trp.used])   # quanto ainda aguenta
 	var c := []
 	for co in cocoons:

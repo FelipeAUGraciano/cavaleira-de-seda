@@ -161,6 +161,10 @@ var _combo_count := 0
 var _strafe := 1.0
 var _marker: AttackMarker
 var _web_immune := 0.0
+var fear_time := 0.0            ## foge de fear_from (Olhar da runa)
+var fear_from := Vector3.ZERO
+var distract_time := 0.0        ## vai até distract_pos (clone de sombra) e esquece a jogadora
+var distract_pos := Vector3.ZERO
 var fire_immune := false        ## bichos de fogo não pegam fogo (Seda Ardente)
 var burn_time := 0.0
 var corrode_time := 0.0         ## Corrosiva: leva +40% de dano enquanto durar
@@ -382,7 +386,19 @@ func _physics_process(delta: float) -> void:
 	_strike_cd -= delta
 	_tick_attacks(delta)
 	var desired := Vector3.ZERO
-	if entangled_time <= 0.0:
+	fear_time -= delta
+	distract_time -= delta
+	if entangled_time <= 0.0 and fear_time > 0.0:
+		cancel_attack()
+		telegraph = false
+		desired = flee_from(fear_from) * slow_mult
+	elif entangled_time <= 0.0 and distract_time > 0.0:
+		cancel_attack()
+		telegraph = false
+		noticed_player = false
+		player_memory = 0.0
+		desired = move_to(distract_pos, 1.2) * slow_mult
+	elif entangled_time <= 0.0:
 		desired = _think(delta) * slow_mult
 	else:
 		telegraph = false
@@ -718,6 +734,23 @@ func _apply_damage(amount: float) -> void:
 		die(false)
 
 
+func scare(secs: float, from: Vector3) -> void:
+	if dead or is_in_group("boss"):
+		return
+	fear_time = maxf(fear_time, secs)
+	fear_from = from
+	asleep = false
+
+
+func distract(pos: Vector3, secs: float) -> void:
+	if dead or is_in_group("boss"):
+		return
+	distract_pos = pos
+	distract_time = maxf(distract_time, secs)
+	noticed_player = false
+	player_memory = 0.0
+
+
 func ignite(secs: float) -> void:
 	if dead or fire_immune or food_fire > 0:
 		return
@@ -729,8 +762,8 @@ func corrode(secs: float) -> void:
 		corrode_time = maxf(corrode_time, secs)
 
 
-func add_poison() -> void:
-	poison_stacks = mini(poison_stacks + 1, MAX_POISON)
+func add_poison(n := 1, cap := MAX_POISON) -> void:
+	poison_stacks = mini(poison_stacks + n, maxi(cap, poison_stacks))
 	poison_time = POISON_DURATION
 
 

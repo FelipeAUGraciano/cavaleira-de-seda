@@ -33,7 +33,22 @@ func _ready() -> void:
 	add_child(_light)
 
 
+var snuffed := 0.0   ## apagado por um tempo (Breu da Sombra): sem luz e sem queimar
+
+
+func snuff(t: float) -> void:
+	snuffed = maxf(snuffed, t)
+	_flame.visible = false
+	_light.visible = false
+
+
 func _process(delta: float) -> void:
+	if snuffed > 0.0:
+		snuffed -= delta
+		if snuffed <= 0.0:
+			_flame.visible = true
+			_light.visible = true
+		return
 	_t += delta
 	var f := 1.0 + 0.15 * sin(_t * 17.0) + 0.1 * sin(_t * 7.3)
 	_light.light_energy = 1.6 * f
@@ -42,7 +57,7 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_check -= delta
-	if _check > 0.0:
+	if _check > 0.0 or snuffed > 0.0:
 		return
 	_check = 0.3
 	for s in WebNetwork.strands.duplicate():
