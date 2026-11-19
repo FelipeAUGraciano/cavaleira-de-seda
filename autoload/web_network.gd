@@ -42,6 +42,8 @@ func create_strand(a: Node3D, b: Node3D) -> WebStrand:
 	root.add_child(s)
 	strands.append(s)
 	recompute()
+	if s.is_inside_tree():
+		Sfx.play("teia_tecer", s.a_pos.lerp(s.b_pos, 0.5), 0.0, 0.1, 0.15)
 	return s
 
 
@@ -50,6 +52,7 @@ func create_trap(pos: Vector3) -> CaptureWeb:
 	t.position = pos
 	root.add_child(t)
 	traps.append(t)
+	Sfx.play("teia_captura", pos, 0.0, 0.1, 0.15)
 	return t
 
 
@@ -76,6 +79,8 @@ func burn_strand(s: WebStrand) -> bool:
 	## Fogo (tocha, flecha, frasco, lava, sopro) num fio. Devolve false se o fio aguentou.
 	if fireproof():
 		return false
+	if is_instance_valid(s):
+		Sfx.play("teia_queima", s.a_pos.lerp(s.b_pos, 0.5), 0.0, 0.1, 0.1)
 	remove_strand(s)
 	return true
 

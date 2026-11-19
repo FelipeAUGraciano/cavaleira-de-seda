@@ -2,6 +2,13 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Efeitos sonoros: o tocador e os prompts (19/11)
+
+- **Aba "Efeitos sonoros (prompts)" no GDD:** 9 prompts (jogadora, ataques, teia, impactos, bichos por família, chefes, caçadores, ambiente, interface), ~140 arquivos contando as variações. Lista dos nomes em `audio/sfx/README.md`.
+- **Autoload `Sfx`:** sons em 3D com o ouvido na jogadora (não na câmera lá em cima), variações sorteadas, afinação levemente diferente a cada toque e limite de repetições por som; o que faltar fica em silêncio.
+- **Já ligado em:** passinhos (mais fracos com a runa apagada), esquiva, dano, morte, comer, runa, Pulso, muda, descanso, queda, nível; garras e mordida; ataques dos kits (pelo formato da área: linha = corte, círculo = martelada, anel = onda; e sons próprios para chicote, bote, raio, explosão, sombra, aparar, guarda, espelho, cristal), projéteis (dardo, bola de fogo, cuspe) e loops de lança-chamas, campo elétrico e carga das foices; fio lançado, fio-guia, teia de captura, bicho preso, teia rompida, fio queimado, embrulhar; golpe acertando (carne, casca, crítico, chefe com casca), morte e corpo caindo; bichos por família (alerta ao te notar, ataque no começo do golpe, dor); chefes (rugido e pisadas da Mãe, patas e golpe da Centopeia, pisadas e respiração do Colosso, sibilo e bote da Serpente, rugido e onda da Rainha, comando, frasco e giro da Capitã); caçadores (passos de bota que dá para ouvir chegando, espada, flecha, tocha, armadilha de fogo); gêiseres, fogueiras e tochas; ambiente de cada mapa; cliques dos menus, abrir/fechar o casulo, pegar item, ação negada.
+- Teste novo: `sfx_test` (com sons de teste em `tests/fixtures/sfx/`).
+
 ## As músicas (19/11)
 
 - **32 faixas** em `audio/music/` (todas as da aba "Músicas (prompts)", feitas em Python pelo criador): 6 mapas com camada de tensão, Colosso e alerta da caçada por cima, Fuga da Mãe, Centopeia e Serpente com intro, Rainha com camada de fúria, Capitã com a trompa, Guardião (3 fases, para o Portão), casulo, menu e 4 curtas. O gerador fica em `tools/musica/` (sementes fixas: gera sempre igual).

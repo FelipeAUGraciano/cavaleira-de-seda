@@ -183,6 +183,7 @@ class Antecipacao extends AttackKit:
 		p.energy_delay = 1.0
 		cds[1] = 10.0
 		var a := make(Attack.Shape.CONE, 8.0, {"arc": 60.0})
+		Sfx.play("pc_pulso", p.global_position)
 		var n := 0
 		for c in targets(a, p.global_position, p.aim_dir, p.global_position, 3.0):
 			if boss(c):
@@ -204,6 +205,7 @@ class Antecipacao extends AttackKit:
 		p.hit_creature(c, 30.0)
 		c.entangle_raw(1.5 if not boss(c) else 0.5)
 		flash_ring(p.global_position, 1.0, Color(1.0, 0.9, 0.5), 0.2)
+		Sfx.play("kit_aparar", p.global_position)
 		p._msg("Antecipou!")
 		p.shake(0.2)
 		end_now()
@@ -264,6 +266,7 @@ class Raio extends AttackKit:
 			p._msg("Descarga! (%d de energia)" % int(spent))})
 
 	func _zig(a: Vector3, b: Vector3) -> void:
+		Sfx.play("kit_raio", a, 0.0, 0.1, 0.05)
 		var pts := [a]
 		for k in range(1, 4):
 			var q := a.lerp(b, k / 4.0)
@@ -287,6 +290,9 @@ class Campo extends AttackKit:
 
 	func status_text() -> String:
 		return "CAMPO" if orb_on else ""
+
+	func _sounds() -> void:
+		Sfx.loop_on(p, "kit_campo_loop", func(): return orb_on)
 
 	func press(slot: int) -> void:
 		if slot == 0:
@@ -320,6 +326,7 @@ class Campo extends AttackKit:
 					if not boss(c):
 						c.entangle_raw(1.5)
 					n += 1
+		Sfx.play("kit_raio", p.global_position, 3.0)
 		p._msg("Trovão nos fios! (%d)" % n)
 		start_move({"dur": 0.35, "hits": [], "move": 0.3})
 

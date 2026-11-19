@@ -95,6 +95,7 @@ func _on_body_entered(body: Node3D) -> void:
 	var p := body as Player
 	if p == null:
 		return
+	Sfx.play("ui_item", global_position)
 	if kind in ["cristal_pv", "cristal_en", "cristal_seda", "cristal_fogo", "olho_escuro"]:
 		Music.stinger("segredo")
 	if kind == "cristal_pv":

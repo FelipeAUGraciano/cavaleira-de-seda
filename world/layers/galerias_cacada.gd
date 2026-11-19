@@ -445,6 +445,8 @@ class FireTrap extends Node3D:
 		if Fx.flat_dist(p.global_position, global_position) < 0.85:
 			armed = false
 			_t = 0.0
+			Sfx.play("armadilha_estalo", global_position)
+			Sfx.play("armadilha_fogo", global_position)
 			if p.take_damage(16.0 * maxf(0.4, p.fire_mult()), null, false):
 				p.apply_burn(3.0)
 			for s in WebNetwork.strands.duplicate():

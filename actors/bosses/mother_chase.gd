@@ -8,6 +8,7 @@ extends Node3D
 const CATCH_DAMAGE := 35.0
 const FRONT := 3.0          ## distância do centro até a "boca"
 
+var _step_t := 0.0
 var route := PackedVector2Array()   ## caminho no plano XZ (x, z)
 var speed := 6.5
 var active := false
@@ -121,6 +122,7 @@ func begin() -> void:
 	visible = true
 	progress = 0.0
 	_place(progress)
+	Sfx.play("mae_rugido", global_position + Vector3.UP * 2.0, 6.0, 0.0)
 	EventBus.big_message.emit("A MÃE ACORDOU!")
 
 
@@ -197,6 +199,11 @@ func _physics_process(delta: float) -> void:
 	if _roar <= 0.0:
 		progress = minf(progress + speed * delta, _length)
 		_place(progress)
+		_step_t -= delta
+		if _step_t <= 0.0:
+			_step_t = 0.42
+			var pa: Vector2 = point_at(progress)[0]
+			Sfx.play("mae_pisada", Vector3(pa.x, 0.5, pa.y), 4.0, 0.1, 0.1)
 	for i in _legs.size():
 		_legs[i].rotation.y = sin(_t * 9.0 + (i % 2) * PI) * 0.35
 	_animate_legs(_t, _roar <= 0.0)
@@ -211,6 +218,7 @@ func _physics_process(delta: float) -> void:
 			p.external_velocity = Vector3(fwd.x, 0.0, fwd.y) * 14.0
 			_hit_cd = 1.2
 			_roar = 0.8
+			Sfx.play("mae_rugido", p.global_position, 2.0, 0.08, 1.5)
 			GameState.say_once("b6_pega", "AAAH! Ela é ENORME!")
 	if progress >= _length and not finished:
 		finished = true

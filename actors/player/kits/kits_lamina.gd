@@ -86,6 +86,10 @@ class Frenesi extends AttackKit:
 
 class Foices extends AttackKit:
 	## Executora B: segurar carrega um corte em linha que atravessa todos; Misericórdia no preso.
+	var charging := false
+
+	func _sounds() -> void:
+		Sfx.loop_on(p, "kit_carga_loop", func(): return charging and busy())
 	func _init() -> void:
 		names = ["Foices gêmeas", "Misericórdia"]
 		descs = ["Toque: corte rápido. Segurar: carrega um corte em linha (3 a 6 m) que atravessa todos, de 25 a 60.",
@@ -96,11 +100,13 @@ class Foices extends AttackKit:
 			_misericordia()
 			return
 		var a := make(Attack.Shape.LINE, 3.0, {"width": 1.2})
+		charging = true
 		start_move({"dur": 1.2, "hold": "attack", "attack": a, "move": 0.35, "noise": 3.0, "hits": [],
 			"update": func(t, _dt):
 				a.reach = 3.0 + 3.0 * clampf((t - 0.2) / 1.0, 0.0, 1.0)
 				return Vector3.ZERO,
 			"on_release": func(t):
+				charging = false
 				if t < 0.2:
 					var reach := Player.ATTACK_RANGE * float(p.form_data()["scale"]) + 0.3
 					p._swing_blades(0)
@@ -109,6 +115,7 @@ class Foices extends AttackKit:
 				var k := clampf((t - 0.2) / 1.0, 0.0, 1.0)
 				var line := make(Attack.Shape.LINE, 3.0 + 3.0 * k, {"width": 1.2})
 				p._swing_blades(2)
+				Sfx.play("kit_corte", p.global_position)
 				var dir := p.aim_dir
 				start_move({"dur": 0.35, "hits": [0.06], "attack": line, "dmg": 25.0 + 35.0 * k, "dir": dir, "lunge": 8.0, "lunge_until": 0.1, "move": 0.0,
 					"on_fire": func():
@@ -155,7 +162,7 @@ class Martelo extends AttackKit:
 			_ombro()
 			return
 		var point := p.global_position + p.aim_dir * 1.9
-		start_move({"dur": 0.85, "hits": [0.55], "attack": make(Attack.Shape.CIRCLE, 1.7, {"at_point": true}), "point": point,
+		start_move({"sfx": "", "dur": 0.85, "hits": [0.55], "attack": make(Attack.Shape.CIRCLE, 1.7, {"at_point": true}), "point": point,
 			"dmg": 45.0, "move": 0.2, "noise": 10.0, "dodge_cancel": true,
 			"on_hit": func(c, _d):
 				c.corrode(4.0)
@@ -163,6 +170,7 @@ class Martelo extends AttackKit:
 					c.entangle_raw(1.5),
 			"on_fire": func():
 				flash_ring(point, 1.7, Color(0.9, 0.85, 0.7))
+				Sfx.play("kit_martelo", point)
 				p.shake(0.35)})
 
 	func _ombro() -> void:
@@ -258,17 +266,19 @@ class Muralha extends AttackKit:
 			p.hit_creature(c, 20.0)
 			if not boss(c):
 				c.entangle_raw(0.8)
+		Sfx.play("kit_guarda", p.global_position)
 		return 0.0
 
 	func _pisao() -> void:
 		if not ready_slot(1, "O pisão ainda não voltou."):
 			return
 		cds[1] = 3.0
-		start_move({"dur": 0.6, "hits": [0.35], "attack": make(Attack.Shape.RING, 4.0), "dmg": 0.0, "move": 0.0, "noise": 12.0,
+		start_move({"sfx": "", "dur": 0.6, "hits": [0.35], "attack": make(Attack.Shape.RING, 4.0), "dmg": 0.0, "move": 0.0, "noise": 12.0,
 			"on_fire": func():
 				for c in targets(make(Attack.Shape.RING, 4.0), p.global_position, p.aim_dir, p.global_position, 4.0):
 					p.hit_creature(c, 18.0)
 					if not boss(c):
 						c.entangle_raw(1.2)
 				flash_ring(p.global_position, 4.0, Color(0.9, 0.8, 0.6), 0.3)
+				Sfx.play("kit_onda", p.global_position)
 				p.shake(0.4)})

@@ -163,6 +163,9 @@ var _combo_count := 0
 var _strafe := 1.0
 var _marker: AttackMarker
 var _web_immune := 0.0
+var step_sound := ""            ## passos audíveis (botas dos caçadores)
+var step_len := 1.1
+var _stride := 0.0
 var boss_music := ""            ## chefe: mus_boss_<nome>.ogg quando a luta começa (autoload Music)
 var fear_time := 0.0            ## foge de fear_from (Olhar da runa)
 var fear_from := Vector3.ZERO
@@ -426,6 +429,11 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	external_velocity = external_velocity.move_toward(Vector3.ZERO, 18.0 * delta)
 	move_and_slide()
+	if step_sound != "" and is_on_floor():
+		_stride += Vector2(velocity.x, velocity.z).length() * delta
+		if _stride >= step_len:
+			_stride = 0.0
+			Sfx.play(step_sound, global_position, -3.0, 0.1, 0.03)
 	if _grid_move and global_position.y < 0.0 and global_position.y > -0.6 and World.nav.walkable(global_position, NavGrid.Kind.SMALL):
 		global_position.y = 0.0   # pousou no chão
 		velocity.y = 0.0
@@ -480,7 +488,10 @@ func _sense() -> void:
 	if was_near != near_player:
 		_lod_changed(near_player)
 	var was_noticed := noticed_player
+	var _was_noticed := noticed_player
 	noticed_player = p != null and not p.dead and near_player and notices_player(p)
+	if noticed_player and not _was_noticed:
+		Sfx.creature(self, "alerta")
 	if uses_interest and aggression > 0.0 and p != null:
 		_update_interest(sense_interval(), p)
 		if noticed_player and _bored_t > 0.0:
@@ -719,6 +730,8 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 	_last_attacker = source
 	_flash = 0.12
 	if amount >= 3.0:
+		Sfx.creature(self, "dor")
+	if amount >= 3.0:
 		_flinch = 0.18
 	asleep = false
 	if source != null and source.is_in_group("player"):
@@ -875,6 +888,7 @@ func die(fell: bool = false) -> void:
 	dead = true
 	World.unregister(self)
 	if not fell:
+		Sfx.death(self)
 		_death_fx()
 		var corpse := Corpse.new()
 		corpse.setup(display_name, food_satiety, food_silk, food_xp, body_color, body_radius)
@@ -1069,6 +1083,7 @@ func fight(target: Node3D, delta: float) -> Vector3:
 			_strike_t = 0.0
 			_strike_target = target
 			telegraph = true
+			Sfx.creature(self, "ataque")
 		return Vector3.ZERO
 	return nav_to(target.global_position, hunt_burst)
 
@@ -1258,6 +1273,7 @@ func start_attack(a: Attack, p: Player) -> void:
 		face_toward(atk_point)   # mira uma vez e trava: o aviso não acompanha você
 	telegraph = true
 	activity = a.label
+	Sfx.creature(self, "ataque")
 	if _marker == null:
 		_marker = AttackMarker.new()
 		add_child(_marker)

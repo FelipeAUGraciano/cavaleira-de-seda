@@ -21,6 +21,8 @@ const SEE := 6.0
 const KILL_R := 3.4          ## alcance da pisada/mordida (da cabeça)
 const REACH := 5.0           ## até quanto fora do meio da trilha ele alcança
 
+var _step_acc := 0.0
+var _last_s := 0.0
 var route: PackedVector2Array = PackedVector2Array()   ## meio da trilha (x, z)
 var mode := Mode.PATROL
 var s := 0.0                 ## posição ao longo da rota (metros)
@@ -46,6 +48,7 @@ func setup(route_: PackedVector2Array) -> Colossus:
 
 
 func _ready() -> void:
+	Sfx.loop_on(self, "colosso_respira_loop", Callable(), 2.0)
 	add_to_group("colossus")
 	_seg.resize(route.size())
 	_len = 0.0
@@ -141,6 +144,14 @@ func _physics_process(delta: float) -> void:
 			elif _t > 3.5:
 				_calm()
 	_place(delta)
+	_step_acc += absf(s - _last_s)
+	_last_s = s
+	if _step_acc >= 3.2:
+		_step_acc = 0.0
+		Sfx.play("colosso_pisada", global_position, 6.0, 0.08, 0.3)
+		var pl := GameState.player as Player
+		if pl != null and Fx.flat_dist(pl.global_position, global_position) < 14.0:
+			pl.shake(0.12)
 	_sense_t -= delta
 	if _sense_t <= 0.0:
 		_sense_t = 0.2

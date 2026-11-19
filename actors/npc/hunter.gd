@@ -84,6 +84,7 @@ func _init(role_: String = "espadachim") -> void:
 
 func _ready() -> void:
 	super._ready()
+	step_sound = "bota_passo"   # dá para ouvir os caçadores chegando
 	add_to_group("hunter")
 	add_to_group("predator")
 	if role == "batedor" or role == "capita":

@@ -86,6 +86,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	super._ready()
+	Sfx.loop_on(self, "centopeia_patas_loop", func(): return not dead and Vector2(velocity.x, velocity.z).length() > 1.5, 2.0)
 	add_to_group("boss")
 	boss_music = "centopeia"
 	add_to_group("predator")

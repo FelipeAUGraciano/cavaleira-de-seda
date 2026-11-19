@@ -177,11 +177,13 @@ func open_cocoon(c: Node3D) -> void:
 		cocoon_menu = CocoonMenu.new()
 		cocoon_menu.closed.connect(func():
 			Music.cocoon(false)
+			Sfx.play("ui_voltar")
 			if not _pause_box.visible and not _options.visible:
 				get_tree().paused = false)
 		add_child(cocoon_menu)
 	get_tree().paused = true
 	Music.cocoon(true)
+	Sfx.play("ui_abrir")
 	cocoon_menu.open(player, c)
 
 

@@ -741,6 +741,14 @@ func _tick_geysers(delta: float) -> void:
 		var ph := fmod(_geyser_t + k * 0.9, 4.5)
 		var bubbling := ph >= 2.7 and ph < 3.7
 		var erupting := ph >= 3.7
+		var was: int = g.get_meta("snd", 0)
+		var now := 2 if erupting else (1 if bubbling else 0)
+		if now != was:
+			g.set_meta("snd", now)
+			if now == 1:
+				Sfx.play("geiser_aviso", g.global_position, 0.0, 0.1, 0.0)
+			elif now == 2:
+				Sfx.play("geiser_erupcao", g.global_position, 0.0, 0.1, 0.0)
 		(g.get_meta("bubble") as Node3D).visible = bubbling
 		(g.get_meta("jet") as Node3D).visible = erupting
 		if not erupting:

@@ -20,6 +20,9 @@ class LancaChamas extends AttackKit:
 		descs = ["Segurar: sopro de fogo em cone (5 m), 30 por segundo e incendeia. Esquenta você: em 100% de calor, ela trava por 2,5 s.",
 			"Cospe uma bola de brasa (7 m) que deixa fogo no chão por 5 s (10 por segundo e incendeia)."]
 
+	func _sounds() -> void:
+		Sfx.loop_on(p, "kit_fogo_loop", func(): return flaming and busy())
+
 	func status_text() -> String:
 		if overheat > 0.0:
 			return "SUPERAQUECIDA"
@@ -89,7 +92,7 @@ class Fornalha extends AttackKit:
 			bite_move(2.6, bite_dmg())
 			return
 		heat = 0.0
-		start_move({"dur": 0.55, "hits": [0.25], "attack": make(Attack.Shape.RING, 3.5), "dmg": 60.0, "move": 0.0, "noise": 14.0,
+		start_move({"sfx": "kit_explosao", "dur": 0.55, "hits": [0.25], "attack": make(Attack.Shape.RING, 3.5), "dmg": 60.0, "move": 0.0, "noise": 14.0,
 			"colors": [Color(1.0, 0.5, 0.15, 0.15), Color(1.0, 0.4, 0.1, 0.5)],
 			"on_fire": func():
 				flash_ring(p.global_position, 3.5, FIRE_COL, 0.35)
@@ -135,6 +138,7 @@ class Assassina extends AttackKit:
 		if Fx.flat_dist(spot, t.global_position) < t.body_radius + 0.3:
 			spot = p.global_position   # sem lugar atrás: morde daqui mesmo
 		cds[1] = 4.0
+		Sfx.play("kit_sombra", p.global_position)
 		flash_ring(p.global_position, 0.6, SHADOW_COL, 0.3)
 		p.global_position = Vector3(spot.x, p.global_position.y, spot.z)
 		flash_ring(p.global_position, 0.6, SHADOW_COL, 0.3)
@@ -175,6 +179,7 @@ class SombraViva extends AttackKit:
 					c.distract(at, 5.0)
 					n += 1
 			p.veil_t = 2.5
+			Sfx.play("kit_sombra", at)
 			p._msg("Sombra viva (%d foram atrás dela)." % n)
 			start_move({"dur": 0.2, "hits": [], "move": 1.2, "noise": 0.0})
 			return
@@ -188,6 +193,7 @@ class SombraViva extends AttackKit:
 				(n as Fire).snuff(6.0)
 		cloud_t = 6.0
 		cloud_c = center
+		Sfx.play("kit_sombra", center, 2.0)
 		p._msg("Breu.")
 		start_move({"dur": 0.3, "hits": [], "move": 0.5, "noise": 0.0})
 
@@ -306,7 +312,7 @@ class Cuspe extends AttackKit:
 			cds[0] = 0.5
 			var a := make(Attack.Shape.LINE, 6.0, {"width": 1.0})
 			var dir := p.aim_dir
-			start_move({"dur": 0.35, "hits": [0.15], "attack": a, "dmg": 12.0, "move": 0.6, "noise": 4.0,
+			start_move({"sfx": "kit_cuspe", "dur": 0.35, "hits": [0.15], "attack": a, "dmg": 12.0, "move": 0.6, "noise": 4.0,
 				"colors": [Color(0.55, 1.0, 0.2, 0.12), Color(0.55, 1.0, 0.2, 0.4)],
 				"on_fire": func():
 					flash_line(p.global_position, p.global_position + dir * 6.0, ACID_COL, 0.25, 0.14)
@@ -320,6 +326,7 @@ class Cuspe extends AttackKit:
 			bite_move(2.6, bite_dmg())
 			return
 		var st := {"next": 0.0}
+		Sfx.play("kit_cuspe", p.global_position, -3.0)
 		start_move({"dur": 2.5, "hold": "bite", "hits": [], "move": 0.0, "noise": 3.0,
 			"update": func(time, _dt):
 				if not is_instance_valid(t) or t.dead or Fx.flat_dist(t.global_position, p.global_position) > 2.6 + t.body_radius:
@@ -348,7 +355,7 @@ class Banho extends AttackKit:
 			if not ready_slot(0):
 				return
 			cds[0] = 0.6
-			start_move({"dur": 0.45, "hits": [0.2], "attack": make(Attack.Shape.RING, 3.0), "dmg": 10.0, "move": 0.3, "noise": 5.0,
+			start_move({"sfx": "kit_cuspe", "dur": 0.45, "hits": [0.2], "attack": make(Attack.Shape.RING, 3.0), "dmg": 10.0, "move": 0.3, "noise": 5.0,
 				"colors": [Color(0.55, 1.0, 0.2, 0.12), Color(0.55, 1.0, 0.2, 0.4)],
 				"on_fire": func(): flash_ring(p.global_position, 3.0, ACID_COL, 0.25)})
 			return
@@ -357,6 +364,7 @@ class Banho extends AttackKit:
 			var at := corpse.global_position
 			p._eat(corpse)
 			p.hp = minf(p.max_hp, p.hp + p.max_hp * 0.15)
+			Sfx.play("kit_cuspe", at)
 			flash_ring(at, 0.8, ACID_COL, 0.4)
 			p._msg("Dissolveu!")
 			start_move({"dur": 0.4, "hits": [], "move": 0.0, "noise": 2.0})
@@ -387,7 +395,7 @@ class Lanca extends AttackKit:
 		var power := p.shield * 1.2 + 10.0
 		p.shield = 0.0
 		p._shield_wait = 6.0
-		start_move({"dur": 0.5, "hits": [0.2], "attack": make(Attack.Shape.RING, 3.5), "dmg": power, "move": 0.0, "noise": 10.0,
+		start_move({"sfx": "kit_cristal", "dur": 0.5, "hits": [0.2], "attack": make(Attack.Shape.RING, 3.5), "dmg": power, "move": 0.0, "noise": 10.0,
 			"colors": [Color(0.85, 0.92, 1.0, 0.14), Color(0.85, 0.92, 1.0, 0.5)],
 			"on_hit": func(c, _d):
 				if c.dead:
@@ -423,8 +431,9 @@ class Espelho extends AttackKit:
 			return
 		cds[1] = 4.0
 		reflecting = true
+		Sfx.play("kit_espelho", p.global_position)
 		flash_ring(p.global_position, 1.0, MOON_COL, 0.8)
-		start_move({"dur": 0.8, "hits": [], "attack": make(Attack.Shape.RING, 1.2), "move": 0.3, "noise": 2.0,
+		start_move({"sfx": "", "dur": 0.8, "hits": [], "attack": make(Attack.Shape.RING, 1.2), "move": 0.3, "noise": 2.0,
 			"colors": [Color(0.85, 0.92, 1.0, 0.2), Color(0.85, 0.92, 1.0, 0.3)],
 			"on_end": func(_ok): reflecting = false})
 
@@ -434,5 +443,6 @@ class Espelho extends AttackKit:
 		if source is Creature and not (source as Creature).dead:
 			(source as Creature).take_damage(amount * 1.5, p)
 			flash_line(p.global_position, source.global_position, MOON_COL, 0.25, 0.08)
+		Sfx.play("kit_aparar", p.global_position)
 		p._msg("Refletiu!")
 		return 0.0

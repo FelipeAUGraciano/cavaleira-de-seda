@@ -58,6 +58,7 @@ func _ready() -> void:
 	World.reset()
 	_configure()
 	Music.area.call_deferred(music_area)
+	Sfx.ambient.call_deferred(music_area)
 
 	var data := GameState.load_game()
 	var here := GameState.carry.is_empty() and not data.is_empty() and String(data.get("scene", "")) == scene_file_path

@@ -13,7 +13,7 @@ class Tecela extends AttackKit:
 
 	func press(slot: int) -> void:
 		if slot == 0:
-			start_move({"dur": 0.32, "hits": [0.12], "attack": make(Attack.Shape.LINE, 4.0, {"width": 0.7}), "dmg": combo_dmg(0) + 2.0,
+			start_move({"sfx": "kit_chicote", "dur": 0.32, "hits": [0.12], "attack": make(Attack.Shape.LINE, 4.0, {"width": 0.7}), "dmg": combo_dmg(0) + 2.0,
 				"move": 1.0, "queue": true, "noise": 4.0,
 				"on_hit": func(c, _d):
 					if add_stack(c, 1) % 3 == 0:
@@ -43,7 +43,7 @@ class Guerra extends AttackKit:
 
 	func press(slot: int) -> void:
 		if slot == 0:
-			start_move({"dur": 0.3, "hits": [0.11], "attack": make(Attack.Shape.LINE, 5.0, {"width": 0.8}), "dmg": 10.0, "move": 1.0, "queue": true, "noise": 4.0,
+			start_move({"sfx": "kit_chicote", "dur": 0.3, "hits": [0.11], "attack": make(Attack.Shape.LINE, 5.0, {"width": 0.8}), "dmg": 10.0, "move": 1.0, "queue": true, "noise": 4.0,
 				"on_hit": func(c, _d):
 					if c.dead:
 						return
@@ -161,7 +161,7 @@ class Pendulo extends AttackKit:
 		var a0 := atan2(p.global_position.z - pivot.z, p.global_position.x - pivot.x)
 		var side := 1.0 if randf() < 0.5 else -1.0
 		var hit: Array = []
-		start_move({"dur": 0.5, "hits": [], "attack": make(Attack.Shape.RING, r + 0.8), "origin": pivot, "move": 0.0, "noise": 3.0,
+		start_move({"sfx": "teia_lancar", "dur": 0.5, "hits": [], "attack": make(Attack.Shape.RING, r + 0.8), "origin": pivot, "move": 0.0, "noise": 3.0,
 			"update": func(time, dt):
 				var k := clampf(time / 0.45, 0.0, 1.0)
 				var ang := a0 + side * PI * 1.1 * k
@@ -191,7 +191,7 @@ class Pendulo extends AttackKit:
 		var dir := p.aim_dir
 		p.leaping = true
 		p.collision_mask = 1
-		start_move({"dur": 0.55, "hits": [0.4], "attack": make(Attack.Shape.CIRCLE, 1.6, {"at_point": true}), "point": land, "dmg": 22.0, "poison": true,
+		start_move({"sfx": "kit_bote", "dur": 0.55, "hits": [0.4], "attack": make(Attack.Shape.CIRCLE, 1.6, {"at_point": true}), "point": land, "dmg": 22.0, "poison": true,
 			"dir": dir, "lunge": dist / 0.4, "lunge_until": 0.4, "move": 0.0, "noise": 2.0,
 			"colors": [Color(0.45, 1.0, 0.45, 0.12), Color(0.55, 1.0, 0.5, 0.42)],
 			"update": func(time, _dt):

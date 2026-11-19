@@ -136,6 +136,7 @@ func _physics_process(delta: float) -> void:
 		if _warn >= WAVE_WARN:
 			_warn = -1.0
 			_wave_r = 0.5
+			Sfx.play("rainha_onda", global_position, 6.0, 0.0)
 			_hit_wave = false
 			_ring.visible = true
 			var p := GameState.player as Player

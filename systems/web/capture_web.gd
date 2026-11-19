@@ -68,6 +68,7 @@ func _on_body_entered(body: Node3D) -> void:
 				c.add_poison()
 	used += w
 	held.append(c)
+	Sfx.play("teia_prende_bicho", global_position)
 	_disc_mat.albedo_color.a = lerpf(0.3, 0.1, float(used) / capacity)
 	EventBus.web_touched.emit(global_position, c)
 	if used >= capacity:
@@ -80,6 +81,7 @@ func _on_body_entered(body: Node3D) -> void:
 func _rip(by: Creature) -> void:
 	## Peso demais (ou bicho grande): a teia arrebenta e solta todo mundo.
 	_torn = true
+	Sfx.play("teia_rompe", global_position)
 	for h in held:
 		if is_instance_valid(h):
 			(h as Creature).release_web()

@@ -25,6 +25,12 @@ func setup(pl: Player) -> void:
 	p = pl
 	marker = AttackMarker.new()
 	add_child(marker)
+	_sounds()
+
+
+func _sounds() -> void:
+	## Loops de som do kit (Sfx.loop_on com uma condição).
+	pass
 
 
 # ------------------------------------------------------------ para os kits sobrescreverem
@@ -96,6 +102,26 @@ func start_move(m: Dictionary) -> void:
 	if not _m.has("dir"):
 		_m["dir"] = p.aim_dir
 	p._start_state(Player.State.SKILL)
+	var snd := String(m.get("sfx", _sfx_for(m)))
+	if snd != "":
+		Sfx.play(snd, p.global_position, 0.0, 0.1, 0.02)
+
+
+func _sfx_for(m: Dictionary) -> String:
+	## Som do movimento pelo formato da área (o kit pode pedir outro com "sfx").
+	if String(m.get("hold", "")) != "":
+		return ""   # segurar: o som sai ao soltar
+	var a: Attack = m.get("attack")
+	if a == null:
+		return ""
+	match a.shape:
+		Attack.Shape.LINE:
+			return "kit_corte"
+		Attack.Shape.CIRCLE:
+			return "kit_martelo"
+		Attack.Shape.RING:
+			return "kit_onda"
+	return "pc_garra"
 
 
 func state_update(delta: float) -> Vector3:
@@ -228,7 +254,7 @@ func bite_move(assist: float, dmg: float, extra := {}) -> Creature:
 			dir = to.normalized()
 		dist = clampf(to.length() - t.body_radius - 0.35, 0.0, assist)
 	var m := {"dur": Player.BITE_TIME, "hits": [0.2], "attack": make(Attack.Shape.CONE, Player.BITE_RANGE, {"arc": 70.0}),
-		"dmg": dmg, "poison": true, "dir": dir, "lunge": dist / 0.16, "lunge_until": 0.16, "move": 0.5, "noise": 4.0,
+		"sfx": "pc_mordida", "dmg": dmg, "poison": true, "dir": dir, "lunge": dist / 0.16, "lunge_until": 0.16, "move": 0.5, "noise": 4.0,
 		"colors": [Color(0.45, 1.0, 0.45, 0.12), Color(0.55, 1.0, 0.5, 0.42)]}
 	m.merge(extra, true)
 	start_move(m)
@@ -326,6 +352,12 @@ func flash_line(a: Vector3, b: Vector3, col: Color, life := 0.2, w := 0.12) -> v
 
 func shoot(from: Vector3, to: Vector3, speed: float, radius: float, col: Color, hit_cb: Callable, pierce := false, end_cb := Callable(), lob := false) -> Shot:
 	var s := Shot.new()
+	var snd := "kit_dardo"
+	if col.r > 0.9 and col.g < 0.7:
+		snd = "kit_bola_fogo"
+	elif col.g > 0.9 and col.b < 0.4:
+		snd = "kit_cuspe"
+	Sfx.play(snd, from, 0.0, 0.12, 0.03)
 	s.from = from
 	s.to = to
 	s.speed = speed

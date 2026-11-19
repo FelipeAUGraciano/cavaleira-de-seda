@@ -291,6 +291,11 @@ var _model_overlay: StandardMaterial3D
 # ================================================================= setup
 
 func _ready() -> void:
+	var ear := AudioListener3D.new()   # os efeitos soam a partir dela, não da câmera lá em cima
+	ear.name = "Ouvido"
+	ear.position = Vector3(0, 1.0, 0)
+	add_child(ear)
+	ear.make_current.call_deferred()
 	add_to_group("player")
 	GameState.player = self
 	collision_layer = 2
@@ -610,6 +615,7 @@ func _evolve_branch() -> void:
 	shield = float(fd("shield", 0.0))
 	EventBus.big_message.emit("Evolução: %s!" % form_name())
 	Music.stinger("evolucao")
+	Sfx.play("pc_muda_casca", global_position)
 	_msg("A muda terminou: %s. O nível voltou a 1." % form_name() + (" Esta é a última muda." if is_final() else ""))
 	match form:
 		Form.LAMINA:
@@ -966,7 +972,25 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	external_velocity = external_velocity.move_toward(Vector3.ZERO, 25.0 * delta)
 	move_and_slide()
+	_step_sounds(delta)
 	_check_fall_and_safe(delta)
+
+
+var _stride := 0.0
+
+
+func _step_sounds(_delta: float) -> void:
+	## Passinhos: um toque a cada passada (mais fracos com a runa apagada).
+	if not is_on_floor() or leaping or on_strand or dead:
+		return
+	var v := Vector2(velocity.x, velocity.z).length()
+	if v < 0.6:
+		return
+	_stride += v * get_physics_process_delta_time()
+	var step := 0.55 * float(form_data()["scale"])
+	if _stride >= step:
+		_stride = 0.0
+		Sfx.play("pc_passo", global_position, -2.0 if rune_on else -8.0, 0.12, 0.05)
 
 
 func _start_state(s: State) -> void:
@@ -1051,6 +1075,7 @@ func _try_dodge() -> void:
 			return
 		energy -= cost
 		energy_delay = 1.0
+		Sfx.play("pc_esquiva", global_position)
 		action_dir = move_dir.normalized()
 		invuln = DODGE_INVULN + float(fd("dodge_bonus", 0.0))
 		_dash_hit.clear()
@@ -1095,6 +1120,7 @@ func _start_attack(index: int) -> void:
 	combo_queued = false
 	_start_state(State.ATTACK)
 	_swing_blades(index)
+	Sfx.play("pc_garra_pesada" if index == 2 else "pc_garra", global_position, 0.0, 0.1, 0.02)
 	var reach := ATTACK_RANGE * float(form_data()["scale"]) + 0.3
 	if index == 2 and _spiral_ready():
 		_begin_swing(Attack.make("espiral", "", {"shape": Attack.Shape.RING, "reach": reach + 0.5}), 0.1, aim_dir, false)
@@ -1105,6 +1131,7 @@ func _start_attack(index: int) -> void:
 func _start_bite() -> void:
 	## Mordida: micro-avanço. Se houver um bicho perto na mira, avança até encostar nele.
 	_start_state(State.BITE)
+	Sfx.play("pc_mordida", global_position)
 	_bite_dir = aim_dir
 	var dist := 0.6
 	var best := BITE_ASSIST
@@ -1369,6 +1396,8 @@ func _impact_fx(c: Creature, dmg: float, crit: bool) -> void:
 	if dmg >= 6.0:
 		Juice.impact(at, col, strength)
 	Juice.number(c.global_position + Vector3.UP * c.body_radius, dmg, col if crit or dmg >= 30.0 else Color(1, 1, 1), crit or heavy)
+	if dmg >= 4.0:
+		Sfx.hit(c, crit, dmg)
 	if dmg >= 8.0:
 		Juice.hitstop(0.035 + (0.025 if crit else 0.0) + (0.03 if heavy else 0.0) + (0.04 if c.dead else 0.0))
 
@@ -1421,6 +1450,7 @@ func _throw_silk() -> void:
 		_msg("Seda insuficiente para lançar fio.")
 		return
 	silk -= SILK_THROW
+	Sfx.play("teia_lancar", global_position)
 	if _silk != null and is_instance_valid(_silk):
 		_silk.release()
 	var dir := aim_dir
@@ -1550,6 +1580,7 @@ func _interact() -> void:
 
 
 func _eat(c: Corpse) -> void:
+	Sfx.play("pc_comer", global_position)
 	var rotten := c.is_rotten()
 	if c.has_meta("venom_heal"):
 		hp = minf(max_hp, hp + max_hp * 0.2)
@@ -1605,6 +1636,7 @@ func rest_blocker() -> String:
 
 
 func _rest(c: Cocoon) -> void:
+	Sfx.play("pc_descanso")
 	hp = max_hp
 	energy = max_energy
 	silk = max_silk
@@ -1745,6 +1777,7 @@ func wrap_into_bag(c: Corpse) -> bool:
 		_msg("Seda insuficiente para embrulhar (precisa de %d)." % int(SILK_WRAP))
 		return false
 	silk -= SILK_WRAP
+	Sfx.play("teia_embrulhar", c.global_position)
 	bag.append({"name": c.display_name, "sat": c.satiety, "silk": c.silk})
 	c.consume()
 	_msg("Embrulhou %s (%d/%d na bolsa). Coma com %s quando quiser." % [c.display_name, bag.size(), BAG_MAX, Settings.text("eat")])
@@ -1891,6 +1924,7 @@ func _weave_cocoon() -> void:
 
 func _toggle_rune() -> void:
 	rune_on = not rune_on
+	Sfx.play("pc_runa_liga" if rune_on else "pc_runa_desliga", global_position)
 	var pulse_cost := 10.0 if fd("pulse", false) else 20.0
 	if rune_on and (has_skill("pulso") or fd("pulse", false)) and energy >= pulse_cost:
 		energy -= pulse_cost
@@ -1908,6 +1942,7 @@ func pulse_radius() -> float:
 
 
 func _rune_pulse() -> void:
+	Sfx.play("pc_pulso", global_position)
 	## Onda de luz: atordoa os bichos perto (a Centopeia é grande demais para ligar).
 	var ring := MeshInstance3D.new()
 	var tm := TorusMesh.new()
@@ -2219,6 +2254,7 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 			return false
 	invuln = 0.35
 	_hurt_flash = 0.25
+	Sfx.play("pc_dano", global_position, 0.0, 0.08, 0.15)
 	if amount >= 4.0:
 		Juice.hitstop(0.05 if amount < 20.0 else 0.09)
 		if get_parent() != null:
@@ -2285,6 +2321,7 @@ func _hurt(amount: float) -> void:
 func _die() -> void:
 	stop_drag()
 	Music.stinger("morte")
+	Sfx.play("pc_morte", global_position)
 	dead = true
 	hp = 0.0
 	state = State.DEAD
@@ -2323,6 +2360,7 @@ func _respawn() -> void:
 
 func _check_fall_and_safe(delta: float) -> void:
 	if global_position.y < -2.5 and not falling:
+		Sfx.play("pc_queda", global_position)
 		var layer = GameState.current_layer
 		if layer != null and layer.has_method("on_player_fell"):
 			falling = true
@@ -2394,6 +2432,7 @@ func gain_xp(amount: int) -> void:
 	while xp >= xp_to_next():
 		xp -= xp_to_next()
 		level += 1
+		Sfx.play("pc_nivel")
 		skill_points += 1
 		var old_hp := hp
 		recompute_stats(false)
@@ -2549,6 +2588,8 @@ func _update_visual(delta: float) -> void:
 # ================================================================= utilidades
 
 func _msg(text: String) -> void:
+	if text.begins_with("Sem ") or text.contains("insuficiente"):
+		Sfx.play("ui_erro", Vector3.INF, 0.0, 0.0, 0.3)   # sem seda, sem energia...
 	EventBus.message.emit(text)
 
 

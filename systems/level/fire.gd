@@ -16,6 +16,7 @@ func _init(size_: float = 1.0) -> void:
 
 
 func _ready() -> void:
+	Sfx.loop_on(self, "loop_fogueira", func(): return snuffed <= 0.0, -2.0)
 	add_to_group("fire")
 	var pole := Fx.cylinder(0.05 * size, 1.1 * size, Fx.mat(Color(0.3, 0.2, 0.12)))
 	pole.position.y = 0.55 * size
