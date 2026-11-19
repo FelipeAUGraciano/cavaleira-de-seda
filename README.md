@@ -12,6 +12,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 - **Menu da toca:** teia de 17 habilidades (1 ponto por nível), evolução, despensa, portas e fios-alarme. Descansar salva, cura, remenda portas e faz a muda; não dá para dormir com um bicho te caçando perto.
 - **Criaturas:** irmãs, larvas, sapos, morcegos, lagartos, formigas-de-seda (em fila, roem seus fios), cobras-das-frestas (bote da parede), besouros carniceiros, escorpiões-de-obsidiana, aranhas-lobo do breu, mímicos de estalagmite, lesmas de ácido, morcegos gigantes, a Cortina viva, a Mãe, a Centopeia-blindada, o Colosso do Abismo e a Serpente-cega, com fome, sono, medo e golpes avisados por marcas no chão. Teia por tamanho (pequeno fica preso, médio rasga, grande arrebenta).
 - **Mundo:** Galerias em dois andares geradas como caverna orgânica, ciclo de luz de 5 minutos, território, pilares variados, ganchos de parede nos abismos.
+- **Bestiário (B, na pausa ou no casulo):** 31 criaturas por área. Ver um bicho anota nome, tamanho e a nota da Cavaleira; derrotar anota golpes (com o dano), sentidos, PV e como lidar; comer anota o que a carne dá. Quem ainda não foi visto aparece como sombra. Os números vêm do próprio bicho, e o que se aprende vai para o save na hora e sobrevive à morte.
 - **Menus:** menu inicial com a Cavaleira em 2D na frente da caverna em 3D, 3 espaços de save, pausa com o lugar e um cartão da Cavaleira, Opções (som, tela, brilho, controles remapeáveis no teclado e no controle). Tudo no estilo de seda (`ui/silk_ui.gd`).
 - **Arte:** modelos 3D da protagonista, de todas as criaturas, da Mãe e dos props; o chão e as paredes são gerados em código.
 
@@ -39,6 +40,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 | Comer embrulho da bolsa | G | Direcional para a esquerda |
 | Apagar / acender runa | F | Clique no analógico direito |
 | Mapa | M | Direcional para cima |
+| Bestiário | B | Direcional para a direita |
 | Ajuda na tela | H | Back |
 | Pausa, Opções e menu | Esc | Start |
 | Testes: +1 nível / novo jogo direto | F1 / F8 | — |
@@ -108,7 +110,7 @@ systems/level/ cave_builder.gd (cavernas orgânicas), map_system.gd, pickup.gd, 
 systems/spider_legs.gd   as 8 patas com IK
 systems/models.gd        troca formas cinza por modelos .glb (assets/models/)
 assets/models/ modelos 3D, um por pasta (veja "Modelos 3D" abaixo)
-tools/         preparar_modelo.sh (reduz malha e texturas dos modelos da IA)
+tools/         preparar_modelo.sh (reduz malha e texturas dos modelos da IA), bestiario/retratos.tscn (fotografa os bichos para o bestiário)
 actors/bosses/ mother_leg.gd (pata da despensa), mother_chase.gd (fuga), centipede.gd (Centopeia-blindada), colossus.gd (Colosso do Abismo), serpent.gd (Serpente-cega), queen_salamander.gd (Salamandra-rainha)
 ui/            silk_ui.gd (cores, fontes e molduras), hud.gd, cocoon_menu.gd (menu do casulo), options_menu.gd, skill_icons.gd, vision_overlay.gd
 systems/skills.gd        a teia de habilidades
@@ -174,6 +176,7 @@ godot --headless --path . res://tests/novos_test.tscn       # formigas, cobra e 
 godot --headless --path . res://tests/caca_test.tscn        # IA: desistir, ignorar, trocar de presa, revidar
 godot --headless --path . res://tests/casulo_test.tscn      # habilidades, despensa e menu do casulo
 godot --headless --path . res://tests/menu_test.tscn        # menu inicial, espaços de save, Opções e pausa
+godot --headless --path . res://tests/bestiario_test.tscn   # bestiário: ver, derrotar, comer, save e a tela
 godot --headless --path . res://tests/models_test.tscn      # modelos 3D e encaixes
 tools/checar_avisos.sh godot                                # avisos do GDScript (todos os scripts)
 ```

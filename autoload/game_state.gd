@@ -92,6 +92,16 @@ func save_act_start() -> void:
 	})
 
 
+func save_knowledge() -> void:
+	## Grava só o conhecimento (bestiário, mapa) no save que já existe, sem mexer no resto:
+	## o que se aprende não espera o casulo.
+	var data := load_game()
+	if data.is_empty():
+		return
+	data["knowledge"] = knowledge
+	_write(data)
+
+
 func remember_map() -> void:
 	if current_layer == null or current_layer.map_system == null:
 		return
@@ -214,6 +224,7 @@ func _setup_input() -> void:
 	_add("eat", [_k(KEY_G), _jb(JOY_BUTTON_DPAD_LEFT)])
 	_add("help", [_k(KEY_H), _jb(JOY_BUTTON_BACK)])
 	_add("map", [_k(KEY_M), _jb(JOY_BUTTON_DPAD_UP)])
+	_add("bestiary", [_k(KEY_B), _jb(JOY_BUTTON_DPAD_RIGHT)])
 	_add("pause", [_k(KEY_ESCAPE), _jb(JOY_BUTTON_START)])
 	_add("debug_level", [_k(KEY_F1)])
 	_add("debug_reset", [_k(KEY_F8)])

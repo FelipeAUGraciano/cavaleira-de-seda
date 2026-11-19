@@ -65,3 +65,7 @@ func surface_fx(at: Vector3) -> void:
 		tw.tween_property(d, "position", d.position + Vector3(0, randf_range(0.8, 1.6), 0), 0.4)
 		tw.tween_property(d, "position", d.position + Vector3(0, -0.5, 0), 0.4)
 		tw.tween_callback(d.queue_free)
+
+
+func bestiary_visible() -> bool:
+	return mode != Mode.HIDDEN

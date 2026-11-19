@@ -117,6 +117,7 @@ func _animate_legs(t: float, walking: bool) -> void:
 
 
 func begin() -> void:
+	Bestiary.see_id("mae")
 	active = true
 	finished = false
 	visible = true

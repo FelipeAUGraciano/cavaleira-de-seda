@@ -882,6 +882,11 @@ func pull_toward(point: Vector3, strength: float) -> void:
 		external_velocity = d.normalized() * strength
 
 
+func bestiary_visible() -> bool:
+	## Dá para ver que é bicho? (o Mímico fingindo de pilar e quem está dentro da lava, não)
+	return true
+
+
 func die(fell: bool = false) -> void:
 	if dead:
 		return
@@ -904,6 +909,7 @@ func die(fell: bool = false) -> void:
 		if is_instance_valid(_last_attacker):
 			killer = _last_attacker as Player
 		if killer != null:
+			Bestiary.defeated(self)
 			killer.gain_xp(int(food_xp / 2.0))
 			EventBus.message.emit("Você derrotou: %s. Coma o corpo (E)." % display_name)
 	EventBus.creature_died.emit(self)

@@ -25,6 +25,7 @@ const REMAP := [
 	["cocoon", "Tecer: embrulhar / arrastar / porta / toca", true, true],
 	["eat", "Comer embrulho", true, true],
 	["map", "Mapa", true, true],
+	["bestiary", "Bestiário", true, true],
 	["help", "Mostrar controles", true, true],
 	["pause", "Pausa", true, true],
 ]

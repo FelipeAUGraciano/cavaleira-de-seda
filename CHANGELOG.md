@@ -2,6 +2,16 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Bestiário (19/11)
+
+- **Tela nova (B, ou pela pausa e pelo casulo):** lista das 31 criaturas por área (Berçário, Galerias, Abismo, Rio de Brasa, a caçada) e a ficha de cada uma com retrato, nota da Cavaleira, golpes, sentidos, dica e o que comer dá. Teclado (↑↓ bicho, ←→ área), controle e mouse (clique e rodinha). O jogo pausa enquanto está aberta.
+- **Três níveis por bicho:** *vista* (nome, tamanho, onde vive, a nota dela), *derrotada* (golpes com dano e efeito, PV, sentidos, como lidar) e *comida* (saciedade, seda, XP e os bônus da carne). Quem ainda não foi visto é uma sombra "???" com a área. A Mãe, o Colosso e a Cortina viva ("perigos") anotam tudo só de serem vistos e sobrevividos.
+- **Ver de verdade:** conta quando o bicho está dentro do alcance da sua visão (ou te caçando por perto). O Mímico fingindo de pilar e quem está dentro da lava não contam.
+- **Números de verdade:** PV, golpes, sentidos e comida são copiados do bicho na hora (o que o jogo usa, inclusive a dificuldade).
+- **Conhecimento:** fica com o mapa descoberto (sobrevive à morte) e é gravado no save na hora, sem esperar o casulo.
+- **Retratos:** cada bicho fotografado em 3D num estúdio (`tools/bestiario/retratos.tscn` gera `assets/ui/bestiario/<id>.png`). Dá para trocar qualquer um por uma arte 2D com o mesmo nome.
+- Nova ação **Bestiário** (B / direcional para a direita), remapeável em Opções → Controles. Teste novo: `bestiario_test`.
+
 ## A Cavaleira 2D no menu (19/11)
 
 - No menu inicial, a Cavaleira agora é a arte 2D (a mesma do casulo) no lugar do modelo 3D. A caverna 3D continua atrás (teia, fungos, cristais, casulo, pó, câmera girando).

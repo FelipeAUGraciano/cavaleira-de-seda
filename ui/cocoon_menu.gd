@@ -41,6 +41,7 @@ var _page_btns: Array = []
 var _rest_btn: Button
 var _learn_btn: Button
 var _leave_btn: Button
+var _best_btn: Button
 var _art: Texture2D
 var _threads: Array = []
 var _hunter := ""   ## bicho te caçando perto: descansar fica bloqueado
@@ -84,6 +85,17 @@ func open(p: Player, c: Node3D) -> void:
 	selected = _first_learnable()
 	_show_tab(tab)
 	GameState.say_once("menu_casulo", "Meu cantinho. Aqui dá pra pensar com calma no que eu quero virar.")
+
+
+func open_bestiary() -> void:
+	var hud := get_parent()
+	if hud != null and hud.has_method("open_bestiary"):
+		hud.open_bestiary("casulo")
+
+
+func after_bestiary() -> void:
+	## Voltou do Bestiário: o casulo continua aberto, no mesmo lugar.
+	MenuBox.focus_later(_best_btn)
 
 
 func close() -> void:
@@ -135,6 +147,8 @@ func _build_static_buttons() -> void:
 	_rest_btn.pressed.connect(rest)
 	_leave_btn = _flat_button(Rect2(44, 46, 150, 40))
 	_leave_btn.pressed.connect(close)
+	_best_btn = _flat_button(Rect2(208, 46, 190, 40))
+	_best_btn.pressed.connect(open_bestiary)
 	for id in Skills.ALL:
 		var p := _node_pos(id)
 		var r := _node_r(id) + 8.0
@@ -406,6 +420,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		close()
 		return
+	if event.is_action_pressed("bestiary"):
+		get_viewport().set_input_as_handled()
+		open_bestiary()
+		return
 	var next := 0
 	if event is InputEventJoypadButton and event.pressed:
 		if event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
@@ -474,6 +492,11 @@ func _draw_leave(ci: Control) -> void:
 	var hot := _leave_btn.has_focus() or _leave_btn.is_hovered()
 	_panel(ci, r, Color(0.05, 0.06, 0.13, 0.7), CYAN if hot else BORDER, 8.0)
 	_text(ci, r.get_center() + Vector2(0, 6), "Sair  (Esc)", "body_m", 17, TEXT if hot else QUIET, HORIZONTAL_ALIGNMENT_CENTER)
+	var rb := Rect2(_best_btn.position, _best_btn.size)
+	var hb := _best_btn.has_focus() or _best_btn.is_hovered()
+	_panel(ci, rb, Color(0.05, 0.06, 0.13, 0.7), CYAN if hb else BORDER, 8.0)
+	SkillIcons.draw(ci, "eye", rb.position + Vector2(22, rb.size.y * 0.5), 8.0, CYAN if hb else QUIET)
+	_text(ci, rb.get_center() + Vector2(12, 6), "Bestiário  (%s)" % Settings.text("bestiary"), "body_m", 17, TEXT if hb else QUIET, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 func _draw_tabs(ci: Control) -> void:

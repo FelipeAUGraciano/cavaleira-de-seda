@@ -1581,6 +1581,7 @@ func _interact() -> void:
 
 func _eat(c: Corpse) -> void:
 	Sfx.play("pc_comer", global_position)
+	Bestiary.eaten(c.display_name)
 	var rotten := c.is_rotten()
 	if c.has_meta("venom_heal"):
 		hp = minf(max_hp, hp + max_hp * 0.2)

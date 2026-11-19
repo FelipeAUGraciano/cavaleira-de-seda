@@ -24,7 +24,8 @@ static func help_lines() -> Array:
 		"%s embrulhar, arrastar, porta, toca · %s comer embrulho · %s comer / descansar" % [k.call("cocoon"), k.call("eat"), k.call("interact")],
 		"%s apagar/acender runa (furtividade)" % k.call("rune"),
 		"Segurar %s: Leitura da criatura sob o cursor" % k.call("read"),
-		"%s mapa · %s pausa / opções · F1 +1 nível (teste) · F8 novo jogo" % [k.call("map"), k.call("pause")],
+		"%s mapa · %s bestiário · %s pausa / opções" % [k.call("map"), k.call("bestiary"), k.call("pause")],
+		"F1 +1 nível (teste) · F8 novo jogo",
 	]
 const LOCK_NAMES := {"fresta": "fresta", "cristal": "parede de cristal", "acido": "poça ácida", "abismo_longo": "abismo longo", "brasa": "brasa", "cortina": "cortina viva", "desabamento": "desabamento"}
 
@@ -61,6 +62,8 @@ var _pause_holder: Control
 var _portrait: Texture2D = load("res://assets/ui/retrato_cavaleira.png") if ResourceLoader.exists("res://assets/ui/retrato_cavaleira.png") else null
 var _options: OptionsMenu
 var cocoon_menu: CocoonMenu
+var bestiary: BestiaryView
+var _bestiary_from := ""   ## de onde abriu: "jogo", "pausa" ou "casulo"
 var vibes: Array = []           ## setas de vibração: {pos, t, col, big, who}
 const VIBE_TIME := 2.6
 const VIBE_RING := 150.0         ## distância (px) da seta até a aranha
@@ -133,9 +136,11 @@ func _process(_delta: float) -> void:
 	for v in vibes:
 		v["t"] -= dt
 	vibes = vibes.filter(func(v): return v["t"] > 0.0)
-	if Settings.input_blocked() or _options.visible or (cocoon_menu != null and cocoon_menu.visible):
+	if Settings.input_blocked() or _options.visible or (cocoon_menu != null and cocoon_menu.visible) or (bestiary != null and bestiary.visible):
 		pass   # Opções abertas ou trocando tecla: as teclas do jogo esperam
 	else:
+		if Input.is_action_just_pressed("bestiary") and player != null and not get_tree().paused:
+			open_bestiary("jogo")
 		if Input.is_action_just_pressed("map"):
 			_show_map = not _show_map
 		if Input.is_action_just_pressed("help"):
@@ -163,6 +168,7 @@ func open_pause() -> void:
 	_pause_box.clear()
 	_pause_box.add_button("Voltar ao jogo", close_pause)
 	_pause_box.add_button("Opções", open_options)
+	_pause_box.add_button("Bestiário", open_bestiary.bind("pausa"))
 	_pause_box.add_button("Esconder controles" if _show_help else "Mostrar controles", _toggle_help_from_pause)
 	_pause_box.add_button("Menu inicial", GameState.to_title)
 	_pause_box.add_label("O jogo salva quando você descansa num casulo.\nO que fez depois disso se perde ao sair.", 15, QUIET)
@@ -195,6 +201,32 @@ func open_cocoon(c: Node3D) -> void:
 	cocoon_menu.open(player, c)
 
 
+func open_bestiary(from := "jogo", focus_id := "") -> void:
+	## Bestiário por cima de tudo; o jogo fica pausado enquanto ele está aberto.
+	if bestiary == null:
+		bestiary = BestiaryView.new()
+		bestiary.closed.connect(_on_bestiary_closed)
+		add_child(bestiary)
+	_bestiary_from = from
+	_pause_box.visible = false
+	get_tree().paused = true
+	bestiary.open(focus_id)
+
+
+func _on_bestiary_closed() -> void:
+	match _bestiary_from:
+		"pausa":
+			open_pause()
+			for b in _pause_box.buttons():
+				if b.text == "Bestiário":
+					MenuBox.focus_later(b)
+		"casulo":
+			if cocoon_menu != null:
+				cocoon_menu.after_bestiary()
+		_:
+			get_tree().paused = false
+
+
 func open_options() -> void:
 	_pause_box.visible = false
 	_options.open()
@@ -208,7 +240,7 @@ func _on_options_closed() -> void:
 func _toggle_help_from_pause() -> void:
 	Settings.set_value("mostrar_controles", not _show_help)
 	open_pause()
-	MenuBox.focus_later(_pause_box.buttons()[2])
+	MenuBox.focus_later(_pause_box.buttons()[3])
 
 
 # ---------------------------------------------------------------- eventos
@@ -678,7 +710,7 @@ func _text_center(width: float, y: float, s: String, size: int, color: Color) ->
 # ---------------------------------------------------------------- tela de pausa
 
 func _pause_menu_open() -> bool:
-	return _pause_box.visible or _options.visible
+	return _pause_box.visible or _options.visible or (bestiary != null and bestiary.visible)
 
 
 func _draw_pause(vp: Vector2) -> void:

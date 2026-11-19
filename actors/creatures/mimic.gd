@@ -139,3 +139,7 @@ func _animate(_delta: float, _speed_now: float) -> void:
 	var open := 0.0 if mode == Mode.HIDDEN else (1.0 if mode == Mode.STRIKE or telegraph else 0.5)
 	_maw.scale = Vector3.ONE * lerpf(0.6, 1.2, open)
 	_rock.rotation.z = sin(_anim_t * 20.0) * 0.06 if mode == Mode.STRIKE else 0.0
+
+
+func bestiary_visible() -> bool:
+	return mode != Mode.HIDDEN
