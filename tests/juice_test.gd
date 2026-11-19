@@ -83,7 +83,8 @@ func _run() -> void:
 	layer.ecosystem.add_child(boss)
 	await _frames(3)
 	boss.speed = 0.0
-	boss.noticed_player = true
+	boss.max_hp = 500.0
+	boss.hp = 499.0   # já apanhou: a luta começou (noticed_player pode mudar com a IA do bicho)
 	await _seconds(0.5)
 	_check(Music.playing() == "mus_boss_teste", "chefe em luta troca a música")
 	boss.take_damage(9999.0, player)
