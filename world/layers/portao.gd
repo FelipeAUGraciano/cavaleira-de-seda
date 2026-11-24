@@ -49,6 +49,9 @@ var _zoomed := false
 
 func _configure() -> void:
 	music_area = "portao"
+	level_cap = 31   ## teto de nível do andar (somando as formas): ver Player.level_cap
+	threat = 2.0      ## bichos batem 100% mais forte
+	toughness = 1.7   ## e têm 70% mais vida (chefes não)
 	ambience = "portao" if Sfx.has("amb_portao") else "cacada"   # (amb_portao: prompt no GDD)
 	layer_id = "P"
 	layer_name = "Portão da Superfície"

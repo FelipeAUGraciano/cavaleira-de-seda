@@ -63,6 +63,9 @@ var _ending := false
 
 func _configure() -> void:
 	music_area = "rio"
+	level_cap = 22   ## teto de nível do andar (somando as formas): ver Player.level_cap
+	threat = 1.6      ## bichos batem 60% mais forte
+	toughness = 1.45   ## e têm 45% mais vida (chefes não)
 	layer_id = "R"
 	layer_name = "Rio de Brasa"
 	layer_subtitle = "Ato 3 · Onde a pedra derrete"

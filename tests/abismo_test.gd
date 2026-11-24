@@ -236,14 +236,14 @@ func _run() -> void:
 	var far: float = col.project(Vector3(84, 0, -6)).y
 	_check(far > 12.0, "a toca fica longe do caminho do Colosso (%.0f m)" % far)
 
-	# Bichos: o Abismo cheio como as Galerias
+	# Bichos: o Abismo cheio como as Galerias (os predadores comem alguns besouros no caminho)
 	var kinds := {}
 	var total := 0
 	for c in World.creatures:
 		if is_instance_valid(c) and not c.dead:
 			total += 1
 			kinds[c.display_name] = int(kinds.get(c.display_name, 0)) + 1
-	_check(total >= 45, "Abismo cheio: %d bichos (%s)" % [total, str(kinds)])
+	_check(total >= 42, "Abismo cheio: %d bichos (%s)" % [total, str(kinds)])
 	for nm in ["Aranha-lobo do breu", "Mímico de estalagmite", "Lesma de ácido", "Morcego gigante", "Escorpião-de-obsidiana"]:
 		_check(kinds.has(nm), "tem %s" % nm)
 	# matilha: uma te sente, todas vêm

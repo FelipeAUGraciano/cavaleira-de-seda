@@ -10,6 +10,9 @@ extends Node3D
 var music_area := ""          ## faixa do mapa no autoload Music (mus_<nome>.ogg)
 var ambience := ""             ## som ambiente (amb_<nome>.ogg); vazio = o mesmo nome da música
 var layer_id := "?"
+var level_cap := 0            ## teto de nível (somando as formas) que este andar ensina; 0 = sem teto
+var threat := 1.0             ## multiplica o dano que os bichos deste andar fazem nela
+var toughness := 1.0          ## multiplica a vida dos bichos deste andar (chefes não)
 var layer_name := "Camada"
 var layer_subtitle := ""       ## frase embaixo do título quando a camada começa
 var spawn_point := Vector3.ZERO

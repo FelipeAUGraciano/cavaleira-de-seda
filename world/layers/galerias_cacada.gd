@@ -25,6 +25,9 @@ var _traps: Array = []
 func _configure() -> void:
 	super._configure()
 	music_area = "cacada"
+	level_cap = 26   ## teto de nível do andar (somando as formas): ver Player.level_cap
+	threat = 1.8      ## bichos batem 80% mais forte
+	toughness = 1.6   ## e têm 60% mais vida (chefes não)
 	layer_name = "Galerias Úmidas"
 	layer_subtitle = "Ato 4 · A caçada"
 	GameState.flags["g8_aventureiros"] = true   # o encontro de longe do Ato 1 não se repete

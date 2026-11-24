@@ -2,6 +2,27 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Equilíbrio: ela não fica forte demais (24/11)
+
+Resposta ao teste do jogo inteiro: o começo estava bom, mas depois da muda do nível 8 nada mais era ameaça.
+
+- **Teto de nível por andar.** Cada andar só ensina até certo ponto; no teto, a experiência daquele andar não conta mais (ela avisa uma vez, a HUD mostra "Teto do andar" e o anel do nível fica dourado). Contando os níveis de todas as formas (a Cavaleira nível 1 é o 8º nível da vida dela):
+
+  | Andar | Teto | Na prática |
+  |---|---|---|
+  | Berçário | 5 | Filhote nível 5 |
+  | Galerias Úmidas | 8 | Filhote 8 → muda para Cavaleira, e para aí |
+  | Abismo | 17 | Cavaleira até o 10 (escolha do ramo) |
+  | Rio de Brasa | 22 | ramo até o 6 |
+  | Galerias, a caçada | 26 | ramo até o 10 (libera a última muda) |
+  | Portão da Superfície | 31 | forma final até o 6 |
+
+  A muda continua liberada no teto (a Filhote 8 vira Cavaleira nas Galerias). O teto é por andar: chegando no próximo, ela volta a crescer.
+- **Cada muda soma menos.** Vida e força dos golpes por estágio: Filhote x1; Cavaleira vida x0,85 e golpes x0,8; ramo x0,75 e x0,7; forma final/rara x0,7 e x0,62. Vale para combo, mordida, kits, pulso e o resto (tudo passa pelo mesmo acerto).
+- **Andares fundos mais perigosos.** Os bichos batem mais forte e têm mais vida (chefes não ganham vida extra): Abismo +35% de dano / +25% de vida; Rio +60% / +45%; caçada +80% / +60%; Portão +100% / +70%. Queda, fogo do chão e armadilhas não mudam.
+- Guardião do Portão de 1350 para 1100 PV (os golpes dela agora entram menos).
+- Teste novo: `equilibrio_test`.
+
 ## O fim do jogo: o Portão da Superfície, o Guardião e os finais (19/11)
 
 - **Camada nova, o Portão da Superfície (P1–P8), o ato final.** A corda da Capitã agora sobe para cá (antes era "Fim do Ato 4 / próxima versão").

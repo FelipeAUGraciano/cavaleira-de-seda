@@ -10,6 +10,7 @@ var base := Vector3(-14, 0.1, 8)
 
 
 func _ready() -> void:
+	Player.balanced = false
 	GameState.permadeath = false
 	GameState.delete_save()
 	layer = load("res://world/layers/test_chamber.tscn").instantiate()

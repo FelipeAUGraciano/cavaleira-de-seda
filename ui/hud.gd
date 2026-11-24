@@ -381,11 +381,15 @@ func _draw_bars(vp: Vector2) -> void:
 	var badge := Vector2(x + 36.0, y + 36.0)
 	_cv.draw_circle(badge, 23.0, Color(0.05, 0.06, 0.13, 0.95))
 	_cv.draw_arc(badge, 23.0, 0.0, TAU, 40, SilkUI.GOLD, 1.6, true)
-	var xp_k := clampf(float(player.xp) / maxf(1.0, float(player.xp_to_next())), 0.0, 1.0)
-	_cv.draw_arc(badge, 27.0, -PI * 0.5, -PI * 0.5 + TAU * xp_k, 40, SilkUI.CYAN, 2.4, true)
+	var capped := player.at_level_cap()
+	var xp_k := 1.0 if capped else clampf(float(player.xp) / maxf(1.0, float(player.xp_to_next())), 0.0, 1.0)
+	_cv.draw_arc(badge, 27.0, -PI * 0.5, -PI * 0.5 + TAU * xp_k, 40, SilkUI.GOLD if capped else SilkUI.CYAN, 2.4, true)
 	SilkUI.text(_cv, badge + Vector2(0, 8.0), str(player.level), "title", 22, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
 	SilkUI.text(_cv, Vector2(x + 72.0, y + 30.0), player.form_name(), "title_s", 19, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_LEFT, 3)
-	SilkUI.text(_cv, Vector2(x + 72.0, y + 52.0), "XP %d / %d" % [player.xp, player.xp_to_next()], "body_m", 15, SilkUI.QUIET)
+	if capped:
+		SilkUI.text(_cv, Vector2(x + 72.0, y + 52.0), "Teto do andar", "body_b", 15, SilkUI.GOLD)
+	else:
+		SilkUI.text(_cv, Vector2(x + 72.0, y + 52.0), "XP %d / %d" % [player.xp, player.xp_to_next()], "body_m", 15, SilkUI.QUIET)
 	SilkUI.text(_cv, Vector2(r.end.x - 14.0, y + 52.0), "Bolsa %d/%d  ·  Tecelagem %d" % [player.bag.size(), Player.BAG_MAX, player.weave_level()], "body_m", 15, SilkUI.QUIET, HORIZONTAL_ALIGNMENT_RIGHT)
 	SilkUI.thread(_cv, Vector2(x + 14.0, y + 70.0), Vector2(r.end.x - 14.0, y + 70.0), Color(SilkUI.SILK, 0.18), 1.5, 1.0)
 	_bar(x + 14.0, y + 84.0, "heart", player.hp, player.max_hp, Color(0.92, 0.32, 0.38))
@@ -765,6 +769,8 @@ func _draw_pause_card(vp: Vector2) -> void:
 	SilkUI.text(_cv, Vector2(r.get_center().x, y + 8.0), SilkUI.spaced("A CAVALEIRA"), "title_s", 13, SilkUI.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	SilkUI.text(_cv, Vector2(r.get_center().x, y + 42.0), player.form_name(), "title", 28, SilkUI.TEXT, HORIZONTAL_ALIGNMENT_CENTER, 3)
 	var info := "Nível %d   ·   XP %d / %d" % [player.level, player.xp, player.xp_to_next()]
+	if player.at_level_cap():
+		info = "Nível %d   ·   teto do andar (nível %d da vida dela)" % [player.level, player.total_level()]
 	SilkUI.text(_cv, Vector2(r.get_center().x, y + 68.0), info, "body_m", 17, SilkUI.QUIET, HORIZONTAL_ALIGNMENT_CENTER)
 	y += 92.0
 	_bar(x, y, "heart", player.hp, player.max_hp, Color(0.92, 0.32, 0.38))

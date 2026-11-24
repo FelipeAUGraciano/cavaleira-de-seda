@@ -57,7 +57,7 @@ func _init() -> void:
 	display_name = "Guardião do Portão"
 	size = Size.COLOSSAL
 	level = 30
-	max_hp = 1350.0
+	max_hp = 1100.0
 	speed = 3.2
 	body_radius = 2.3
 	body_color = Color(0.3, 0.28, 0.33)

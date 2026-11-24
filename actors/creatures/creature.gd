@@ -183,6 +183,7 @@ func _ready() -> void:
 	collision_layer = 4
 	collision_mask = 1 | 2 | 4
 	hp = max_hp
+	_apply_toughness.call_deferred()
 	home = global_position
 	if den == Vector3.ZERO:
 		den = Vector3(global_position.x, 0.0, global_position.z)
@@ -880,6 +881,20 @@ func pull_toward(point: Vector3, strength: float) -> void:
 	d.y = 0.0
 	if d.length() > 0.1:
 		external_velocity = d.normalized() * strength
+
+
+func _apply_toughness() -> void:
+	## Andares mais fundos têm bichos mais duros (LayerBase.toughness). Chefes já vêm afinados.
+	var l = GameState.current_layer
+	if l == null or not is_instance_valid(l) or not ("toughness" in l) or is_in_group("boss"):
+		return
+	var k := float(l.toughness)
+	if is_equal_approx(k, 1.0) or has_meta("vitrine"):
+		return
+	var full := hp >= max_hp - 0.01
+	max_hp *= k
+	if full:
+		hp = max_hp
 
 
 func bestiary_visible() -> bool:

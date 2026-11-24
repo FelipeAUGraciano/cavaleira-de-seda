@@ -55,6 +55,12 @@ enum Form { FILHOTE, CAVALEIRA, LAMINA, TEIA, RUNA,
 const EVOLVE_LEVEL := 8
 const BRANCH_LEVEL := 10
 const FINAL_LEVEL := 10
+## Equilíbrio (teste de 24/11: depois da muda tudo ficava fácil demais). Por estágio:
+## 0 Filhote, 1 Cavaleira, 2 ramo, 3 forma final/rara. Vida e força crescem menos a cada muda.
+const HP_MULT := [1.0, 0.85, 0.75, 0.7]
+const POWER := [1.0, 0.8, 0.7, 0.62]
+## Os testes de kit/evolução desligam o freio para medir as fichas cruas.
+static var balanced := true
 const BRANCHES := [Form.LAMINA, Form.TEIA, Form.RUNA]
 const FINALS := {Form.LAMINA: [Form.EXECUTORA, Form.BASTIA], Form.TEIA: [Form.SENHORA, Form.SALTADORA], Form.RUNA: [Form.VIDENTE, Form.TEMPESTADE]}
 const RARES := [Form.ARDENTE, Form.BREU, Form.VIUVA, Form.CORROSIVA, Form.LUA]
@@ -519,7 +525,7 @@ func _levels_before() -> int:
 func recompute_stats(refill: bool) -> void:
 	var f := form_data()
 	var per: Array = f["per_level"]
-	max_hp = float(f["hp"]) + float(per[0]) * (level - 1) + bonus_hp
+	max_hp = (float(f["hp"]) + float(per[0]) * (level - 1)) * (float(HP_MULT[clampi(tier(), 0, 3)]) if balanced else 1.0) + bonus_hp
 	max_energy = float(f["energy"]) + float(per[1]) * (level - 1) + bonus_energy
 	max_silk = float(f["silk"]) + float(per[2]) * (level - 1) + bonus_silk
 	if refill:
@@ -1226,7 +1232,7 @@ func _zip_land() -> void:
 		if c == null or c.dead or absf(c.global_position.y - global_position.y) > 1.5:
 			continue
 		if Fx.flat_dist(c.global_position, global_position) <= 2.5 + c.body_radius:
-			c.take_damage(dmg, self)
+			c.take_damage(dmg * power(), self)
 			if not c.dead and not c.is_in_group("boss"):
 				c.entangle_raw(1.2)
 			hit += 1
@@ -1417,7 +1423,7 @@ func hit_creature(c: Creature, damage: float, poison := false) -> float:
 	## emboscada, execução, corrosão, veneno, fogo, cura no abate). Devolve o dano.
 	if c == null or c.dead:
 		return 0.0
-	var dmg := damage
+	var dmg := damage * power()
 	var crit := c.is_entangled()
 	if crit:
 		dmg *= 2.0
@@ -1975,7 +1981,7 @@ func _rune_pulse() -> void:
 			c.entangle_raw(1.5)
 			var pd := float(fd("pulse_dmg", 0.0))
 			if pd > 0.0:
-				c.take_damage(pd, self)
+				c.take_damage(pd * power(), self)
 
 
 # ================================================================= Modo Tecelagem
@@ -2258,6 +2264,10 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 	## Devolve false se não pegou (esquiva com invulnerabilidade, já morta).
 	if dead or invuln > 0.0:
 		return false
+	if source is Creature:   # andares mais fundos: os bichos batem mais forte
+		var lyr = GameState.current_layer
+		if lyr != null and is_instance_valid(lyr) and "threat" in lyr:
+			amount *= float(lyr.threat)
 	if kit != null:
 		amount = kit.on_hurt(amount, source)
 		if amount <= 0.0:
@@ -2438,7 +2448,46 @@ func land_after_fall(pos: Vector3, damage: float, where: String) -> void:
 	_hurt(damage)
 
 
+func power() -> float:
+	## Quanto dos golpes entra de verdade neste estágio (as formas novas batem mais forte na
+	## ficha, mas o jogo segura um pouco para os bichos continuarem perigosos).
+	if not balanced:
+		return 1.0
+	return float(POWER[clampi(tier(), 0, 3)])
+
+
+func total_level() -> int:
+	## Nível somando todas as formas (a Cavaleira nível 1 é o 8º nível da vida dela).
+	return _levels_before() + level
+
+
+func level_cap() -> int:
+	## Teto de nível da camada atual (0 = sem teto). Cada andar só ensina até certo ponto:
+	## para crescer mais, é preciso seguir em frente.
+	var l = GameState.current_layer
+	if l == null or not is_instance_valid(l) or not ("level_cap" in l):
+		return 0
+	return int(l.level_cap)
+
+
+func at_level_cap() -> bool:
+	var c := level_cap()
+	return c > 0 and total_level() >= c
+
+
+func _cap_reached() -> void:
+	xp = 0
+	var lid := "teto_%d" % level_cap()
+	if not GameState.said.has(lid):
+		GameState.say_once(lid, "Aqui eu não cresço mais. Esse andar já me ensinou tudo o que tinha... o resto está mais adiante.")
+		EventBus.big_message.emit("Teto do andar")
+		_msg("Nível máximo deste andar. A experiência daqui não conta mais: siga para o próximo.")
+
+
 func gain_xp(amount: int) -> void:
+	if at_level_cap():
+		_cap_reached()
+		return
 	xp += amount
 	while xp >= xp_to_next():
 		xp -= xp_to_next()
@@ -2456,6 +2505,9 @@ func gain_xp(amount: int) -> void:
 			GameState.say_once("pronta_evoluir", "Tá coçando tudo... minha casca tá apertada. Preciso de um casulo. AGORA.")
 		if level == TRAP_LEVEL:
 			GameState.say_once("nivel_3", "Nível 3! Sinto que consigo tecer uma teia de captura. Modo Tecelagem e botão direito.")
+		if at_level_cap():
+			_cap_reached()
+			break
 
 
 func xp_to_next() -> int:

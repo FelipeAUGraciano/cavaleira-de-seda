@@ -17,6 +17,7 @@ var _leaving := false
 
 func _configure() -> void:
 	music_area = "bercario"
+	level_cap = 5   ## teto de nível do andar (somando as formas): ver Player.level_cap
 	layer_id = "B"
 	layer_name = "Berçário"
 	layer_subtitle = "Prólogo · O ninho da Mãe"

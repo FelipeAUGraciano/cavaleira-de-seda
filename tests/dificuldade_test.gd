@@ -103,7 +103,7 @@ func _run() -> void:
 	var cocoon := WebNetwork.create_cocoon(Galerias.W(Vector3(44, 0, 36)))
 	player._rest(cocoon)
 	_check(player.form == Player.Form.CAVALEIRA and player.level == 1, "no nível %d o casulo faz a muda: Cavaleira de Seda, nível 1" % Player.EVOLVE_LEVEL)
-	_check(is_equal_approx(player.max_hp, 100.0) and is_equal_approx(player.max_energy, 105.0), "Cavaleira: 90 PV de base + os bônus de cristal guardados (%.0f PV, %.0f energia)" % [player.max_hp, player.max_energy])
+	_check(is_equal_approx(player.max_hp, 90.0 * float(Player.HP_MULT[1]) + 10.0) and is_equal_approx(player.max_energy, 105.0), "Cavaleira: 90 PV de base (com o freio da forma) + os bônus de cristal guardados (%.0f PV, %.0f energia)" % [player.max_hp, player.max_energy])
 	await _seconds(1.8)
 	_check(absf(player._visual.scale.x - 1.0) < 0.05 and absf(player._leg_rig.size - 1.0) < 0.01, "ela cresce (corpo e patas no tamanho cheio)")
 	var data := player.to_dict()

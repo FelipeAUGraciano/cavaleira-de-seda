@@ -63,6 +63,9 @@ var _ending := false
 
 func _configure() -> void:
 	music_area = "abismo"
+	level_cap = 17   ## teto de nível do andar (somando as formas): ver Player.level_cap
+	threat = 1.35      ## bichos batem 35% mais forte
+	toughness = 1.25   ## e têm 25% mais vida (chefes não)
 	layer_id = "A"
 	layer_name = "Abismo"
 	layer_subtitle = "Ato 2 · O fundo da Fenda"

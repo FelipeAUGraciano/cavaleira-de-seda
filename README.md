@@ -6,6 +6,7 @@ O que mudou em cada versão está em [`CHANGELOG.md`](CHANGELOG.md). O design co
 
 ## O que tem hoje
 
+- **Equilíbrio:** cada andar tem um teto de nível (Berçário 5, Galerias 8, Abismo 17, Rio 22, caçada 26, Portão 31, somando as formas); cada muda soma menos vida e força; nos andares fundos os bichos batem mais forte e têm mais vida (ver CHANGELOG).
 - **O jogo inteiro, do começo ao fim:** Berçário → Galerias → Abismo → Rio de Brasa → a caçada nas Galerias → **Portão da Superfície**, com o Guardião (chefe final) e um final que muda conforme o ramo e a forma dela.
 - **Protagonista:** Filhote de Seda que vira Cavaleira de Seda no nível 8 (muda no casulo). No nível 10 da Cavaleira, você escolhe um dos três ramos: Ceifadora de Seda (Lâmina), Tecelã do Abismo (Teia) ou Arauta da Runa (Runa). No nível 10 do ramo vem a **última muda**: cada ramo se divide em dois (Executora ou Bastiã; Senhora das Teias ou Saltadora do Vento; Vidente ou Sacerdotisa da Tempestade), ou ela vira uma das **5 formas raras** se cumpriu os requisitos (Seda Ardente, Sombra do Breu, Viúva de Seda, Corrosiva, Cavaleira de Pedra-da-lua). **Cada ramo troca o golpe e a mordida por ataques próprios**, e cada forma final tem **dois estilos de ataque (A/B)**, trocados no casulo (ver CHANGELOG). Combo com cone no chão, mordida com bote e veneno, esquiva, fio lançado (Q) que puxa bichos ou te puxa até a parede, fio-guia e teia de captura no Modo Tecelagem, runa que ilumina (e te denuncia).
 - **Toca:** nas Galerias, a G22 Fosso escuro é a câmara-toca. Você toma posse tecendo o casulo central no ninho velho (C) e fecha as 4 entradas com portas de teia (você passa, os bichos não). Só a toca salva e cura; antes dela o jogo salva sozinho nos pontos seguros, sem curar. Bichos com fome sentem a comida guardada, rasgam as portas e comem da despensa; fios-alarme avisam de longe.
@@ -181,6 +182,7 @@ godot --headless --path . res://tests/casulo_test.tscn      # habilidades, despe
 godot --headless --path . res://tests/menu_test.tscn        # menu inicial, espaços de save, Opções e pausa
 godot --headless --path . res://tests/bestiario_test.tscn   # bestiário: ver, derrotar, comer, save e a tela
 godot --headless --path . res://tests/portao_test.tscn      # Portão: luz do dia, vento, o Guardião em 3 fases e o final
+godot --headless --path . res://tests/equilibrio_test.tscn  # teto de nível por andar, força por estágio, andares fundos
 godot --headless --path . res://tests/models_test.tscn      # modelos 3D e encaixes
 tools/checar_avisos.sh godot                                # avisos do GDScript (todos os scripts)
 ```
