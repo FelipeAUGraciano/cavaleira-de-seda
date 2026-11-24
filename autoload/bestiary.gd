@@ -62,8 +62,8 @@ const ENTRIES := [
 		"note": "Dois olhinhos brilhando numa fresta da parede. Se eu passar correndo, viro um risco no chão.",
 		"tip": "Ela sente quem anda. Passe parada ou bem devagar; depois do bote ela fica exposta uns segundos: é a hora de bater."},
 	{"id": "centopeia", "name": "Centopeia-blindada", "area": "galerias", "kind": "chefe",
-		"note": "Oito metros de armadura e fome. O chão treme antes de ela chegar.",
-		"tip": "A carapaça segura quase tudo. Estique um fio no caminho da investida: ela arrebenta o fio, fica enredada, e aí os golpes entram."},
+		"note": "Oito metros de armadura e fome. O chão treme antes de ela chegar. E às vezes ela chega POR BAIXO.",
+		"tip": "A carapaça segura quase tudo. Estique um fio no caminho da investida: ela arrebenta o fio, fica enredada, e aí os golpes entram. Quando ela cava, a rachadura segue sua vibração: pare num fio e ela sai onde você estava (se sair dentro do fio, enrosca). Furiosa, ela quica nas paredes e te cerca: saia do anel antes de fechar."},
 
 	{"id": "besouro", "name": "Besouro carniceiro", "area": "abismo", "kind": "bicho",
 		"note": "Rói ossos velhos no escuro e foge de mim. Finalmente alguém que me respeita.",
@@ -94,8 +94,8 @@ const ENTRIES := [
 		"manual": {"size": "Colossal", "hp": "—", "senses": "luz e barulho",
 			"attacks": [["Cortina fechando", "empurra para trás e machuca enquanto você estiver dentro"]]}},
 	{"id": "serpente", "name": "Serpente-cega", "area": "abismo", "kind": "chefe",
-		"note": "Não tem olhos e me acha mesmo assim. Pelo jeito, eu ando alto demais.",
-		"tip": "Ela vai sempre na vibração mais nova. Teça uma teia de captura e espere: se o bote acabar na teia, ela fica enredada e as escamas abrem."},
+		"note": "Não tem olhos e me acha mesmo assim. Sibila e escuta o eco. Depois sente até o meu calor.",
+		"tip": "Ela vai sempre na vibração mais nova: teça uma teia de captura e espere o bote. Se ela te enrolar, aperte ATAQUE/ESQUIVA rápido; escapar abre as escamas. Num fio a onda da cauda passa por baixo, mas o sibilo te derruba. No fim, esconda-se nos jatos de vapor."},
 
 	{"id": "besouro_brasa", "name": "Besouro-brasa", "area": "rio", "kind": "bicho",
 		"note": "Um carvão com perninhas. Crocante por fora, crocante por dentro.",

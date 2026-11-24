@@ -229,6 +229,10 @@ var rune_on := true
 var dead := false
 var in_territory := false
 var on_strand := false
+## Agarrada (constrição da Serpente-cega): parada no lugar; ATAQUE/ESQUIVA rápido solta.
+var held_by: Node3D = null
+var hold_struggle := 0.0
+var _hold_left := 0.0
 
 # ---------------------------------------------------------------- estado
 var state: State = State.NORMAL
@@ -944,6 +948,10 @@ func _physics_process(delta: float) -> void:
 	veil_t = maxf(veil_t - delta, 0.0)
 	if kit != null:
 		kit.tick(delta)
+	if held_by != null:
+		_tick_hold(delta)
+		if held_by != null:
+			return
 
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if autopilot:
@@ -2309,6 +2317,56 @@ func take_damage(amount: float, source: Node3D = null, knockback: bool = true) -
 	return true
 
 
+func grab(by: Node3D, max_secs: float) -> bool:
+	## Um bicho te agarra (a Serpente enrola). Esquivando (invulnerável) não pega.
+	if dead or invuln > 0.0 or held_by != null:
+		return false
+	_start_state(State.NORMAL)
+	held_by = by
+	hold_struggle = 0.0
+	_hold_left = max_secs
+	external_velocity = Vector3.ZERO
+	velocity = Vector3.ZERO
+	return true
+
+
+func struggle(force := 1.0) -> void:
+	## Cada aperto de ATAQUE/ESQUIVA solta um pouco (umas 7 vezes rápido).
+	if held_by == null:
+		return
+	hold_struggle += 0.15 * force
+	shake(0.06)
+	if hold_struggle >= 1.0:
+		release_hold(true)
+
+
+func release_hold(escaped: bool) -> void:
+	var by := held_by
+	held_by = null
+	hold_struggle = 0.0
+	invuln = maxf(invuln, 0.8)
+	if by != null and is_instance_valid(by):
+		var out := global_position - by.global_position
+		out.y = 0.0
+		external_velocity = out.normalized() * 8.0 if out.length() > 0.05 else Vector3.ZERO
+		if by.has_method("on_hold_released"):
+			by.on_hold_released(escaped)
+	if escaped:
+		_msg("Soltou!")
+
+
+func _tick_hold(delta: float) -> void:
+	if not is_instance_valid(held_by) or (held_by is Creature and (held_by as Creature).dead):
+		held_by = null
+		return
+	_hold_left -= delta
+	if not autopilot and (Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("dodge")):
+		struggle()
+	velocity = Vector3.ZERO   # presa no lugar (sem move_and_slide: o corpo dela não te empurra)
+	if held_by != null and _hold_left <= 0.0:
+		release_hold(false)
+
+
 func apply_slow(mult: float, secs: float) -> void:
 	## Teia cuspida, grito de morcego, clarão do lagarto: anda mais devagar por um tempo.
 	if dead:
@@ -2344,6 +2402,7 @@ func _die() -> void:
 	Music.stinger("morte")
 	Sfx.play("pc_morte", global_position)
 	dead = true
+	held_by = null
 	hp = 0.0
 	state = State.DEAD
 	_death_timer = 2.5

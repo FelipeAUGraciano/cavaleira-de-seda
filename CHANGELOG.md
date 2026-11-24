@@ -2,6 +2,25 @@
 
 O que entrou em cada versão, da mais nova para a mais antiga. O estado atual do jogo está no README.
 
+## Chefes novos: a Centopeia escavadora e a Serpente caçadora do silêncio (24/11)
+
+As duas lutas eram quase iguais (sente vibração, dá investida/bote, enrosca no fio). Agora cada uma tem jeito próprio.
+
+- **Centopeia-blindada, a escavadora (Galerias):**
+  - **Cava:** some na terra (nada acerta) e vem por baixo seguindo sua vibração; uma rachadura no chão mostra o caminho. Chegando, a marca no chão enche e ela sai de uma vez (32 de dano, joga longe). Correr é mais rápido que ela; parada num fio, ela sai onde você estava, e se sair **dentro de um fio**, se enrosca (carapaça aberta).
+  - **Cuspe de ácido** em leque: machuca e deixa 3 poças (5 furiosa) por 6 s.
+  - **Furiosa:** a investida **quica** nas paredes e mira de novo (até 2x; na última ela fica mais tempo tonta) e o **cerco**: corre em volta de você e fecha o anel (36 de dano em quem ficou dentro; encostar no corpo machuca e joga de volta; esquivando você atravessa). Cerco passando por um fio também enrosca.
+  - Mordida agora tem respiro (0,5 s) em vez de emendar uma atrás da outra.
+- **Serpente-cega, a caçadora do silêncio (Abismo), em 3 fases (66% e 33%):**
+  - **Sibilo:** se você some (parada ou num fio) ela sibila e o eco te acha até 10 m; o sibilo sacode os fios e derruba quem está em cima.
+  - **Constrição:** o bote que te pega te ENROLA: presa no lugar, perdendo vida; ATAQUE/ESQUIVA rápido (umas 7 vezes) solta, e escapar deixa as escamas abertas 2,2 s. Sem lutar, ela solta sozinha em 3,5 s (sem abrir). Esquivando, o bote não pega.
+  - **Fase 2, batida de cauda:** uma onda de tremor corre pelo chão até 13 m; num fio (ou esquivando) ela passa por baixo. Fio salva da onda, mas o sibilo derruba do fio.
+  - **Fase 3, calor:** as fossetas acendem e ela sente você a 9 m, parada ou não. O chão racha e abrem 4 jatos de vapor (3 s ligados, 2 s desligados): dentro do jato ligado ela não te sente.
+  - A teia de captura continua prendendo no bote.
+- Chefes não morrem mais de queda (espremidos num pilar ou empurrados para fora da grade, voltam para o último chão bom).
+- Sons novos usam parecidos até serem gerados (lista em `audio/sfx/README.md`). Bestiário atualizado.
+- Testes novos: `centopeia_test`, `serpente_test` e as capturas `screenshot_chefes`.
+
 ## Equilíbrio: ela não fica forte demais (24/11)
 
 Resposta ao teste do jogo inteiro: o começo estava bom, mas depois da muda do nível 8 nada mais era ameaça.

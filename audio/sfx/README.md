@@ -119,3 +119,13 @@ Famílias dos bichos (o jogo escolhe pela espécie):
 | vento_rajada | pc_queda |
 | portao_abre | (silêncio) |
 | amb_portao | amb_cacada |
+
+**Ainda por gerar (chefes novos: Centopeia escavadora, Serpente caçadora do silêncio):**
+
+| Arquivo | Enquanto não existe |
+|---|---|
+| centopeia_cava | pedra_cai |
+| centopeia_emerge | pedra_cai |
+| centopeia_cuspe | kit_cuspe |
+| serpente_aperta | serpente_sibilo (baixo) |
+| serpente_cauda | pedra_cai |
